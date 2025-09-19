@@ -1,0 +1,24 @@
+function prepareSI (omega, Hamiltonian, hoppingInter, hoppingBath, size, eta=0.000000001):
+    sigmaL = np.zeros((size, size), dtype=complex)
+    sigmaR = np.zeros((size, size), dtype=complex)
+    
+    #sigmaL(1,1) = t_c^2 *(w +eta*1i)/(2*v^2)*(1-sqrt(1-(4*v^2)/(w+eta *1i)^2));
+    #sigmaR(N,N) =t_c^2 *(w +eta*1i)/(2*v^2)*(1-sqrt(1-(4*v^2)/(w+eta *1i)^2));
+    
+    #G = (w +eta*1i)/(2*v^2)*(1-sqrt(1-(4*v^2)/(w+eta *1i)^2))
+    G = (omega+1j*eta)/(2*hoppingBath**2)*(1-np.sqrt(1-(4*hoppingBath**2)/(omega+1j*eta)**2))
+    
+    sigmaL[0,0] = hoppingInter**2 * G
+    sigmaR[size-1,size-1] =hoppingInter**2 * G
+    
+    sigmaLdagger = np.conj(sigmaL.T)
+    sigmaRdagger = np.conj(sigmaR.T)
+    
+    gammaR = 1j*(sigmaR - sigmaRdagger);
+    gammaL = 1j* (sigmaL - sigmaLdagger);
+    
+    Diag = (omega+1j*eta)*np.identity(size, dtype=complex)
+    GreensInv = Diag - (Hamiltonian + sigmaL + sigmaR)
+    Greens = np.linalg.inv(GreensInv);
+    
+    return Greens, gammaL, gammaR
