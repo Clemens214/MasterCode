@@ -1,0 +1,225 @@
+function [totalSystem, gammaL, gammaR] = makeSystem(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals, options)
+    %takes the Hamiltonian of a sample and computes the Hamiltonian of the total System, including the leads
+    arguments
+        sample
+        sizeSample
+        orderSample
+        sizeLead
+        hoppingLead
+        hoppingsInter
+        leadVals
+        options.check = true
+        options.moreCheck = false
+    end
+    
+    % generate the Hamiltonians of the leads
+    sigmaL = makeLead(sizeSample, orderSample, sizeLead, leadVals, hoppingLead, left=true);
+    sigmaR = makeLead(sizeSample, orderSample, sizeLead, leadVals, hoppingLead, right=true);
+    if options.moreCheck == true
+        compareGamma(sigmaL, sigmaR);
+    end
+    
+    % compute the coupling strengths
+    gammaL = -1j*(sigmaL - sigmaL'); %1j*(sigmaL - sigmaL');
+    gammaR = -1j*(sigmaR - sigmaR'); %1j*(sigmaR - sigmaR');
+    if options.moreCheck == true
+        compareGamma(gammaL, gammaR);
+    end
+    
+    sizeCenter = length(sample);
+    % generate the hopping matrices between the leads and the system
+    interLeft = makeInter(sizeLead, sizeCenter, hoppingsInter, left=true);
+    interRight = makeInter(sizeLead, sizeCenter, hoppingsInter, right=true);
+
+    % generate the Hamiltonian of the total system
+    totalSystem = combine(sizeCenter, sizeLead, sample, sigmaL, sigmaR, interLeft, interRight);
+    
+    % check the generated Hamiltonians
+    if options.check == true
+        checkHamiltonian(totalSystem)
+        checkGamma(gammaL, 'gammaL')
+        checkGamma(gammaR, 'gammaR')
+    end
+end
+
+%% constructing function fot the Hamiltonian
+function [lead] = makeLead(sizeSample, orderSample, sizeLead, leadVals, hopping, opt)
+    arguments
+        sizeSample
+        orderSample
+        sizeLead
+        leadVals
+        hopping
+        opt.left = false
+        opt.right = false
+    end
+    % unpack the variables for the leads
+    [maxVal, decay, offset] = leadVals{:};
+    % calculate the sizes of the system and the matrix
+    sizeSystem = sizeSample + 2*sizeLead;
+    sizeTotal = sizeSample*orderSample + 2*sizeLead;
+
+    % generate the Hamiltonian of the lead
+    lead = zeros(sizeTotal, sizeTotal);
+    % make the left part of the lead
+    for row = 1:sizeLead
+        for column = 1:sizeLead
+            rowSample = row;
+            if opt.right == true && opt.left == false %right
+                if row == column
+                    rowRight = sizeSystem - rowSample + 1;
+                    lead(row, column) = 1j*maxVal/(1+exp(decay*(rowRight-offset)));
+                end
+            elseif opt.right == false && opt.left == true %left
+                if row == column
+                    rowLeft = rowSample;
+                    lead(row, column) = 1j*maxVal/(1+exp(decay*(rowLeft-offset)));
+                elseif column == row+1 || column == row-1 %or
+                    lead(row, column) = hopping;
+                end
+            end
+        end
+    end
+    % make the central part of the lead
+    for row = sizeLead+1:sizeTotal-sizeLead
+        for column = sizeLead+1:sizeTotal-sizeLead
+            rowSample = sizeLead + ceil((row-sizeLead)/orderSample);
+            if opt.right == true && opt.left == false %right
+                if row == column
+                    rowRight = sizeSystem - rowSample + 1;
+                    lead(row, column) = 1j*maxVal/(1+exp(decay*(rowRight-offset)));
+                end
+            elseif opt.right == false && opt.left == true %left
+                if row == column
+                    rowLeft = rowSample;
+                    lead(row, column) = 1j*maxVal/(1+exp(decay*(rowLeft-offset)));
+                end
+            end
+        end
+    end
+    % make the right part of the lead
+    for row = sizeTotal-sizeLead+1:sizeTotal
+        for column = sizeTotal-sizeLead+1:sizeTotal
+            rowSample = row - (sizeTotal-sizeSystem);
+            if opt.right == true && opt.left == false %right
+                if row == column
+                    rowRight = sizeSystem - rowSample + 1;
+                    lead(row, column) = 1j*maxVal/(1+exp(decay*(rowRight-offset)));
+                elseif column == row+1 || column == row-1 %or
+                    lead(row, column) = hopping;
+                end
+            elseif opt.right == false && opt.left == true %left
+                if row == column
+                    rowLeft = rowSample;
+                    lead(row, column) = 1j*maxVal/(1+exp(decay*(rowLeft-offset)));
+                end
+            end
+        end
+    end
+end
+
+function [inter] = makeInter(sizeLead, sizeCenter, hoppingsInter, opt)
+    arguments
+        sizeLead
+        sizeCenter
+        hoppingsInter
+        opt.left = false
+        opt.right = false
+    end
+    endVal = size(hoppingsInter);
+    endVal = endVal(2);
+    if opt.right == true && opt.left == false %right
+        inter = zeros(sizeLead, sizeCenter);
+        for i = 1:endVal
+            inter(1, end-endVal+i) = hoppingsInter(2, i); %Correct Formula
+        end
+    elseif opt.right == false && opt.left == true %left
+        inter = zeros(sizeCenter, sizeLead);
+        for i = 1:endVal
+            inter(i, end) = hoppingsInter(1, i);
+        end
+    end
+end
+
+function [totalSystem] = combine(sizeSample, sizeLead, sample, leadLeft, leadRight, interLeft, interRight)
+    sizeTotal = length(leadLeft);
+    totalSystem = leadLeft + leadRight;
+
+    for row  = 1:sizeSample
+        for column = 1:sizeSample
+            rowTotal = row+sizeLead;
+            columnTotal = column+sizeLead;
+            if row == column
+                totalSystem(rowTotal, columnTotal) = totalSystem(rowTotal, columnTotal) + sample(row, column);
+            else
+                totalSystem(rowTotal, columnTotal) = sample(row, column);
+            end
+        end
+    end
+    
+    top = 1:sizeLead;
+    mid = sizeLead+1:sizeTotal-sizeLead;
+    bottom = sizeTotal-sizeLead+1:sizeTotal;
+    % add the left hoppings between lead and sample
+    totalSystem(mid, top) = interLeft;
+    totalSystem(top, mid) = interLeft.'; %transpose
+    % add the right hoppings between lead and sample
+    totalSystem(bottom, mid) = interRight;
+    totalSystem(mid, bottom) = interRight.'; %transpose
+end
+
+%% helping functions
+function [] = checkHamiltonian(totalSystem)
+    Diff = totalSystem - totalSystem';
+    Diag = true;
+    offDiag = true;
+    for i = 1:length(Diff)
+        for j = 1:length(Diff)
+            if Diff(i,j) ~= 0 %not equal to zero
+                if i==j
+                    Diag = false;
+                else
+                    offDiag = false;
+                end
+            end
+        end
+    end
+    if Diag == true && offDiag == true
+        disp('The Hamiltonian is totally hermitian.')
+    elseif Diag == true
+        disp('The diagonal elements of the Hamiltonian are hermitian.')
+    elseif offDiag == true
+        disp('The offdiagonal elements of the Hamiltonian are hermitian.')
+    else
+        disp('No part of the Hamiltonian is hermitian.')
+    end
+end
+
+function [] = checkGamma(gamma, name)
+    [~, flag] = chol(gamma);
+    if flag == 0
+        disp([name, ' is symmetric positive definite. Flag = ', num2str(flag)])
+    else
+        disp([name, ' is not symmetric positive definite. Flag = ', num2str(flag)])
+    end
+end
+
+function [] = compareGamma(gammaL, gammaR)
+    % diagonalize the matrices
+    diagL = diag(gammaL);
+    diagR = diag(gammaR);
+    % compare the matrices
+    compareL = diagL;
+    compareR = flip(diagR);
+    if compareL == compareR
+        disp('The diagonals are equivalent!')
+    else
+        disp('The diagonals are not equivalent!')
+        xData = 1:length(compareL);
+        hold on
+        plot(xData, compareL)
+        plot(xData, compareR)
+        hold off
+        % set breakpoint here
+    end
+end

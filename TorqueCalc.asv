@@ -1,0 +1,269 @@
+function [Torques, varargout] = TorqueCalc(SystemVals, chemPots, angles, voltages, opt)
+    %calculates the torque experienced by a molecule as in the PhD thesis
+    arguments
+        SystemVals
+        chemPots
+        angles
+        voltages
+        opt.conservative = false
+        opt.nonconservative = false
+        opt.left = false
+        opt.right = false
+    end
+    options = struct('conservative', opt.conservative, ...
+                        'nonconservative', opt.nonconservative, ...
+                        'left', opt.left, 'right', opt.right);
+    % calculate the matrices in the presence of an applied voltage
+    Torques = cell(1, length(angles));
+    Traces = cell(1, length(angles));
+    for i = 1:length(angles)
+        totalSysDeriv = SystemVals(i).totalSysDeriv;
+        gammaL = SystemVals(i).gammaL;
+        gammaR = SystemVals(i).gammaR;
+        leftEVs = SystemVals(i).leftEVs;
+        rightEVs = SystemVals(i).rightEVs;
+        
+        % compute the matrices
+        disp(['Start calculation of the torque matrices. Angle = ',num2str(angles(i)),', i=',num2str(i)])
+        if opt.conservative == true || opt.nonconservative == true || opt.left == true || opt.right == true
+            TorqueMatrix = MatrixCalc(leftEVs, rightEVs, totalSysDeriv, gammaL, gammaR, options);
+        else
+            [TorqueMatrixL, TorqueMatrixR] = MatrixCalc(leftEVs, rightEVs, totalSysDeriv, gammaL, gammaR, options);
+        end
+        disp(['Finished calculation of the torque matrices. Angle = ',num2str(angles(i)),', i=',num2str(i)])
+        
+        Torques{i} = zeros(1, length(voltages));
+        Traces{i} = cell(1, length(voltages));
+        for j = 1:length(voltages)
+            % compute the factors
+            EigenVals = SystemVals(i).EigenVals;
+            chemPot = {chemPots(j).left, chemPots(j).right};
+            if opt.conservative == true || opt.nonconservative == true || opt.left == true || opt.right == true
+                Factors = FactorCalc(EigenVals, chemPot, options);
+            else
+                [FactorsL, FactorsR] = FactorCalc(EigenVals, chemPot, options);
+            end
+            
+            % compute the transmission
+            disp('Start calculation of the torque.')
+            if opt.conservative == true || opt.nonconservative == true || opt.left == true || opt.right == true
+                [Torque, TorqueTraces] = ResultCalc(TorqueMatrix, Factors);
+            else
+                [TorqueL, TorqueTracesL] = ResultCalc(TorqueMatrixL, FactorsL);
+                [TorqueR, TorqueTracesR] = ResultCalc(TorqueMatrixR, FactorsR);
+                Torque = TorqueL + TorqueR;
+                TorqueTraces = TorqueTracesL + TorqueTracesR;
+            end
+            Torques{i}(j) = Torque;
+            Traces{i}{j} = TorqueTraces;
+            disp(['Finished calculation of the torque. ',num2str(Torque) ...
+                ' Angle = ',num2str(angles(i)),', i=',num2str(i), ...
+                ', Voltage = ',num2str(voltages(j)),', j=',num2str(j)])
+        end
+    end
+    varargout{1} = Traces;
+end
+
+function [Result, varargout] = ResultCalc(Matrices, Factors, options)
+    %calculates the torque experienced by a molecule
+    arguments
+        Matrices
+        Factors
+        options.evalIndex = 1
+    end
+    % calculate the torque matrix
+    Size = size(Matrices(1).matrix);
+    Matrix = zeros(Size(1), 1);
+    for idx = 1:length(Matrices)
+        if Matrices
+        Matrix = Matrix + Matrices(:,idx)*Factors(idx);
+    end
+    % calculate the Traces
+    Traces = allTrace(real(Matrix));
+    
+    % calculate the final results
+    Result = Traces(options.evalIndex);
+    varargout{1} = Traces;
+    varargout{2} = real(Matrix);
+end
+
+%% calculate the matrices
+function [Matrices, varargout] = MatrixCalc(leftEVs, rightEVs, totalSysDeriv, gammaL, gammaR, options)
+    %calculates all the different matrix elements
+    arguments
+        leftEVs
+        rightEVs
+        totalSysDeriv
+        gammaL
+        gammaR
+        options
+    end
+    % generate and populate the struct used in the parfor loop
+    index = struct('i', [], 'j', [], ...
+                    'leftEV', [], 'leftEVD', [], ...
+                    'rightEV', [], 'rightEVD', []);
+    for i = 1:length(leftEVs)
+        for j = 1:length(leftEVs)
+            idx = (i-1)*length(leftEVs) + j;
+            % set the normal variables
+            leftEV = leftEVs(:,i)';
+            rightEV = rightEVs(:,i);
+            % set the daggered variables
+            leftEVD = leftEVs(:,j);
+            rightEVD = rightEVs(:,j)';
+            % populate the struct
+            index(idx) = struct('i', i, 'j', j, ...
+                                'leftEV', leftEV, 'leftEVD', leftEVD, ...
+                                'rightEV', rightEV, 'rightEVD', rightEVD);
+        end
+    end
+    % calculate the matrices
+    [Matrices, varargout{1}] = MatrixChoice(index, totalSysDeriv, gammaL, gammaR, options);
+end
+
+function [Matrices, varargout] = MatrixChoice(index, totalSysDeriv, gammaL, gammaR, options)
+    %calculates all the different matrix elements
+    arguments
+        index
+        totalSysDeriv
+        gammaL
+        gammaR
+        options
+    end
+    % calculate the matrices
+    if options.conservative == true || options.nonconservative == true || options.left == true || options.right == true
+        if options.conservative == true
+            midFactor = gammaL + gammaR;
+        elseif options.nonconservative == true
+            midFactor = gammaL - gammaR;
+        elseif options.left == true
+            midFactor = gammaL;
+        elseif options.right == true
+            midFactor = gammaR;
+        end
+        Matrices = MatrixTorque(index, totalSysDeriv, midFactor);
+        varargout{1} = zeros(length(totalSysDeriv), length(index));
+    else
+        Matrices = MatrixTorque(index, totalSysDeriv, gammaL);
+        varargout{1} = MatrixTorque(index, totalSysDeriv, gammaR);
+    end
+end
+
+function [Matrices] = MatrixTorque(index, totalSysDeriv, midFactor)
+    Matrices = zeros(length(totalSysDeriv), length(index));
+    Matrices = struct('i', [], 'j', [], 'matrix', []);
+    parfor idx = 1:numel(index)
+        % get the normal Eigenvectors
+        leftEV = index(idx).leftEV;
+        rightEV = index(idx).rightEV;
+        
+        % get the daggered Eigenvectors
+        leftEVdagger = index(idx).leftEVD;
+        rightEVdagger = index(idx).rightEVD;
+        
+        % compute the matrix element for chosen i and j
+        ProductLeft = totalSysDeriv * rightEV;
+        ProductMid = leftEV * midFactor * leftEVdagger;
+        ProductRight = rightEVdagger;
+        
+        Product = ProductLeft * ProductMid * ProductRight;
+        Matrices(idx).matrix = diag(Product);
+        Matrices(idx).i = diag(Product);
+        Matrices(idx).j = diag(Product);
+    end
+end
+
+%% calculate the factors
+function [Factors, varargout] = FactorCalc(Eigenvals, chemPots, options)
+    %calculates the transport through by a molecule as calculated in the PhD-Thesis
+    arguments
+        Eigenvals
+        chemPots
+        options
+    end
+    % generate and populate the struct used in the parfor loop
+    index = struct('i', [], 'j', [], ...
+                    'EigenVal', [], 'EigenValD', []);
+    for i = 1:length(Eigenvals)
+        for j = 1:length(Eigenvals)
+            idx = (i-1)*length(Eigenvals) + j;
+            % set the normal variables
+            EigenVal = Eigenvals(i,i);
+            % set the daggered variables
+            EigenValD = Eigenvals(j,j)';
+            % populate the struct
+            index(idx) = struct('i', i, 'j', j, ...
+                                'EigenVal', EigenVal, 'EigenValD', EigenValD);
+        end
+    end
+    [chemPotL, chemPotR] = chemPots{:};
+
+    % calculate the factors
+    Factors = zeros(1, numel(index));
+    FactorsAdd = zeros(1, numel(index));
+    Factors = struct('i', [], 'j', [], 'factor', []);
+    FactorsAdd = struct('i', [], 'j', [], 'factor', []);
+    parfor idx = 1:numel(index)
+        % get the Eigenvalues
+        EigVal = index(idx).EigenVal;
+        EigValDagger = index(idx).EigenValD;
+
+        % compute the factor
+        [Factors(idx).factor, FactorsAdd(idx).factor] = FactorChoice(EigVal, EigValDagger, chemPotL, chemPotR, options)
+
+        % return the indices
+        Factors(idx).i = idx.i;
+        Factors(idx).j = idx.j;
+        FactorsAdd(idx).i = idx.i;
+        FactorsAdd(idx).j = idx.j;
+    end
+    varargout{1} = FactorsAdd;
+end
+
+function [Factor, varargout] = FactorChoice(EigVal, EigValDagger, chemPotL, chemPotR, options)
+    arguments
+        EigVal
+        EigValDagger
+        chemPotL
+        chemPotR
+        options
+    end
+    % choose how to calculate the desired factor
+    if options.conservative == true || options.nonconservative == true || options.left == true || options.right == true
+        if options.conservative == true
+            Factor = 1/2*(FactorElement(EigVal, EigValDagger, chemPotL) + FactorElement(EigVal, EigValDagger, chemPotR));
+        elseif options.nonconservative == true
+            Factor = 1/2*(FactorElement(EigVal, EigValDagger, chemPotL) - FactorElement(EigVal, EigValDagger, chemPotR));
+        elseif options.left == true
+            Factor = FactorElement(EigVal, EigValDagger, chemPotL);
+        elseif options.right == true
+            Factor = FactorElement(EigVal, EigValDagger, chemPotR);
+        end
+        varargout{1} = 0;
+    else
+        Factor = FactorElement(EigVal, EigValDagger, chemPotL);
+        varargout{1} = FactorElement(EigVal, EigValDagger, chemPotR);
+    end
+end
+
+function [result] = FactorElement(eig1, eig2, chemPot)
+    if eig1 ~= eig2
+        factor = 1/(eig1 - eig2);
+        element1 = log(chemPot - eig1);
+        element2 = log(chemPot - eig2);
+        result = factor*(element1 - element2);
+    else
+        result = -1/(chemPot - eig1);
+    end
+end
+
+%% helping functions
+function [Transmissions] = allTrace(Matrix)
+    Transmissions = zeros(1, floor(length(Matrix)/2));
+    for i = 1:floor(length(Matrix)/2)
+        startIndex = i;
+        endIndex = length(Matrix) - (i-1);
+        matrix = Matrix(startIndex:endIndex);
+        Transmissions(i) = sum(matrix);
+    end
+end

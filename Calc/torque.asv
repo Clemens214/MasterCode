@@ -1,0 +1,127 @@
+function [ResultTotal, ResultLeft, ResultRight, varargout] = torque(totalSystem, Eigenvals, leftEVs, rightEVs, totalSysDeriv, gammaL, gammaR, chemPots, options)
+    %calculates the torque experienced by a molecule as calculated in the PhD-Thesis
+    arguments
+        totalSystem
+        Eigenvals
+        leftEVs
+        rightEVs
+        totalSysDeriv
+        gammaL
+        gammaR
+        chemPots
+        options.linearResponse = false
+        options.evalIndex = 1
+    end
+    
+    TotalMatrix = zeros(length(Eigenvals), length(Eigenvals));
+    %disp('Starting calculation of the torque.')
+    gammas = {gammaL, gammaR};
+    TorqueMatrices = cell(1, length(gammas));
+    for i = 1:length(gammas)
+        gamma = gammas{i};
+        chemPot = chemPots{i};
+        % determine whether the calculation is to be done using linear response
+        if options.linearResponse == false
+            TorqueMatrix = Torque(Eigenvals, leftEVs, rightEVs, totalSysDeriv, gamma, chemPot);
+        else
+            TorqueMatrix = TorqueZeroTemp(totalSystem, totalSysDeriv, gamma);
+        end
+        TorqueMatrices{i} = TorqueMatrix;
+        TotalMatrix = TotalMatrix + TorqueMatrix;
+    end
+    %disp('Finished calculation of the torque.')
+    TotalTraces = allTrace(real(TotalMatrix));
+    ResultTotal = TotalTraces(options.evalIndex);
+    
+    TotalTraces = allTrace(real(TotalMatrix));
+    ResultTotal = TotalTraces(options.evalIndex);
+
+    TotalTraces = allTrace(real(TotalMatrix));
+    ResultTotal = TotalTraces(options.evalIndex);
+    
+    varargout{1} = TotalTraces;
+    varargout{2} = real(TotalMatrix);
+end
+
+%% transmission at finite temperature
+function [Result] = Torque(Eigenvals, leftEVs, rightEVs, totalSysDeriv, gamma, chemPot)
+    index = struct('i', [], 'j', []);
+    for i = 1:length(leftEVs)
+        for j = 1:length(leftEVs)
+            idx = (i-1)*length(leftEVs) + j;
+            index(idx) = struct('i', i, 'j', j);
+        end
+    end
+    
+    %disp('Starting calculation of the current element.')
+    Result = zeros(length(leftEVs), length(leftEVs));
+    parfor idx = 1:numel(index)
+        i = index(idx).i;
+        j = index(idx).j;
+        
+        % get the normal left and right Eigenvectors
+        EigVal = Eigenvals(i,i);
+        leftEV = leftEVs(:,i)';
+        rightEV = rightEVs(:,i);
+        
+        % get the daggered Eigenvectors
+        EigValDagger = Eigenvals(j,j)';
+        leftEVdagger = leftEVs(:,j);
+        rightEVdagger = rightEVs(:,j)';
+        
+        % compute the matrix element for chosen i and j
+        ProductLeft = totalSysDeriv * rightEV;
+        ProductMid = leftEV * gamma * leftEVdagger;
+        ProductRight = rightEVdagger;
+        
+        Product = ProductLeft * ProductMid * ProductRight;
+        
+        % compute the additional matrix element
+        factor = matrixElement(EigVal, EigValDagger, chemPot);
+        
+        Result = Result + Product*factor;
+    end
+    %disp('Finished calculation of the current element.')
+end
+
+function [result] = matrixElement(eig1, eig2, chemPot)
+    if eig1 ~= eig2
+        factor = 1/(eig1 - eig2);
+        element1 = log(chemPot - eig1);
+        element2 = log(chemPot - eig2);
+        result = factor*(element1 - element2);
+    else
+        result = -1/(chemPot - eig1);
+    end
+end
+
+%% torque in the linear transport approximation
+function [Transmission] = TorqueZeroTemp(totalSystem, totalSysDeriv, gamma)
+    % calculate the Greens Function
+    GreensFuncInv = eye(length(totalSystem)) - totalSystem;
+    GreensFunc = inv(GreensFuncInv);
+    
+    % calculate the matrix product
+    Transmission = totalSysDeriv * GreensFunc * gamma * GreensFunc';
+end
+
+%% helping functions
+function [Transmissions] = allTrace(Matrix)
+    Transmissions = zeros(1, floor(length(Matrix)/2));
+    for i = 1:floor(length(Matrix)/2)
+        startIndex = i;
+        endIndex = length(Matrix) - (i-1);
+        matrix = Matrix(startIndex:endIndex, startIndex:endIndex);
+        Transmissions(i) = trace(matrix);
+    end
+end
+
+function [Transmissions] = allTraceOld(Matrix, sizeLead, sizeSample)
+    Transmissions = zeros(1, sizeLead+1);
+    for i = 0:floor(length(Matrix)/2)
+        startIndex = (sizeLead+1) - i;
+        endIndex = sizeLead+sizeSample + i;
+        matrix = Matrix(startIndex:endIndex, startIndex:endIndex);
+        Transmissions(i+1) = trace(matrix);
+    end
+end
