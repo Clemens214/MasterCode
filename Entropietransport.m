@@ -19,10 +19,11 @@ hoppingLead = hopping;
 hoppingInter = hopping;
 
 %variables for the calculation of the current
-TempMax = 0.5; %2;
+TempMax = 2; %2;
 TempStep = 0.05; %0.05;
 TempNum = TempMax/TempStep+1;
-Temps = linspace(0+TempStep, TempMax, TempNum-1);
+Temps = linspace(0, TempMax, TempNum);
+
 chemPotMax = 1; %1;
 chemPotStep = 1;
 chemPotNum = 2*chemPotMax/chemPotStep+1;
@@ -89,75 +90,24 @@ end
 [AvgEnergy, StdEnergy] = Average(AllEnergy, chemPots, Temps, averageTimes);
 [AvgResult, StdResult] = Average(AllResult, chemPots, Temps, averageTimes);
 
+plotGraph (1, 'Entropy', Temps, AvgEntropy, StdEntropy, chemPots)
+plotGraph (2, 'Particle', Temps, AvgParticle, StdParticle, chemPots)
+plotGraph (3, 'Energy', Temps, AvgEnergy, StdEnergy, chemPots)
+%plotGraph (4, 'Result', Temps, AvgResult, StdResult, chemPots)
 
-AvgEntropy(1:length(chemPots)) = {zeros(1,length(Temps))};
-AvgParticle(1:length(chemPots)) = {zeros(1,length(Temps))};
-AvgEnergy(1:length(chemPots)) = {zeros(1,length(Temps))};
-AvgResult(1:length(chemPots)) = {zeros(1,length(Temps))};
-
-StdEntropy(1:length(chemPots)) = {zeros(1,length(Temps))};
-StdParticle(1:length(chemPots)) = {zeros(1,length(Temps))};
-StdEnergy(1:length(chemPots)) = {zeros(1,length(Temps))};
-StdResult(1:length(chemPots)) = {zeros(1,length(Temps))};
-for i = 1:length(chemPots)
-    avgEntropy = zeros(1,length(Temps));
-    avgParticle = zeros(1,length(Temps));
-    avgEnergy = zeros(1,length(Temps));
-
-    stdEntropy = zeros(1,length(Temps));
-    stdParticle = zeros(1,length(Temps));
-    stdEnergy = zeros(1,length(Temps));
-    for j = 1:length(Temps)
-        tempsEntropy = zeros(1,length(averageTimes));
-        tempsParticle = zeros(1,length(averageTimes));
-        tempsEnergy = zeros(1,length(averageTimes));
-        for k = 1:length(averageTimes)
-            tempsEntropy(k) = AllEntropy{k}{i}(j);
-            tempsParticle(k) = AllParticle{k}{i}(j);
-            tempsEnergy(k) = AllEnergy{k}{i}(j);
-        end
-        avgEntropy(j) = mean(tempsEntropy);
-        avgParticle(j) = mean(tempsParticle);
-        avgEnergy(j) = mean(tempsEnergy);
-
-        stdEntropy(j) = std(tempsEntropy);
-        stdParticle(j) = std(tempsParticle);
-        stdEnergy(j) = std(tempsEnergy);
+%%
+function [] = plotGraph (value, Title, Temps, AvgVals, StdVals, chemPots)
+    figure(value);
+    title(Title);
+    for i = 1:length(chemPots)
+        errorbar(Temps, AvgVals{i}, StdVals{i})
+        hold on
     end
-    AvgEntropy{i} = avgEntropy;
-    AvgParticle{i} = avgParticle;
-    AvgEnergy{i} = avgEnergy;
-    
-    StdEntropy{i} = stdEntropy;
-    StdParticle{i} = stdParticle;
-    StdEnergy{i} = stdEnergy;
+    labels = strcat('chemPot = ',cellstr(num2str(chemPots.')));
+    legend(labels)
 end
 
-labels = strcat('chemPot = ',cellstr(num2str(chemPots.')));
-
-figure(1);
-for i = 1:length(chemPots)
-    errorbar(Temps, AvgEntropy{i}, StdEntropy{i})
-    hold on
-    labels{i} = append('v', num2str(chemPots(i)));
-end
-legend(labels)
-
-figure(2);
-for i = 1:length(chemPots)
-    errorbar(Temps, AvgParticle{i}, StdParticle{i})
-    hold on
-end
-legend(labels)
-
-figure(3);
-for i = 1:length(chemPots)
-    errorbar(Temps, AvgEnergy{i}, StdEnergy{i})
-    hold on
-end
-legend(labels)
-
-%% 
+%%
 function [values] = randomNum (magnitude, size)
     values = zeros(size);
     for i = 1:size
@@ -175,7 +125,7 @@ function [AvgVals, StdVals] = Average (Data, chemPots, Temps, averageTimes)
         stdVals = zeros(1,length(Temps));
         for j = 1:length(Temps)
             allVals = zeros(1,length(averageTimes));
-            for k = 1:length(averageTimes)
+            for k = 1:averageTimes
                 allVals(k) = Data{k}{i}(j);
             end
             avgVals(j) = mean(allVals);
