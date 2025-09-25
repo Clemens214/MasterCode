@@ -90,7 +90,6 @@ end
 [AvgEnergy, StdEnergy] = Average(AllEnergy, chemPots, Temps, averageTimes);
 [AvgResult, StdResult] = Average(AllResult, chemPots, Temps, averageTimes);
 
-
 AvgEntropy(1:length(chemPots)) = {zeros(1,length(Temps))};
 AvgParticle(1:length(chemPots)) = {zeros(1,length(Temps))};
 AvgEnergy(1:length(chemPots)) = {zeros(1,length(Temps))};
@@ -138,7 +137,22 @@ labels = strcat('chemPot = ',cellstr(num2str(chemPots.')));
 
 figure(1);
 for i = 1:length(chemPots)
+    errorbar(Temps, AvgEntropy{i}, StdEntropy{i})
+    hold on
+    labels{i} = append('v', num2str(chemPots(i)));
+end
+legend(labels)
+
+figure(2);
+for i = 1:length(chemPots)
     errorbar(Temps, AvgParticle{i}, StdParticle{i})
+    hold on
+end
+legend(labels)
+
+figure(3);
+for i = 1:length(chemPots)
+    errorbar(Temps, AvgEnergy{i}, StdEnergy{i})
     hold on
 end
 legend(labels)
@@ -161,7 +175,7 @@ function [AvgVals, StdVals] = Average (Data, chemPots, Temps, averageTimes)
         stdVals = zeros(1,length(Temps));
         for j = 1:length(Temps)
             allVals = zeros(1,length(averageTimes));
-            for k = 1:length(averageTimes)
+            for k = 1:averageTimes
                 allVals(k) = Data{k}{i}(j);
             end
             avgVals(j) = mean(allVals);

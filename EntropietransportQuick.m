@@ -90,40 +90,28 @@ end
 [AvgEnergy, StdEnergy] = Average(AllEnergy, chemPots, Temps, averageTimes);
 [AvgResult, StdResult] = Average(AllResult, chemPots, Temps, averageTimes);
 
-plotGraph (1, 'Entropy', Temps, AvgEntropy, StdEntropy, chemPots, GraphName('Entropy', averageTimes, disorderStrength))
-plotGraph (2, 'Particle', Temps, AvgParticle, StdParticle, chemPots, GraphName('Particle', averageTimes, disorderStrength))
-plotGraph (3, 'Energy', Temps, AvgEnergy, StdEnergy, chemPots, GraphName('Energy', averageTimes, disorderStrength))
-%plotGraph (4, 'Result', Temps, AvgResult, StdResult, chemPots, GraphName('Result', averageTimes, disorderStrength))
+plotGraph (1, 'Entropy', Temps, AvgEntropy, StdEntropy, chemPots)
+plotGraph (2, 'Particle', Temps, AvgParticle, StdParticle, chemPots)
+plotGraph (3, 'Energy', Temps, AvgEnergy, StdEnergy, chemPots)
+%plotGraph (4, 'Result', Temps, AvgResult, StdResult, chemPots)
 
 %%
-function [] = plotGraph (value, Title, Temps, AvgVals, StdVals, chemPots, filename)
+function [] = plotGraph (value, Title, Temps, AvgVals, StdVals, chemPots)
     figure(value);
     title(Title);
     for i = 1:length(chemPots)
-        %plot(Temps, AvgVals{i})
         errorbar(Temps, AvgVals{i}, StdVals{i})
         hold on
     end
     labels = strcat('chemPot = ',cellstr(num2str(chemPots.')));
     legend(labels)
-    saveas(gcf, filename, 'fig')
-end
-
-function [name] = GraphName (Title, averageTimes, disorderStrength)
-     nameOld = strcat(Title, '_', num2str(averageTimes), 'avg_w', num2str(disorderStrength));
-     name = replace(nameOld, '.', ',');
-end
-
-function [name] = FileName (Title, disorderStrength, lengthSample, lengthTotal)
-     nameOld = strcat(Title, '_w', num2str(disorderStrength), '_Nsys', num2str(lengthSample), '_Ntot', num2str(lengthTotal));
-     name = replace(nameOld, '.', ',');
 end
 
 %%
 function [values] = randomNum (magnitude, size)
     values = zeros(size);
     for i = 1:size
-        randVal = rand*2 - 1;
+        randVal = vpa(rand)*2 - 1;
         values(i) = randVal*magnitude;
     end
 end
