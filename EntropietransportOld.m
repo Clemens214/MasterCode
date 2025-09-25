@@ -1,11 +1,10 @@
-%profile clear
-%profile on -historysize 20000000
 %% Variables
+
 % variables for the sample
 lengthSample = 48; %96
 %normal lengthSample: 96
 disorderStrength = 0; %[0.1, 1];
-averageTimes = 5; %20;
+averageTimes = 1; %20;
 hopping = 1;
 
 % variables for the leads
@@ -22,8 +21,9 @@ hoppingInter = hopping;
 %variables for the calculation of the current
 TempMax = 2; %2;
 TempStep = 0.05; %0.05;
-TempNum = TempMax/TempStep+1+1;
-Temps = linspace(0, TempMax, TempNum-1);
+TempNum = TempMax/TempStep+1;
+Temps = linspace(0, TempMax, TempNum);
+
 chemPotMax = 1; %1;
 chemPotStep = 1;
 chemPotNum = 2*chemPotMax/chemPotStep+1;

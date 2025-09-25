@@ -19,11 +19,12 @@ hoppingLead = hopping;
 hoppingInter = hopping;
 
 %variables for the calculation of the current
-TempMax = 0.5; %2;
+TempMax = 2; %2;
 TempStep = 0.05; %0.05;
 TempNum = TempMax/TempStep+1;
 Temps = linspace(0, TempMax, TempNum);
-chemPotMax = 0; %1;
+
+chemPotMax = 1; %1;
 chemPotStep = 1;
 chemPotNum = 2*chemPotMax/chemPotStep+1;
 chemPots = linspace(-chemPotMax, chemPotMax, chemPotNum);

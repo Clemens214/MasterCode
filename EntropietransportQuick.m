@@ -1,10 +1,9 @@
-%profile clear
-%profile on -historysize 20000000
 %% Variables
+
 % variables for the sample
 lengthSample = 48; %96
 %normal lengthSample: 96
-disorderStrength = 1.0; %[0.1, 1];
+disorderStrength = 0; %[0.1, 1];
 averageTimes = 1; %20;
 hopping = 1;
 
@@ -20,10 +19,11 @@ hoppingLead = hopping;
 hoppingInter = hopping;
 
 %variables for the calculation of the current
-TempMax = 1; %2;
+TempMax = 2; %2;
 TempStep = 0.05; %0.05;
-TempNum = TempMax/TempStep+1+1;
-Temps = linspace(0, TempMax, TempNum-1);
+TempNum = TempMax/TempStep+1;
+Temps = linspace(0, TempMax, TempNum);
+
 chemPotMax = 1; %1;
 chemPotStep = 1;
 chemPotNum = 2*chemPotMax/chemPotStep+1;
@@ -85,21 +85,17 @@ for i = 1:averageTimes
     AllResult{i} = PotsResult;
 end
 
-%%
 [AvgEntropy, StdEntropy] = Average(AllEntropy, chemPots, Temps, averageTimes);
 [AvgParticle, StdParticle] = Average(AllParticle, chemPots, Temps, averageTimes);
 [AvgEnergy, StdEnergy] = Average(AllEnergy, chemPots, Temps, averageTimes);
-%[AvgResult, StdResult] = Average(AllResult, chemPots, Temps, averageTimes);
+[AvgResult, StdResult] = Average(AllResult, chemPots, Temps, averageTimes);
 
 plotGraph (1, 'Entropy', Temps, AvgEntropy, StdEntropy, chemPots, GraphName('Entropy', averageTimes, disorderStrength))
 plotGraph (2, 'Particle', Temps, AvgParticle, StdParticle, chemPots, GraphName('Particle', averageTimes, disorderStrength))
 plotGraph (3, 'Energy', Temps, AvgEnergy, StdEnergy, chemPots, GraphName('Energy', averageTimes, disorderStrength))
 %plotGraph (4, 'Result', Temps, AvgResult, StdResult, chemPots, GraphName('Result', averageTimes, disorderStrength))
 
-save(FileName('Entropy', disorderStrength, lengthSample, lengthTotal), "AllEntropy")
-save(FileName('Particle', disorderStrength, lengthSample, lengthTotal), "AllParticle")
-save(FileName('Energy', disorderStrength, lengthSample, lengthTotal), "AllEnergy")
-
+%%
 function [] = plotGraph (value, Title, Temps, AvgVals, StdVals, chemPots, filename)
     figure(value);
     title(Title);
@@ -123,6 +119,7 @@ function [name] = FileName (Title, disorderStrength, lengthSample, lengthTotal)
      name = replace(nameOld, '.', ',');
 end
 
+%%
 function [values] = randomNum (magnitude, size)
     values = zeros(size);
     for i = 1:size
@@ -131,6 +128,7 @@ function [values] = randomNum (magnitude, size)
     end
 end
 
+%%
 function [AvgVals, StdVals] = Average (Data, chemPots, Temps, averageTimes)
     AvgVals(1:length(chemPots)) = {zeros(1,length(Temps))};
     StdVals(1:length(chemPots)) = {zeros(1,length(Temps))};
@@ -150,6 +148,7 @@ function [AvgVals, StdVals] = Average (Data, chemPots, Temps, averageTimes)
     end
 end
 
+%%
 function [] = plotTransmission (omegas, sample, totalSystemEM, gammaL_EM, gammaR_EM, hoppingInter, hoppingLead, lengthSample, lengthLead)
     [TransmissionsEM, TransmissionsSI] = Transmission(omegas, sample, totalSystemEM, gammaL_EM, gammaR_EM, hoppingInter, hoppingLead, lengthSample, lengthLead);
     plot(omegas, [TransmissionsEM, TransmissionsSI])
