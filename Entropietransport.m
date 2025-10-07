@@ -1,22 +1,21 @@
 %% Variables
 
 % variables for the sample
-lengthSample = 48; %96
-%normal lengthSample: 96
-disorderStrength = 0; %[0.1, 1];
-averageTimes = 1; %20;
+lengthSample = 48;
+orderSample = 1;
 hopping = 1;
 
 % variables for the leads
-lengthTotal = 256; %256
-%normal lengthTotal: 256
-lengthLead = (lengthTotal-lengthSample)/2;
+lengthLead = 104;
 maxVal = 1;
 decay = 0.2; %0.3
 offset = 32; %32
 %offset should be at most half the length of the leads; normal: 32
 hoppingLead = hopping;
 hoppingInter = hopping;
+
+
+lengthTotal = 256; %256
 
 %variables for the calculation of the current
 TempMax = 2; %2;
