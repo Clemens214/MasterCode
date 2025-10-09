@@ -1,22 +1,22 @@
 %% Variables
 
 % variables for the sample
-lengthSample = 480;
+sizeSample = 48;
 orderSample = 1;
 hopping = 1;
 hoppingsSample = hopping*eye(orderSample);
 eigenenergy = 0;
 
 % variables for the leads
-lengthLead = 104;
+sizeLead = 104;
 maxVal = 1;
 decay = 0.2; %0.3
 offset = 32; %32
 %offset should be at most half the length of the leads; normal: 32
 hoppingLead = hopping;
-hoppingInter = hopping;
+hoppingsInter = [hopping; hopping];
 
-lengthTotal = lengthSample+ 2*lengthLead; %256
+sizeTotal = sizeSample+ 2*sizeLead; %256
 
 %variables for the calculation of the current
 TempMax = 2; %2;
@@ -39,10 +39,28 @@ omegas = linspace(-omegaMax, omegaMax, omegaNum);
 %% Calculation
 
 % compute the Hamiltonian of the Sample
-sample = makeSample(eigenenergy, hoppingsSample, lengthSample,  orderSample);
+sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
 
 % preparing the Extended Molecule Hamiltonian
-[totalSystemEM, gammaL_EM, gammaR_EM] = prepareEM(sample, hopping, lengthSample, lengthTotal, maxVal, decay, offset);
+[totalSystemEM, gammaL_EM, gammaR_EM] = prepareEM(sample, hopping, sizeSample, sizeTotal, maxVal, decay, offset);
+[leadVals, derivVals] = calcVals(maxVal, decay, offset);
+[totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
+
+if all(totalSystem == totalSystemEM)
+    disp('The total System Hamiltonians match!')
+else
+    disp('The total System Hamiltonians do NOT match!')
+end
+if all(gammaL == gammaL_EM)
+    disp('The gammaLs match!')
+else
+    disp('The gammaLs do NOT match!')
+end
+if all(gammaR == gammaR_EM)
+    disp('The gammaRs match!')
+else
+    disp('The gammaRs do NOT match!')
+end
 
 % compute the Transmissions
 %plotTransmission (omegas, sample, totalSystemEM, gammaL_EM, gammaR_EM, hoppingInter, hoppingLead, lengthSample, lengthLead);
@@ -56,7 +74,7 @@ Particle(1:length(chemPots)) = {zeros(1,length(Temps))};
 for j = 1:length(chemPots)
     currentsParticle = zeros(1,length(Temps));
     for k = 1:length(Temps)
-        [particleResult] = currentQuick(totalSystemEM, gammaL_EM, gammaR_EM, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), lengthLead);
+        [particleResult] = currentQuick(totalSystemEM, gammaL_EM, gammaR_EM, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), sizeLead);
         currentsParticle(k) = particleResult;
         disp(['chemPot: ', num2str(chemPots(j)), ', Temp: ', num2str(Temps(k))])
     end
@@ -75,6 +93,18 @@ function [] = plotGraph (value, Title, Temps, Vals, chemPots)
     end
     labels = strcat('chemPot = ',cellstr(num2str(chemPots.')));
     legend(labels)
+end
+
+function [leadVals, derivVals] = calcVals(maxVal, decay, offset)
+    arguments
+        maxVal = 1
+        decay = 0.3
+        % offset should be at most half the length of the leads
+        offset = 32
+        % normal: 32
+    end
+    leadVals = {maxVal, decay, offset};
+    derivVals = {0, decay, offset};
 end
 
 %%

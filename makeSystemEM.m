@@ -37,7 +37,7 @@ end
     interR = makeInter(sizeLead, sizeCentral, hoppingsInter, right=true);
     
     % generate the Hamiltonian of the total system
-    totalSystem = combineH(sizeLead, sizeCentral, sample, leadLeft, leadRight, interL, interR);
+    totalSystem = combineH(sizeLead, sizeCentral, sample, sigmaL, sigmaR, interL, interR);
     if options.check == true
         checkHamiltonian(totalSystem)
     end
@@ -56,12 +56,15 @@ end
     values = zeros(1, sizeSystem);
     for i = 1:sizeSystem
         if options.left == true && options.right == false
-            site = i;
-            values(i) = 1j * maxVal/(1+exp(decay*(site-offset)));
+            site = i+1;
+            %sites(i)+1
+            %sites(i)+1-offset
         elseif options.left == false && options.right == true
-            site = sizeSystem - i + 1;
-            values(i) = 1j * maxVal/(1+exp(decay*(site-offset)));
+            site = sizeSystem - i;
+            %lengthTotal-sites(i)
+            %lengthTotal-sites(i)-offset
         end
+        values(i) = 1j * maxVal/(1+exp(decay*(site-offset)));
     end
 end
 
@@ -90,7 +93,7 @@ end
                 rowSample(row) = row;
                 lead(row, column) = fermiFunc(rowSample(row));
             elseif abs(row-column) <= 1 && options.left == true && options.right == false
-                lead(row, sample) = hopping;
+                lead(row, column) = hopping;
             end
         end
     end
@@ -108,10 +111,9 @@ end
         for column = sizeRight+1 : sizeTotal
             if row == column
                 rowSample(row) = row - (sizeSample*(orderSample-1));
-                lead(row, column) = fermiFunc(rowSample);
-                rowSample(row) = rowSample;
+                lead(row, column) = fermiFunc(rowSample(row));
             elseif abs(row-column) <= 1 && options.left == false && options.right == true
-                lead(row, sample) = hopping;
+                lead(row, column) = hopping;
             end
         end
     end
@@ -130,14 +132,15 @@ end
     endVal = size(hoppingsInter);
     endVal = endVal(2);
     if options.left == true && options.right == false
-        inter = zeros(sizeLead, sizeCentral);
+        inter = zeros(sizeCentral, sizeLead);
         for i = 1:endVal
             inter(i, end) = hoppingsInter(1, i);
         end
     elseif options.left == false && options.right == true
-        inter = zeros(sizeCentral, sizeLead);
+        inter = zeros(sizeLead, sizeCentral);
         for i = 1:endVal
-            inter(1, end-endVal+i) = hoppingsInter(2, i);
+            test = sizeCentral-endVal+i;
+            inter(1, sizeCentral-endVal+i) = hoppingsInter(2, i);
         end
     end
 end
