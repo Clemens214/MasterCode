@@ -14,8 +14,7 @@ offset = 32; %32
 hoppingLead = hopping;
 hoppingInter = hopping;
 
-
-lengthTotal = 256; %256
+lengthTotal = lengthSample+ 2*lengthLead; %256
 
 %variables for the calculation of the current
 TempMax = 2; %2;
@@ -36,12 +35,11 @@ omegaNum = 2*omegaMax/omegaStep+1;
 omegas = linspace(-omegaMax, omegaMax, omegaNum);
 
 %% Calculation
-AllEntropy(1:length(averageTimes)) = {cell([1, length(chemPots)])};
-AllParticle(1:length(averageTimes)) = {cell([1, length(chemPots)])};
-AllEnergy(1:length(averageTimes)) = {cell([1, length(chemPots)])};
-AllResult(1:length(averageTimes)) = {cell([1, length(chemPots)])};
+averageTimes = 1;
+AllParticle(1:averageTimes) = {cell([1, length(chemPots)])};
 for i = 1:averageTimes
     % compute the Hamiltonian of the Sample
+    disorderStrength = 0;
     sample = makeHamiltonian(randomNum(disorderStrength, lengthSample), hopping, lengthSample, 'top left');
     
     % preparing the Extended Molecule Hamiltonian
@@ -55,44 +53,23 @@ for i = 1:averageTimes
     [Eigenvals, leftEVs, rightEVs, ControlEV, MatchLeft, MatchRight, DiffLeft, DiffRight] = eigenvectors(totalSystemEM);
     disp('Finished calculation of the Eigenvectors.')
     
-    PotsEntropy(1:length(chemPots)) = {zeros(1,length(Temps))};
     PotsParticle(1:length(chemPots)) = {zeros(1,length(Temps))};
-    PotsEnergy(1:length(chemPots)) = {zeros(1,length(Temps))};
-    PotsResult(1:length(chemPots)) = {zeros(1,length(Temps))};
     for j = 1:length(chemPots)
-        currentsEntropy = zeros(1,length(Temps));
         currentsParticle = zeros(1,length(Temps));
-        currentsEnergy = zeros(1,length(Temps));
-        currentsResult = zeros(1,length(Temps));
         for k = 1:length(Temps)
-            [entropyResult, particleResult, energyResult, ProductResult] = currentQuick(totalSystemEM, gammaL_EM, gammaR_EM, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), lengthLead);
+            [particleResult] = currentQuick(totalSystemEM, gammaL_EM, gammaR_EM, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), lengthLead);
             %[entropyResult, particleResult, energyResult] = current(totalSystemEM, gammaL_EM, gammaR_EM, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), lengthLead);
-            currentsEntropy(k) = entropyResult;
             currentsParticle(k) = particleResult;
-            currentsEnergy(k) = energyResult;
-            currentsResult(k) = ProductResult;
             disp(['Average: ', num2str(i), ', chemPot: ', num2str(chemPots(j)), ', Temp: ', num2str(Temps(k))])
         end
-        PotsEntropy{j} = currentsEntropy;
         PotsParticle{j} = currentsParticle;
-        PotsEnergy{j} = currentsEnergy;
-        PotsResult{j} = currentsResult;
     end
-    AllEntropy{i} = PotsEntropy;
     AllParticle{i} = PotsParticle;
-    AllEnergy{i} = PotsEnergy;
-    AllResult{i} = PotsResult;
 end
 
-[AvgEntropy, StdEntropy] = Average(AllEntropy, chemPots, Temps, averageTimes);
 [AvgParticle, StdParticle] = Average(AllParticle, chemPots, Temps, averageTimes);
-[AvgEnergy, StdEnergy] = Average(AllEnergy, chemPots, Temps, averageTimes);
-[AvgResult, StdResult] = Average(AllResult, chemPots, Temps, averageTimes);
 
-plotGraph (1, 'Entropy', Temps, AvgEntropy, StdEntropy, chemPots)
-plotGraph (2, 'Particle', Temps, AvgParticle, StdParticle, chemPots)
-plotGraph (3, 'Energy', Temps, AvgEnergy, StdEnergy, chemPots)
-%plotGraph (4, 'Result', Temps, AvgResult, StdResult, chemPots)
+plotGraph (1, 'Particle', Temps, AvgParticle, StdParticle, chemPots)
 
 %%
 function [] = plotGraph (value, Title, Temps, AvgVals, StdVals, chemPots)

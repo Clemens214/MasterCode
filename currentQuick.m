@@ -1,4 +1,4 @@
-function [entropyResult, particleResult, energyResult, ProductResult] = currentQuick(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, Temp, chemPot, value)
+function [Result] = currentQuick(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, Temp, chemPot, value)
     % define the states to be used for calculating the current
     stateLeft = zeros(1,length(Eigenvals));
     stateLeft(value+1) = 1;
@@ -9,17 +9,11 @@ function [entropyResult, particleResult, energyResult, ProductResult] = currentQ
     midFactor = gammaL - gammaR;
     %disp('Starting calculation of the current.')
     if Temp == 0
-        ProductResult = imag(Transmission(chemPot, totalSystem, midFactor, value));
-        particleResult = ProductResult;
-        energyResult = chemPot*ProductResult;
-        entropyResult = energyResult - chemPot*particleResult;
+        TotalResult = Transmission(chemPot, totalSystem, midFactor, value);
     else
-        [entropyResult, particleResult, energyResult, ProductResult] = currentElement(stateLeft, stateRight, Eigenvals, leftEVs, rightEVs, midFactor, Temp, chemPot);
-        entropyResult = imag(entropyResult);
-        particleResult = imag(particleResult);
-        energyResult = imag(energyResult);
-        ProductResult = imag(ProductResult);
+        TotalResult = currentElement(stateLeft, stateRight, Eigenvals, leftEVs, rightEVs, midFactor, Temp, chemPot);
     end
+    Result = imag(TotalResult);
     %disp('Finished calculation of the current.')
 end
 
@@ -43,7 +37,7 @@ function [T] = Transport (GreensFunc, midFactor, value)
 end
 
 %% 
-function [entropyResult, particleResult, energyResult, ProductResult] = currentElement (stateLeft, stateRight, Eigenvals, leftEVs, rightEVs, midFactor, Temp, chemPot)
+function [Result] = currentElement (stateLeft, stateRight, Eigenvals, leftEVs, rightEVs, midFactor, Temp, chemPot)
     %disp('Starting calculation of the Hurwitz Zeta values.')
     Hurwitz = zeros(length(Eigenvals));
     HurwitzDagger = zeros(length(Eigenvals));
@@ -58,10 +52,7 @@ function [entropyResult, particleResult, energyResult, ProductResult] = currentE
     %disp('Finished calculation of the Hurwitz Zeta values.')
     
     %disp('Starting calculation of the current element.')
-    particleResult = 0;
-    energyResult = 0;
-    entropyResult = 0;
-    ProductResult = 0;
+    Result = 0;
     for i = 1:length(leftEVs)
         % get the normal left and right Eigenvectors
         EigVal = Eigenvals(i,i);
@@ -83,15 +74,9 @@ function [entropyResult, particleResult, energyResult, ProductResult] = currentE
             Product = ProductLeft * ProductMid * ProductRight;
             
             % compute the additional matrix element
-            factorEnergy = energyElementQuick(EigVal, EigValDagger, Hurwitz(i), HurwitzDagger(j));
             factorParticle = particleElementQuick(EigVal, EigValDagger, Hurwitz(i), HurwitzDagger(j));
-            factor = factorEnergy - chemPot*factorParticle;
             
-            particleResult = particleResult + Product*factorParticle;
-            energyResult = energyResult + Product*factorEnergy;
-            entropyResult = entropyResult + Product*factor*1/Temp;
-
-            ProductResult = ProductResult + Product;
+            Result = Result + Product*factorParticle;
         end
     end
     %disp('Finished calculation of the current element.')
@@ -101,11 +86,6 @@ end
 function [result] = particleElementQuick (eig1, eig2, HurwitzEig1, HurwitzEig2)
     factor = 1/(eig1 -eig2);
     result = factor*HurwitzEig1 - factor*HurwitzEig2;
-end
-
-function [result] = energyElementQuick (eig1, eig2, HurwitzEig1, HurwitzEig2)
-    factor = 1/(eig1 -eig2);
-    result = eig1*factor*HurwitzEig1 - eig2*factor*HurwitzEig2;
 end
 
 function [result] = HurwitzZeta (x, beta)
