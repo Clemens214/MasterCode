@@ -3,6 +3,7 @@
 % variables for the sample
 lengthSample = 48;
 orderSample = 1;
+eigenenergy = 0;
 hopping = 1;
 
 % variables for the leads
@@ -39,7 +40,7 @@ averageTimes = 1;
 AllParticle(1:averageTimes) = {cell([1, length(chemPots)])};
 for i = 1:averageTimes
     % compute the Hamiltonian of the Sample
-    sample = makeHamiltonian(randomNum(disorderStrength, lengthSample), hopping, lengthSample, 'top left');
+    sample = makeHamiltonian(eigenenergy, hopping, lengthSample, 'top left');
     
     % preparing the Extended Molecule Hamiltonian
     [totalSystemEM, gammaL_EM, gammaR_EM] = prepareEM(sample, hopping, lengthSample, lengthTotal, maxVal, decay, offset);
