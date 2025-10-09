@@ -39,7 +39,14 @@ omegas = linspace(-omegaMax, omegaMax, omegaNum);
 %% Calculation
 
 % compute the Hamiltonian of the Sample
+sampleEM = makeHamiltonian(eigenenergy, hopping, sizeSample, 'top left');
 sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
+
+if all(sample == sampleEM)
+    disp('The sample Hamiltonians match!')
+else
+    disp('The sample Hamiltonians do NOT match!')
+end
 
 % preparing the Extended Molecule Hamiltonian
 [totalSystemEM, gammaL_EM, gammaR_EM] = prepareEM(sample, hopping, sizeSample, sizeTotal, maxVal, decay, offset);
