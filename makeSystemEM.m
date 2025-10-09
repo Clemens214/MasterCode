@@ -25,8 +25,8 @@ end
     sigmaR = makeLead(fermiFuncRight, hoppingLead, sizeSample, orderSample, sizeLead, right=true);
     
     % compute the coupling strengths of the leads
-    gammaL = 1j*(sigmaL - sigmaL');
-    gammaR = 1j*(sigmaR - sigmaR');
+    gammaL = -1j*(sigmaL - sigmaL'); %1j*(sigmaL - sigmaL');
+    gammaR = -1j*(sigmaR - sigmaR'); %1j*(sigmaR - sigmaR');
     if options.check == true
         checkGamma(gammaL, 'gammaL')
         checkGamma(gammaR, 'gammaR')
