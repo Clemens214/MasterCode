@@ -3,8 +3,9 @@
 % variables for the sample
 lengthSample = 48;
 orderSample = 1;
-eigenenergy = 0;
 hopping = 1;
+hoppingsSample = hopping*eye(orderSample);
+eigenenergy = 0;
 
 % variables for the leads
 lengthLead = 104;
@@ -40,6 +41,12 @@ omegas = linspace(-omegaMax, omegaMax, omegaNum);
 % compute the Hamiltonian of the Sample
 sample = makeHamiltonian(eigenenergy, hopping, lengthSample, 'top left');
 
+sample2 = makeSample(eigenenergy, hoppingsSample, lengthSample,  orderSample);
+
+if sample == sample2
+    disp()
+end
+
 % preparing the Extended Molecule Hamiltonian
 [totalSystemEM, gammaL_EM, gammaR_EM] = prepareEM(sample, hopping, lengthSample, lengthTotal, maxVal, decay, offset);
 
@@ -51,25 +58,25 @@ disp('Starting calculation of the Eigenvectors.')
 [Eigenvals, leftEVs, rightEVs, ControlEV, MatchLeft, MatchRight, DiffLeft, DiffRight] = eigenvectors(totalSystemEM);
 disp('Finished calculation of the Eigenvectors.')
 
-AvgParticle(1:length(chemPots)) = {zeros(1,length(Temps))};
+Particle(1:length(chemPots)) = {zeros(1,length(Temps))};
 for j = 1:length(chemPots)
     currentsParticle = zeros(1,length(Temps));
     for k = 1:length(Temps)
         [particleResult] = currentQuick(totalSystemEM, gammaL_EM, gammaR_EM, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), lengthLead);
         currentsParticle(k) = particleResult;
-        disp(['Average: ', num2str(i), ', chemPot: ', num2str(chemPots(j)), ', Temp: ', num2str(Temps(k))])
+        disp(['chemPot: ', num2str(chemPots(j)), ', Temp: ', num2str(Temps(k))])
     end
-        AvgParticle{j} = currentsParticle;
+    Particle{j} = currentsParticle;
 end
 
-plotGraph (1, 'Particle', Temps, AvgParticle, chemPots)
+plotGraph (1, 'Particle', Temps, Particle, chemPots)
 
 %%
-function [] = plotGraph (value, Title, Temps, AvgVals, chemPots)
+function [] = plotGraph (value, Title, Temps, Vals, chemPots)
     figure(value);
     title(Title);
     for i = 1:length(chemPots)
-        plot(Temps, AvgVals{i})
+        plot(Temps, Vals{i})
         hold on
     end
     labels = strcat('chemPot = ',cellstr(num2str(chemPots.')));

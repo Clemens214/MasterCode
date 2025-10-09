@@ -1,10 +1,11 @@
 %% Variables
 
 % variables for the sample
-lengthSample = 48;
+lengthSample = 480;
 orderSample = 1;
-eigenenergy = 0;
 hopping = 1;
+hoppingsSample = hopping*eye(orderSample);
+eigenenergy = 0;
 
 % variables for the leads
 lengthLead = 104;
@@ -38,7 +39,7 @@ omegas = linspace(-omegaMax, omegaMax, omegaNum);
 %% Calculation
 
 % compute the Hamiltonian of the Sample
-sample = makeHamiltonian(eigenenergy, hopping, lengthSample, 'top left');
+sample = makeSample(eigenenergy, hoppingsSample, lengthSample,  orderSample);
 
 % preparing the Extended Molecule Hamiltonian
 [totalSystemEM, gammaL_EM, gammaR_EM] = prepareEM(sample, hopping, lengthSample, lengthTotal, maxVal, decay, offset);
