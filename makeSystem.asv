@@ -25,9 +25,8 @@ function [totalSystem, gammaL, gammaR] = makeSystem(sample, sizeSystem, sizeLead
     
     if all(indicesL == indicesR) && options.check == true
         disp('The indices match!')
-        filename = append('Indices',int2str(sizeSample/sizeSystem), '.mat');
-        assignin('base', "Indices1", indicesL)
-        save(filename, "indicesL")
+        filename = append('Indices',int2str(sizeSample/sizeSystem));
+        save("Indices2", "indicesL)
     elseif ~all(indicesL == indicesR) && options.check == true
         error('The indices do NOT match!')
     end

@@ -1,7 +1,7 @@
 %% Set the variables
 % variables for the sample
 sizeSample = 48; %48
-orderSample = 2;
+orderSample = 1;
 eigenenergy = 0;
 hopping = 1;
 hoppingsSample = hopping*eye(orderSample);
@@ -15,12 +15,12 @@ offset = 32;
 hoppingLead = hopping;
 
 % angles
-angleMax = 2*pi;
+angleMax = 0;%2*pi;
 angleStep = pi/8;
 angles = makeList(angleMax, angleStep);
 
 % voltages
-voltMax = 4;
+voltMax = 0;%4;
 voltStep = 0.1;
 voltages = makeList(voltMax, voltStep);
 
@@ -42,7 +42,8 @@ disp('Finished the calculation.')
 
 %% plot the data
 %Plot(angles, voltages, Transmission, threeD=true, Num=1, Title='Transmission', Names={'Transmission'})
-Plot(angles, voltages, TorqueC, threeD=true, Num=1, Title='conservative Torque', Names={'Torque'})
+%Plot(angles, voltages, TorqueC, threeD=true, Num=1, Title='conservative Torque', Names={'Torque'})
+save("/home/hoc10737/GitHub/Masterarbeit/Indices1.mat", "Indices1")
 
 %% setup functions
 function [SystemVals] = setupSystem(sizeSample, orderSample, sizeLead, eigenenergy, hopping, hoppingsSample, hoppingLead, leadVals, derivVals, angles)
