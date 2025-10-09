@@ -3,6 +3,7 @@
 % variables for the sample
 lengthSample = 48;
 orderSample = 1;
+eigenerergy = 0;
 hopping = 1;
 
 % variables for the leads
@@ -35,11 +36,10 @@ omegaNum = 2*omegaMax/omegaStep+1;
 omegas = linspace(-omegaMax, omegaMax, omegaNum);
 
 %% Calculation
-averageTimes = 1
+averageTimes = 1;
 AllParticle(1:averageTimes) = {cell([1, length(chemPots)])};
 for i = 1:averageTimes
     % compute the Hamiltonian of the Sample
-    disorderStrength = 0;
     sample = makeHamiltonian(randomNum(disorderStrength, lengthSample), hopping, lengthSample, 'top left');
     
     % preparing the Extended Molecule Hamiltonian
@@ -57,7 +57,7 @@ for i = 1:averageTimes
     for j = 1:length(chemPots)
         currentsParticle = zeros(1,length(Temps));
         for k = 1:length(Temps)
-            [entropyResult, particleResult, energyResult, ProductResult] = currentQuick(totalSystemEM, gammaL_EM, gammaR_EM, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), lengthLead);
+            [particleResult] = currentQuick(totalSystemEM, gammaL_EM, gammaR_EM, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), lengthLead);
             %[entropyResult, particleResult, energyResult] = current(totalSystemEM, gammaL_EM, gammaR_EM, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), lengthLead);
             currentsParticle(k) = particleResult;
             disp(['Average: ', num2str(i), ', chemPot: ', num2str(chemPots(j)), ', Temp: ', num2str(Temps(k))])
