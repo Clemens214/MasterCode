@@ -11,8 +11,8 @@ function [H] = makeHamiltonian(eigenenergy, hopping, size, alignment)
     end
     
     H = zeros(size, size);
-    for row = 1:length(eigenenergy)
-        for column = 1:length(eigenenergy)
+    for row = 1:size
+        for column = 1:size
             if row == column
                 H(row, column) = eigenenergy;
             end

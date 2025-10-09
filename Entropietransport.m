@@ -36,70 +36,44 @@ omegaNum = 2*omegaMax/omegaStep+1;
 omegas = linspace(-omegaMax, omegaMax, omegaNum);
 
 %% Calculation
-averageTimes = 1;
-AllParticle(1:averageTimes) = {cell([1, length(chemPots)])};
-for i = 1:averageTimes
-    % compute the Hamiltonian of the Sample
-    sample = makeHamiltonian(eigenenergy, hopping, lengthSample, 'top left');
-    
-    % preparing the Extended Molecule Hamiltonian
-    [totalSystemEM, gammaL_EM, gammaR_EM] = prepareEM(sample, hopping, lengthSample, lengthTotal, maxVal, decay, offset);
-    
-    % compute the Transmissions
-    %plotTransmission (omegas, sample, totalSystemEM, gammaL_EM, gammaR_EM, hoppingInter, hoppingLead, lengthSample, lengthLead);
 
-    %compute the Eigenvectors and the Eigenvalues of the system
-    disp('Starting calculation of the Eigenvectors.')
-    [Eigenvals, leftEVs, rightEVs, ControlEV, MatchLeft, MatchRight, DiffLeft, DiffRight] = eigenvectors(totalSystemEM);
-    disp('Finished calculation of the Eigenvectors.')
-    
-    PotsParticle(1:length(chemPots)) = {zeros(1,length(Temps))};
-    for j = 1:length(chemPots)
-        currentsParticle = zeros(1,length(Temps));
-        for k = 1:length(Temps)
-            [particleResult] = currentQuick(totalSystemEM, gammaL_EM, gammaR_EM, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), lengthLead);
-            currentsParticle(k) = particleResult;
-            disp(['Average: ', num2str(i), ', chemPot: ', num2str(chemPots(j)), ', Temp: ', num2str(Temps(k))])
-        end
-        PotsParticle{j} = currentsParticle;
+% compute the Hamiltonian of the Sample
+sample = makeHamiltonian(eigenenergy, hopping, lengthSample, 'top left');
+
+% preparing the Extended Molecule Hamiltonian
+[totalSystemEM, gammaL_EM, gammaR_EM] = prepareEM(sample, hopping, lengthSample, lengthTotal, maxVal, decay, offset);
+
+% compute the Transmissions
+%plotTransmission (omegas, sample, totalSystemEM, gammaL_EM, gammaR_EM, hoppingInter, hoppingLead, lengthSample, lengthLead);
+
+%compute the Eigenvectors and the Eigenvalues of the system
+disp('Starting calculation of the Eigenvectors.')
+[Eigenvals, leftEVs, rightEVs, ControlEV, MatchLeft, MatchRight, DiffLeft, DiffRight] = eigenvectors(totalSystemEM);
+disp('Finished calculation of the Eigenvectors.')
+
+Particle(1:length(chemPots)) = {zeros(1,length(Temps))};
+for j = 1:length(chemPots)
+    currentsParticle = zeros(1,length(Temps));
+    for k = 1:length(Temps)
+        [particleResult] = currentQuick(totalSystemEM, gammaL_EM, gammaR_EM, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), lengthLead);
+        currentsParticle(k) = particleResult;
+        disp(['chemPot: ', num2str(chemPots(j)), ', Temp: ', num2str(Temps(k))])
     end
-    AllParticle{i} = PotsParticle;
+    Particle{j} = currentsParticle;
 end
 
-[AvgParticle, StdParticle] = Average(AllParticle, chemPots, Temps, averageTimes);
-
-plotGraph (1, 'Particle', Temps, AvgParticle, StdParticle, chemPots)
+plotGraph (1, 'Particle', Temps, Particle, chemPots)
 
 %%
-function [] = plotGraph (value, Title, Temps, AvgVals, StdVals, chemPots)
+function [] = plotGraph (value, Title, Temps, Vals, chemPots)
     figure(value);
     title(Title);
     for i = 1:length(chemPots)
-        errorbar(Temps, AvgVals{i}, StdVals{i})
+        plot(Temps, Vals{i})
         hold on
     end
     labels = strcat('chemPot = ',cellstr(num2str(chemPots.')));
     legend(labels)
-end
-
-%%
-function [AvgVals, StdVals] = Average (Data, chemPots, Temps, averageTimes)
-    AvgVals(1:length(chemPots)) = {zeros(1,length(Temps))};
-    StdVals(1:length(chemPots)) = {zeros(1,length(Temps))};
-    for i = 1:length(chemPots)
-        avgVals = zeros(1,length(Temps));
-        stdVals = zeros(1,length(Temps));
-        for j = 1:length(Temps)
-            allVals = zeros(1,length(averageTimes));
-            for k = 1:averageTimes
-                allVals(k) = Data{k}{i}(j);
-            end
-            avgVals(j) = mean(allVals);
-            stdVals(j) = std(allVals);
-        end
-        AvgVals{i} = avgVals;
-        StdVals{i} = stdVals;
-    end
 end
 
 %%
