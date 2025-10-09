@@ -56,9 +56,9 @@ end
     values = zeros(1, sizeSystem);
     for i = 1:sizeSystem
         if options.left == true && options.right == false
-            site = i+1;
+            site = i;
         elseif options.left == false && options.right == true
-            site = sizeSystem - i;
+            site = sizeSystem - i+1;
         end
         values(i) = 1j * maxVal/(1+exp(decay*(site-offset)));
     end
