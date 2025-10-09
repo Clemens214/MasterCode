@@ -3,31 +3,28 @@
 % variables for the sample
 sizeSample = 48;
 orderSample = 1;
+eigenenergy = 0;
 hopping = 1;
 hoppingsSample = hopping*eye(orderSample);
-eigenenergy = 0;
 
 % variables for the leads
-sizeLead = 10;
-maxVal = 1;
-decay = 0.2; %0.3
-offset = 32; %32
-%offset should be at most half the length of the leads; normal: 32
+sizeLead = 104;
+[leadVals, derivVals] = calcVals(maxVal = 1, decay = 0.2, offset);
 hoppingLead = hopping;
 hoppingsInter = [hopping; hopping];
-
-sizeTotal = sizeSample+ 2*sizeLead; %256
 
 %variables for the calculation of the current
 TempMax = 2; %2;
 TempStep = 0.05; %0.05;
 TempNum = TempMax/TempStep+1;
 Temps = linspace(0, TempMax, TempNum);
+TempsList = makeList(TempMax, TempStep);
 
 chemPotMax = 1; %1;
 chemPotStep = 1;
 chemPotNum = 2*chemPotMax/chemPotStep+1;
 chemPots = linspace(-chemPotMax, chemPotMax, chemPotNum);
+chemPotsList = makeList(chemPotMax, chemPotStep, full=true);
 
 %variables for the calculation of the transmission
 omegaVal = 2;
@@ -35,6 +32,7 @@ omegaMax = omegaVal*hopping;
 omegaStep = 0.005;
 omegaNum = 2*omegaMax/omegaStep+1;
 omegas = linspace(-omegaMax, omegaMax, omegaNum);
+omegasList = makeList(omegaMax, chemPotStep, full=true);
 
 %% Calculation
 
@@ -42,28 +40,7 @@ omegas = linspace(-omegaMax, omegaMax, omegaNum);
 sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
 
 % preparing the Extended Molecule Hamiltonian
-[totalSystemEM, gammaL_EM, gammaR_EM] = prepareEM(sample, hopping, sizeSample, sizeTotal, maxVal, decay, offset);
-[leadVals, derivVals] = calcVals(maxVal, decay, offset);
 [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
-
-if all(totalSystem == totalSystemEM)
-    disp('The total System Hamiltonians match!')
-else
-    disp('The total System Hamiltonians do NOT match!')
-end
-if all(gammaL == gammaL_EM)
-    disp('The gammaLs match!')
-else
-    disp('The gammaLs do NOT match!')
-end
-if all(gammaR == gammaR_EM)
-    disp('The gammaRs match!')
-else
-    disp('The gammaRs do NOT match!')
-end
-
-% compute the Transmissions
-%plotTransmission (omegas, sample, totalSystemEM, gammaL_EM, gammaR_EM, hoppingInter, hoppingLead, lengthSample, lengthLead);
 
 %compute the Eigenvectors and the Eigenvalues of the system
 disp('Starting calculation of the Eigenvectors.')
@@ -95,6 +72,22 @@ function [] = plotGraph (value, Title, Temps, Vals, chemPots)
     legend(labels)
 end
 
+%% helping functions
+function [values] = makeList(maxVal, stepVal, options)
+    arguments
+        maxVal 
+        stepVal 
+        options.full = false
+    end
+    if options.full == false
+        minVal = 0;
+    else
+        minVal = -1*maxVal;
+    end
+    numVal = (maxVal-minVal)/stepVal+1;
+    values = linspace(minVal, maxVal, numVal);
+end
+
 function [leadVals, derivVals] = calcVals(maxVal, decay, offset)
     arguments
         maxVal = 1
@@ -105,11 +98,4 @@ function [leadVals, derivVals] = calcVals(maxVal, decay, offset)
     end
     leadVals = {maxVal, decay, offset};
     derivVals = {0, decay, offset};
-end
-
-%%
-function [] = plotTransmission (omegas, sample, totalSystemEM, gammaL_EM, gammaR_EM, hoppingInter, hoppingLead, lengthSample, lengthLead)
-    [TransmissionsEM, TransmissionsSI] = Transmission(omegas, sample, totalSystemEM, gammaL_EM, gammaR_EM, hoppingInter, hoppingLead, lengthSample, lengthLead);
-    plot(omegas, [TransmissionsEM, TransmissionsSI])
-    yscale log
 end
