@@ -3,7 +3,6 @@
 % variables for the sample
 lengthSample = 48;
 orderSample = 1;
-eigenenergy = 0;
 hopping = 1;
 
 % variables for the leads
@@ -40,7 +39,7 @@ averageTimes = 1;
 AllParticle(1:averageTimes) = {cell([1, length(chemPots)])};
 for i = 1:averageTimes
     % compute the Hamiltonian of the Sample
-    sample = makeHamiltonian(eigenenergy, hopping, lengthSample, 'top left');
+    sample = makeHamiltonian(randomNum(disorderStrength, lengthSample), hopping, lengthSample, 'top left');
     
     % preparing the Extended Molecule Hamiltonian
     [totalSystemEM, gammaL_EM, gammaR_EM] = prepareEM(sample, hopping, lengthSample, lengthTotal, maxVal, decay, offset);
@@ -58,7 +57,6 @@ for i = 1:averageTimes
         currentsParticle = zeros(1,length(Temps));
         for k = 1:length(Temps)
             [particleResult] = currentQuick(totalSystemEM, gammaL_EM, gammaR_EM, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), lengthLead);
-            %[entropyResult, particleResult, energyResult] = current(totalSystemEM, gammaL_EM, gammaR_EM, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), lengthLead);
             currentsParticle(k) = particleResult;
             disp(['Average: ', num2str(i), ', chemPot: ', num2str(chemPots(j)), ', Temp: ', num2str(Temps(k))])
         end
@@ -81,15 +79,6 @@ function [] = plotGraph (value, Title, Temps, AvgVals, StdVals, chemPots)
     end
     labels = strcat('chemPot = ',cellstr(num2str(chemPots.')));
     legend(labels)
-end
-
-%%
-function [values] = randomNum (magnitude, size)
-    values = zeros(size);
-    for i = 1:size
-        randVal = vpa(rand)*2 - 1;
-        values(i) = randVal*magnitude;
-    end
 end
 
 %%
