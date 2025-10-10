@@ -41,20 +41,28 @@ disp('Starting calculation of the Eigenvectors.')
 [Eigenvals, leftEVs, rightEVs] = eigenvectors(totalSystem);
 disp('Finished calculation of the Eigenvectors.')
 
-Particle(1:length(chemPots)) = {zeros(1,length(Temps))};
+Transport(1:length(chemPots)) = {zeros(1,length(Temps))};
+Transmission(1:length(chemPots)) = {zeros(1,length(Temps))};
 for j = 1:length(chemPots)
-    currentsParticle = zeros(1,length(Temps));
+    currentsTransport = zeros(1,length(Temps));
+    currentsTransmission = zeros(1,length(Temps));
     for k = 1:length(Temps)
-        [particleResult] = transport(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), value=sizeLead);
-        currentsParticle(k) = particleResult;
+        TransportResult = transport(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), value=sizeLead);
+        currentsTransport(k) = TransportResult;
+
+        TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j));
+        currentsTransmission(k) = TransmissionResult;
+
         disp(['chemPot: ', num2str(chemPots(j)), ', Temp: ', num2str(Temps(k))])
     end
-    Particle{j} = currentsParticle;
+    Transport{j} = currentsTransport;
+    Transmission{j} = currentsTransmission;
 end
 
-plotGraph (1, 'Particle', Temps, Particle, chemPots)
+plotGraph (1, 'Transport', Temps, Transport, chemPots)
+plotGraph (2, 'Transmission', Temps, Transmission, chemPots)
 
-%%
+%% plotting functions
 function [] = plotGraph (value, Title, Temps, Vals, chemPots)
     figure(value);
     title(Title);

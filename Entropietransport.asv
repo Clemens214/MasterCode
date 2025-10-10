@@ -9,30 +9,24 @@ hoppingsSample = hopping*eye(orderSample);
 
 % variables for the leads
 sizeLead = 104;
-[leadVals, derivVals] = calcVals(maxVal = 1, decay = 0.2, offset);
+[leadVals, derivVals] = calcVals(maxVal = 1, decay = 0.2, offset = 32);
 hoppingLead = hopping;
 hoppingsInter = [hopping; hopping];
 
 %variables for the calculation of the current
-TempMax = 2; %2;
+TempMax = 2;
 TempStep = 0.05; %0.05;
-TempNum = TempMax/TempStep+1;
-Temps = linspace(0, TempMax, TempNum);
-TempsList = makeList(TempMax, TempStep);
+Temps = makeList(TempMax, TempStep);
 
-chemPotMax = 1; %1;
+chemPotMax = 1;
 chemPotStep = 1;
-chemPotNum = 2*chemPotMax/chemPotStep+1;
-chemPots = linspace(-chemPotMax, chemPotMax, chemPotNum);
-chemPotsList = makeList(chemPotMax, chemPotStep, full=true);
+chemPots = makeList(chemPotMax, chemPotStep, full=true);
 
 %variables for the calculation of the transmission
 omegaVal = 2;
 omegaMax = omegaVal*hopping;
 omegaStep = 0.005;
-omegaNum = 2*omegaMax/omegaStep+1;
-omegas = linspace(-omegaMax, omegaMax, omegaNum);
-omegasList = makeList(omegaMax, chemPotStep, full=true);
+omegas = makeList(omegaMax, omegaStep, full=true);
 
 %% Calculation
 
@@ -44,23 +38,30 @@ sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
 
 %compute the Eigenvectors and the Eigenvalues of the system
 disp('Starting calculation of the Eigenvectors.')
-[Eigenvals, leftEVs, rightEVs, ControlEV, MatchLeft, MatchRight, DiffLeft, DiffRight] = eigenvectors(totalSystemEM);
+[Eigenvals, leftEVs, rightEVs] = eigenvectors(totalSystem);
 disp('Finished calculation of the Eigenvectors.')
 
-Particle(1:length(chemPots)) = {zeros(1,length(Temps))};
+Transport(1:length(chemPots)) = {zeros(1,length(Temps))};
+Transmission(1:length(chemPots)) = {zeros(1,length(Temps))};
 for j = 1:length(chemPots)
-    currentsParticle = zeros(1,length(Temps));
+    currentsTransport = zeros(1,length(Temps));
+    currentsTransmission = zeros(1,length(Temps));
     for k = 1:length(Temps)
-        [particleResult] = currentQuick(totalSystemEM, gammaL_EM, gammaR_EM, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), sizeLead);
-        currentsParticle(k) = particleResult;
+        TransportResult = transport(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), value=sizeLead);
+        currentsTransport(k) = TransportResult;
+
+        TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j));
+        currentsTransmission(k) = TransportResult;
+
         disp(['chemPot: ', num2str(chemPots(j)), ', Temp: ', num2str(Temps(k))])
     end
-    Particle{j} = currentsParticle;
+    Transport{j} = currentsTransport;
+    Transport{j} = currentsTransport;
 end
 
-plotGraph (1, 'Particle', Temps, Particle, chemPots)
+plotGraph (1, 'Particle', Temps, Transport, chemPots)
 
-%%
+%% plotting functions
 function [] = plotGraph (value, Title, Temps, Vals, chemPots)
     figure(value);
     title(Title);
@@ -88,14 +89,22 @@ function [values] = makeList(maxVal, stepVal, options)
     values = linspace(minVal, maxVal, numVal);
 end
 
-function [leadVals, derivVals] = calcVals(maxVal, decay, offset)
+function [leadVals, derivVals] = calcVals(opt)%(maxVal, decay, offset)
     arguments
-        maxVal = 1
-        decay = 0.3
+        opt.maxVal = 1
+        opt.decay = 0.3
         % offset should be at most half the length of the leads
-        offset = 32
+        opt.offset = 32
         % normal: 32
     end
+    maxVal = opt.maxVal;
+    decay = opt.decay;
+    offset = opt.offset;
     leadVals = {maxVal, decay, offset};
     derivVals = {0, decay, offset};
+end
+
+function [] = saveVar(var, order)
+    filename = append('Indices', int2str(order), '.mat');
+    save(filename, "var")
 end
