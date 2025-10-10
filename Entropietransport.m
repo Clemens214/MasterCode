@@ -1,144 +1,103 @@
 %% Variables
 
 % variables for the sample
-lengthSample = 48; %96
-%normal lengthSample: 96
-disorderStrength = 0; %[0.1, 1];
-averageTimes = 1; %20;
+sizeSample = 48;
+orderSample = 1;
+eigenenergy = 0;
 hopping = 1;
+hoppingsSample = hopping*eye(orderSample);
 
 % variables for the leads
-lengthTotal = 256; %256
-%normal lengthTotal: 256
-lengthLead = (lengthTotal-lengthSample)/2;
-maxVal = 1;
-decay = 0.2; %0.3
-offset = 32; %32
-%offset should be at most half the length of the leads; normal: 32
+sizeLead = 104;
+[leadVals, derivVals] = calcVals(maxVal = 1, decay = 0.2, offset = 32);
 hoppingLead = hopping;
-hoppingInter = hopping;
+hoppingsInter = [hopping; hopping];
 
 %variables for the calculation of the current
-TempMax = 2; %2;
+TempMax = 2;
 TempStep = 0.05; %0.05;
-TempNum = TempMax/TempStep+1;
-Temps = linspace(0, TempMax, TempNum);
+Temps = makeList(TempMax, TempStep);
 
-chemPotMax = 1; %1;
+chemPotMax = 1;
 chemPotStep = 1;
-chemPotNum = 2*chemPotMax/chemPotStep+1;
-chemPots = linspace(-chemPotMax, chemPotMax, chemPotNum);
+chemPots = makeList(chemPotMax, chemPotStep, full=true);
 
 %variables for the calculation of the transmission
 omegaVal = 2;
 omegaMax = omegaVal*hopping;
 omegaStep = 0.005;
-omegaNum = 2*omegaMax/omegaStep+1;
-omegas = linspace(-omegaMax, omegaMax, omegaNum);
+omegas = makeList(omegaMax, omegaStep, full=true);
 
 %% Calculation
-AllEntropy(1:length(averageTimes)) = {cell([1, length(chemPots)])};
-AllParticle(1:length(averageTimes)) = {cell([1, length(chemPots)])};
-AllEnergy(1:length(averageTimes)) = {cell([1, length(chemPots)])};
-AllResult(1:length(averageTimes)) = {cell([1, length(chemPots)])};
-for i = 1:averageTimes
-    % compute the Hamiltonian of the Sample
-    sample = makeHamiltonian(randomNum(disorderStrength, lengthSample), hopping, lengthSample, 'top left');
-    
-    % preparing the Extended Molecule Hamiltonian
-    [totalSystemEM, gammaL_EM, gammaR_EM] = prepareEM(sample, hopping, lengthSample, lengthTotal, maxVal, decay, offset);
-    
-    % compute the Transmissions
-    %plotTransmission (omegas, sample, totalSystemEM, gammaL_EM, gammaR_EM, hoppingInter, hoppingLead, lengthSample, lengthLead);
 
-    %compute the Eigenvectors and the Eigenvalues of the system
-    disp('Starting calculation of the Eigenvectors.')
-    [Eigenvals, leftEVs, rightEVs, ControlEV, MatchLeft, MatchRight, DiffLeft, DiffRight] = eigenvectors(totalSystemEM);
-    disp('Finished calculation of the Eigenvectors.')
-    
-    PotsEntropy(1:length(chemPots)) = {zeros(1,length(Temps))};
-    PotsParticle(1:length(chemPots)) = {zeros(1,length(Temps))};
-    PotsEnergy(1:length(chemPots)) = {zeros(1,length(Temps))};
-    PotsResult(1:length(chemPots)) = {zeros(1,length(Temps))};
-    for j = 1:length(chemPots)
-        currentsEntropy = zeros(1,length(Temps));
-        currentsParticle = zeros(1,length(Temps));
-        currentsEnergy = zeros(1,length(Temps));
-        currentsResult = zeros(1,length(Temps));
-        for k = 1:length(Temps)
-            [entropyResult, particleResult, energyResult, ProductResult] = currentQuick(totalSystemEM, gammaL_EM, gammaR_EM, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), lengthLead);
-            %[entropyResult, particleResult, energyResult] = current(totalSystemEM, gammaL_EM, gammaR_EM, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), lengthLead);
-            currentsEntropy(k) = entropyResult;
-            currentsParticle(k) = particleResult;
-            currentsEnergy(k) = energyResult;
-            currentsResult(k) = ProductResult;
-            disp(['Average: ', num2str(i), ', chemPot: ', num2str(chemPots(j)), ', Temp: ', num2str(Temps(k))])
-        end
-        PotsEntropy{j} = currentsEntropy;
-        PotsParticle{j} = currentsParticle;
-        PotsEnergy{j} = currentsEnergy;
-        PotsResult{j} = currentsResult;
+% compute the Hamiltonian of the Sample
+sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
+
+% preparing the Extended Molecule Hamiltonian
+[totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
+
+%compute the Eigenvectors and the Eigenvalues of the system
+disp('Starting calculation of the Eigenvectors.')
+[Eigenvals, leftEVs, rightEVs] = eigenvectors(totalSystem);
+disp('Finished calculation of the Eigenvectors.')
+
+Particle(1:length(chemPots)) = {zeros(1,length(Temps))};
+for j = 1:length(chemPots)
+    currentsParticle = zeros(1,length(Temps));
+    for k = 1:length(Temps)
+        [particleResult] = transport(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), value=sizeLead);
+        currentsParticle(k) = particleResult;
+        disp(['chemPot: ', num2str(chemPots(j)), ', Temp: ', num2str(Temps(k))])
     end
-    AllEntropy{i} = PotsEntropy;
-    AllParticle{i} = PotsParticle;
-    AllEnergy{i} = PotsEnergy;
-    AllResult{i} = PotsResult;
+    Particle{j} = currentsParticle;
 end
 
-[AvgEntropy, StdEntropy] = Average(AllEntropy, chemPots, Temps, averageTimes);
-[AvgParticle, StdParticle] = Average(AllParticle, chemPots, Temps, averageTimes);
-[AvgEnergy, StdEnergy] = Average(AllEnergy, chemPots, Temps, averageTimes);
-[AvgResult, StdResult] = Average(AllResult, chemPots, Temps, averageTimes);
-
-plotGraph (1, 'Entropy', Temps, AvgEntropy, StdEntropy, chemPots)
-plotGraph (2, 'Particle', Temps, AvgParticle, StdParticle, chemPots)
-plotGraph (3, 'Energy', Temps, AvgEnergy, StdEnergy, chemPots)
-%plotGraph (4, 'Result', Temps, AvgResult, StdResult, chemPots)
+plotGraph (1, 'Particle', Temps, Particle, chemPots)
 
 %%
-function [] = plotGraph (value, Title, Temps, AvgVals, StdVals, chemPots)
+function [] = plotGraph (value, Title, Temps, Vals, chemPots)
     figure(value);
     title(Title);
     for i = 1:length(chemPots)
-        errorbar(Temps, AvgVals{i}, StdVals{i})
+        plot(Temps, Vals{i})
         hold on
     end
     labels = strcat('chemPot = ',cellstr(num2str(chemPots.')));
     legend(labels)
 end
 
-%%
-function [values] = randomNum (magnitude, size)
-    values = zeros(size);
-    for i = 1:size
-        randVal = vpa(rand)*2 - 1;
-        values(i) = randVal*magnitude;
+%% helping functions
+function [values] = makeList(maxVal, stepVal, options)
+    arguments
+        maxVal 
+        stepVal 
+        options.full = false
     end
+    if options.full == false
+        minVal = 0;
+    else
+        minVal = -1*maxVal;
+    end
+    numVal = (maxVal-minVal)/stepVal+1;
+    values = linspace(minVal, maxVal, numVal);
 end
 
-%%
-function [AvgVals, StdVals] = Average (Data, chemPots, Temps, averageTimes)
-    AvgVals(1:length(chemPots)) = {zeros(1,length(Temps))};
-    StdVals(1:length(chemPots)) = {zeros(1,length(Temps))};
-    for i = 1:length(chemPots)
-        avgVals = zeros(1,length(Temps));
-        stdVals = zeros(1,length(Temps));
-        for j = 1:length(Temps)
-            allVals = zeros(1,length(averageTimes));
-            for k = 1:averageTimes
-                allVals(k) = Data{k}{i}(j);
-            end
-            avgVals(j) = mean(allVals);
-            stdVals(j) = std(allVals);
-        end
-        AvgVals{i} = avgVals;
-        StdVals{i} = stdVals;
+function [leadVals, derivVals] = calcVals(opt)%(maxVal, decay, offset)
+    arguments
+        opt.maxVal = 1
+        opt.decay = 0.3
+        % offset should be at most half the length of the leads
+        opt.offset = 32
+        % normal: 32
     end
+    maxVal = opt.maxVal;
+    decay = opt.decay;
+    offset = opt.offset;
+    leadVals = {maxVal, decay, offset};
+    derivVals = {0, decay, offset};
 end
 
-%%
-function [] = plotTransmission (omegas, sample, totalSystemEM, gammaL_EM, gammaR_EM, hoppingInter, hoppingLead, lengthSample, lengthLead)
-    [TransmissionsEM, TransmissionsSI] = Transmission(omegas, sample, totalSystemEM, gammaL_EM, gammaR_EM, hoppingInter, hoppingLead, lengthSample, lengthLead);
-    plot(omegas, [TransmissionsEM, TransmissionsSI])
-    yscale log
+function [] = saveVar(var, order)
+    filename = append('Indices', int2str(order), '.mat');
+    save(filename, "var")
 end

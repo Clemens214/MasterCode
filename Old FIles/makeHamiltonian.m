@@ -1,26 +1,20 @@
-function [H] = makeHamiltonian(eigenenergies, hopping, size, alignment)
-    if size == 0
-        size = length(eigenenergies);
-    end
-    sizeLen = length(eigenenergies);
-    maxSize = max([sizeLen, size]);
-    
+function [H] = makeHamiltonian(eigenenergy, hopping, size, alignment)
     if contains (alignment, 'top')
         startRow = 0;
     elseif contains (alignment, 'bottom')
-        startRow = maxSize - size;
+        startRow = size - size;
     end
     if contains(alignment, 'left')
         startColumn = 0;
     elseif contains(alignment, 'right')
-        startColumn = maxSize - size;
+        startColumn = size - size;
     end
     
-    H = zeros(maxSize, maxSize);
-    for row = 1:length(eigenenergies)
-        for column = 1:length(eigenenergies)
+    H = zeros(size, size);
+    for row = 1:size
+        for column = 1:size
             if row == column
-                H(row, column) = eigenenergies(row);
+                H(row, column) = eigenenergy;
             end
         end
     end
