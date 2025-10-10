@@ -17,7 +17,7 @@ end
     else
         TotalResult = currentElement(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, Temp, chemPot);
     end
-    Result = trace(TotalResult);
+    Result = real(trace(TotalResult));
     %disp('Finished calculation of the current.')
 end
 

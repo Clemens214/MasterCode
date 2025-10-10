@@ -47,8 +47,8 @@ for j = 1:length(chemPots)
     currentsTransport = zeros(1,length(Temps));
     currentsTransmission = zeros(1,length(Temps));
     for k = 1:length(Temps)
-        TransportResult = transport(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), value=sizeLead);
-        currentsTransport(k) = TransportResult;
+        %TransportResult = transport(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), value=sizeLead);
+        %currentsTransport(k) = TransportResult;
 
         TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j));
         currentsTransmission(k) = TransmissionResult;
@@ -59,7 +59,8 @@ for j = 1:length(chemPots)
     Transmission{j} = currentsTransmission;
 end
 
-plotGraph (1, 'Transport', Temps, Transport, chemPots)
+%% plot
+%plotGraph (1, 'Transport', Temps, Transport, chemPots)
 plotGraph (2, 'Transmission', Temps, Transmission, chemPots)
 
 %% plotting functions
