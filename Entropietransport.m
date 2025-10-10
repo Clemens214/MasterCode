@@ -14,11 +14,11 @@ hoppingLead = hopping;
 hoppingsInter = [hopping; hopping];
 
 %variables for the calculation of the current
-TempMax = 2; %2;
+TempMax = 2;
 TempStep = 0.05; %0.05;
 Temps = makeList(TempMax, TempStep);
 
-chemPotMax = 1; %1;
+chemPotMax = 1;
 chemPotStep = 1;
 chemPots = makeList(chemPotMax, chemPotStep, full=true);
 
@@ -95,4 +95,9 @@ function [leadVals, derivVals] = calcVals(opt)%(maxVal, decay, offset)
     offset = opt.offset;
     leadVals = {maxVal, decay, offset};
     derivVals = {0, decay, offset};
+end
+
+function [] = saveVar(var, order)
+    filename = append('Indices', int2str(order), '.mat');
+    save(filename, "var")
 end

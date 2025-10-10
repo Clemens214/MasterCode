@@ -8,7 +8,6 @@ arguments
     hoppingsInter
     leadVals
     options.check = true
-    options.checkMore = false
 end
     sizeTotal = sizeSample*orderSample + 2*sizeLead;
     sizeSystem = sizeSample + 2*sizeLead;
@@ -17,15 +16,20 @@ end
     % compute the fermi functions
     fermiFuncLeft = fermiFunction(sizeSystem, leadVals, left=true);
     fermiFuncRight = fermiFunction(sizeSystem, leadVals, right=true);
-    if options.checkMore == true
+    if options.check == true
         checkFermi(fermiFuncLeft, fermiFuncRight)
     end
     
     % generate the pseudo Hamiltonians of the leads
     [sigmaL, indicesL] = makeLead(fermiFuncLeft, hoppingLead, sizeSample, orderSample, sizeLead, left=true);
     [sigmaR, indicesR] = makeLead(fermiFuncRight, hoppingLead, sizeSample, orderSample, sizeLead, right=true);
-    if options.checkMore == true
-        checkIndex(indicesL, indicesR, orderSample)
+
+    if all(indicesL == indicesR) && options.check == true
+        disp('The indices do match!')
+        
+        assignin('base','name',n);
+    elseif ~all(indicesL == indicesR) && options.check == true
+        error('The indices do NOT match!')
     end
     
     % compute the coupling strengths of the leads
@@ -182,16 +186,6 @@ function [] = checkFermi(fermiFuncLeft, fermiFuncRight)
         disp('The Fermi functions of the leads match!')
     else
         disp('The Fermi functions of the leads do NOT match!')
-    end
-end
-
-function [] = checkIndex(indicesL, indicesR, orderSample)
-    if all(indicesL == indicesR)
-        disp('The indices do match!')
-        Varname = append('Indices', int2str(orderSample));
-        assignin('base', Varname, indicesL);
-    elseif ~all(indicesL == indicesR)
-        error('The indices do NOT match!')
     end
 end
 
