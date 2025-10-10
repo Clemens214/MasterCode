@@ -38,7 +38,7 @@ sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
 
 %compute the Eigenvectors and the Eigenvalues of the system
 disp('Starting calculation of the Eigenvectors.')
-[Eigenvals, leftEVs, rightEVs, ControlEV, MatchLeft, MatchRight, DiffLeft, DiffRight] = eigenvectors(totalSystem);
+[Eigenvals, leftEVs, rightEVs] = eigenvectors(totalSystem);
 disp('Finished calculation of the Eigenvectors.')
 
 Particle(1:length(chemPots)) = {zeros(1,length(Temps))};
