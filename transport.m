@@ -1,15 +1,27 @@
-function [Result] = currentQuick(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, Temp, chemPot, value)
+function [Result] = transport(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, Temp, chemPot, options)
+% calculates the transport through a molecule
+arguments
+    totalSystem
+    gammaL
+    gammaR
+    Eigenvals
+    leftEVs
+    rightEVs
+    Temp
+    chemPot
+    options.value = 0
+end
     % define the states to be used for calculating the current
     stateLeft = zeros(1,length(Eigenvals));
-    stateLeft(value+1) = 1;
+    stateLeft(options.value+1) = 1;
     stateRight = zeros(1,length(Eigenvals))';
-    stateRight(value+2) = 1;
+    stateRight(options.value+2) = 1;
     
-    %compute the entropy current
+    %compute the current
     midFactor = gammaL - gammaR;
     %disp('Starting calculation of the current.')
     if Temp == 0
-        TotalResult = Transmission(chemPot, totalSystem, midFactor, value);
+        TotalResult = Transport(chemPot, totalSystem, midFactor, value);
     else
         TotalResult = currentElement(stateLeft, stateRight, Eigenvals, leftEVs, rightEVs, midFactor, Temp, chemPot);
     end
@@ -18,22 +30,17 @@ function [Result] = currentQuick(totalSystem, gammaL, gammaR, Eigenvals, leftEVs
 end
 
 %% 
-function [TransmissionEM] = Transmission (chemPot, totalSystemEM, midFactor, value)
-    % calculate the Transmissions
-    GreensFuncEM = GreensFunc(chemPot, totalSystemEM);
-    TransmissionEM = Transport(GreensFuncEM, midFactor, value);
-end
+function [T] = Transport (Energy, totalSystem, midFactor, value)
+    % calculate the Transport through the molecule
 
-function [arrayInv] = GreensFunc (chemPot, totalSystem)
-    array = eye(length(totalSystem))*chemPot - totalSystem;
-    arrayInv = inv(array);
-end
-
-function [T] = Transport (GreensFunc, midFactor, value)
+    % calculate the Greens Function
+    GreensFuncInv = Energy*eye(length(totalSystem)) - totalSystem;
+    GreensFunc = inv(GreensFuncInv);
+    
     % calculate the matrix product
-    transport = GreensFunc * midFactor * GreensFunc';
+    Transport = GreensFunc * midFactor * GreensFunc';
     % calculate the current
-    T = transport(value+1, value+2);
+    T = Transport(value+1, value+2);
 end
 
 %% 

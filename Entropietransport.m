@@ -45,7 +45,7 @@ Particle(1:length(chemPots)) = {zeros(1,length(Temps))};
 for j = 1:length(chemPots)
     currentsParticle = zeros(1,length(Temps));
     for k = 1:length(Temps)
-        [particleResult] = currentQuick(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), sizeLead);
+        [particleResult] = transport(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), value=sizeLead);
         currentsParticle(k) = particleResult;
         disp(['chemPot: ', num2str(chemPots(j)), ', Temp: ', num2str(Temps(k))])
     end
