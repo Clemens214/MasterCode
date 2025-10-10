@@ -82,8 +82,7 @@ function [values] = makeList(maxVal, stepVal, options)
     values = linspace(minVal, maxVal, numVal);
 end
 
-function [leadVals, derivVals] = calcVals(opt)
-%function [leadVals, derivVals] = calcVals(maxVal, decay, offset)
+function [leadVals, derivVals] = calcVals(opt)%(maxVal, decay, offset)
     arguments
         opt.maxVal = 1
         opt.decay = 0.3

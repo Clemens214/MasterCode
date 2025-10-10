@@ -21,16 +21,16 @@ end
     midFactor = gammaL - gammaR;
     %disp('Starting calculation of the current.')
     if Temp == 0
-        TotalResult = Transport(chemPot, totalSystem, midFactor, value);
+        TotalResult = Transport(stateLeft, stateRight, chemPot, totalSystem, midFactor);
     else
         TotalResult = currentElement(stateLeft, stateRight, Eigenvals, leftEVs, rightEVs, midFactor, Temp, chemPot);
     end
-    Result = imag(TotalResult);
+    Result = -1*imag(TotalResult);
     %disp('Finished calculation of the current.')
 end
 
-%% 
-function [T] = Transport (Energy, totalSystem, midFactor, value)
+%% calculate the Transport for zero temperature
+function [T] = Transport (stateLeft, stateRight, Energy, totalSystem, midFactor)
     % calculate the Transport through the molecule
 
     % calculate the Greens Function
@@ -40,11 +40,11 @@ function [T] = Transport (Energy, totalSystem, midFactor, value)
     % calculate the matrix product
     Transport = GreensFunc * midFactor * GreensFunc';
     % calculate the current
-    T = Transport(value+1, value+2);
+    T = stateLeft * Transport * stateRight;
 end
 
 %% 
-function [Result] = currentElement (stateLeft, stateRight, Eigenvals, leftEVs, rightEVs, midFactor, Temp, chemPot)
+function [Result] = currentElement(stateLeft, stateRight, Eigenvals, leftEVs, rightEVs, midFactor, Temp, chemPot)
     %disp('Starting calculation of the Hurwitz Zeta values.')
     Hurwitz = zeros(length(Eigenvals));
     HurwitzDagger = zeros(length(Eigenvals));
@@ -81,21 +81,21 @@ function [Result] = currentElement (stateLeft, stateRight, Eigenvals, leftEVs, r
             Product = ProductLeft * ProductMid * ProductRight;
             
             % compute the additional matrix element
-            factorParticle = particleElementQuick(EigVal, EigValDagger, Hurwitz(i), HurwitzDagger(j));
+            factor = factorElement(EigVal, EigValDagger, Hurwitz(i), HurwitzDagger(j));
             
-            Result = Result + Product*factorParticle;
+            Result = Result + Product*factor;
         end
     end
     %disp('Finished calculation of the current element.')
 end
 
-%%
-function [result] = particleElementQuick (eig1, eig2, HurwitzEig1, HurwitzEig2)
+%% calculate the factor for temperatures other than zero
+function [result] = factorElement(eig1, eig2, HurwitzEig1, HurwitzEig2)
     factor = 1/(eig1 -eig2);
     result = factor*HurwitzEig1 - factor*HurwitzEig2;
 end
 
-function [result] = HurwitzZeta (x, beta)
+function [result] = HurwitzZeta(x, beta)
     factor = sign(imag(x))/(2*pi*1j*beta);
     value = 0.5+factor*x;
     result = -1*factor * hurwitzZeta(2, value);
