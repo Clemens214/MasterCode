@@ -1,14 +1,14 @@
 %% Variables
 
 % variables for the sample
-sizeSample = 48;
+sizeSample = 4;%48;
 orderSample = 1;
 eigenenergy = 0;
 hopping = 1;
 hoppingsSample = hopping*eye(orderSample);
 
 % variables for the leads
-sizeLead = 104;
+sizeLead = 10;%104;
 [leadVals, derivVals] = calcVals(maxVal = 1, decay = 0.2, offset = 32);
 hoppingLead = hopping;
 hoppingsInter = [hopping; hopping];
@@ -18,7 +18,7 @@ TempMax = 2;
 TempStep = 0.05; %0.05;
 Temps = makeList(TempMax, TempStep);
 
-chemPotMax = 1;
+chemPotMax = 0;%1;
 chemPotStep = 1;
 chemPots = makeList(chemPotMax, chemPotStep, full=true);
 
@@ -47,8 +47,8 @@ for j = 1:length(chemPots)
     currentsTransport = zeros(1,length(Temps));
     currentsTransmission = zeros(1,length(Temps));
     for k = 1:length(Temps)
-        %TransportResult = transport(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), value=sizeLead);
-        %currentsTransport(k) = TransportResult;
+        TransportResult = transport(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), value=sizeLead);
+        currentsTransport(k) = TransportResult;
 
         TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j));
         currentsTransmission(k) = TransmissionResult;
@@ -60,7 +60,7 @@ for j = 1:length(chemPots)
 end
 
 %% plot
-%plotGraph (1, 'Transport', Temps, Transport, chemPots)
+plotGraph (1, 'Transport', Temps, Transport, chemPots)
 plotGraph (2, 'Transmission', Temps, Transmission, chemPots)
 
 %% plotting functions
