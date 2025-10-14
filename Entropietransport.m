@@ -26,6 +26,16 @@ omegas = makeList(omegaMax, omegaStep, full=true);
 
 %% Calculation
 
+for i = 1:2
+if i == 1
+    orderSample = 1;
+    hoppingsInter = [hopping; hopping];
+elseif i == 2
+    orderSample = 2;
+    hoppingsInter = [hopping, 0; hopping, 0];
+end
+hoppingsSample = hopping*eye(orderSample);
+
 % compute the Hamiltonian of the Sample
 sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
 
@@ -37,38 +47,41 @@ disp('Starting calculation of the Eigenvectors.')
 [Eigenvals, leftEVs, rightEVs] = eigenvectors(totalSystem);
 disp('Finished calculation of the Eigenvectors.')
 
-Transport(1:length(chemPots)) = {zeros(1,length(omegas))};
 Transmission(1:length(chemPots)) = {zeros(1,length(omegas))};
-Difference(1:length(chemPots)) = {zeros(1,length(omegas))};
 for j = 1:length(chemPots)
-    currentsTransport = zeros(1,length(omegas));
-    currentsTransmission = zeros(1,length(omegas));
     for k = 1:length(omegas)
-        TransportResult = transport(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(k), value=sizeLead);
-        Transport{j}(k) = TransportResult;
-
         TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(k));
         Transmission{j}(k) = TransmissionResult;
         
-        Difference{j}(k) = TransportResult-TransmissionResult;
         disp(['chemPot: ', num2str(chemPots(j)), ', Energy: ', num2str(omegas(k))])
     end
 end
 
+if i == 1
+    totalSystem1D = totalSystem;
+    Transmission1D = Transmission;
+elseif i == 2
+    totalSystem2D = totalSystem;
+    Transmission2D = Transmission;
+end
+end
+
+Difference = {Transmission1D{1}-Transmission2D{1}};
+
 %% plot
 hold on
-plotGraph (1, 'Transport', omegas, Transport, chemPots)
-plotGraph (1, 'Transport', [0], {[0]}, chemPots)
+plotGraph (1, 'Transmission: 1D', omegas, Transmission1D, chemPots)
+plotGraph (1, 'Transmission: 1D', [0], {[0]}, chemPots)
 
-plotGraph (2, 'Transmission', omegas, Transmission, chemPots)
-plotGraph (2, 'Transmission', [0], {[0]}, chemPots)
+plotGraph (2, 'Transmission: 2D', omegas, Transmission2D, chemPots)
+plotGraph (2, 'Transmission: 2D', [0], {[0]}, chemPots)
 
-plotGraph (3, 'Transport', omegas, Transport, chemPots)
-plotGraph (3, 'Transmission', omegas, Transmission, chemPots)
-plotGraph (3, 'Both: 1->Transport, 2->Transmission', [0], {[0]}, chemPots)
+plotGraph (3, 'Transmission: 1D', omegas, Transmission1D, chemPots)
+plotGraph (3, 'Transmission: 2D', omegas, Transmission2D, chemPots)
+plotGraph (3, 'Both: 1->1D, 2->2D', [0], {[0]}, chemPots)
 
-plotGraph (4, 'Difference: (Transport-Transmission)', omegas, Difference, chemPots)
-plotGraph (4, 'Difference: (Transport-Transmission)', [0], {[0]}, chemPots)
+plotGraph (4, 'Difference: (1D-2D)', omegas, Difference, chemPots)
+plotGraph (4, 'Difference: (1D-2D)', [0], {[0]}, chemPots)
 
 %% plotting functions
 function [] = plotGraph (value, Title, omegas, Vals, chemPots)
