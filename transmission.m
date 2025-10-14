@@ -8,7 +8,7 @@ arguments
     leftEVs
     rightEVs
     chemPot
-    options.linearResponse = true
+    options.linearResponse = false
 end
     %disp('Starting calculation of the current.')
     if options.linearResponse == true
@@ -17,7 +17,7 @@ end
     elseif options.linearResponse == false
         chemPotL = chemPot;
         chemPotR = -1*chemPot;
-        TotalResult = currentElement(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, Temp, chemPotL, chemPotR);
+        TotalResult = currentElement(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR);
     end
     Result = real(trace(TotalResult));
     %disp('Finished calculation of the current.')
@@ -36,7 +36,7 @@ function [Result] = Transmission(Energy, totalSystem, gammaL, gammaR)
 end
 
 %% 
-function [Result] = currentElement(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, Temp, chemPotL, chemPotR)
+function [Result] = currentElement(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR)
     %disp('Starting calculation of the current element.')
     Result = 0;
     for i = 1:length(leftEVs)
