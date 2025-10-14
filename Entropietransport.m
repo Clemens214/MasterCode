@@ -14,18 +14,14 @@ hoppingLead = hopping;
 hoppingsInter = [hopping; hopping];
 
 %variables for the calculation of the current
-TempMax = 2;
-TempStep = 0.05; %0.05;
-Temps = makeList(TempMax, TempStep);
-
-chemPotMax = 1;
+chemPotMax = 0;%1;
 chemPotStep = 1;
 chemPots = makeList(chemPotMax, chemPotStep, full=true);
 
 %variables for the calculation of the transmission
-omegaVal = 2;
+omegaVal = 2.5;
 omegaMax = omegaVal*hopping;
-omegaStep = 0.005;
+omegaStep = 0.05;
 omegas = makeList(omegaMax, omegaStep, full=true);
 
 %% Calculation
@@ -41,25 +37,45 @@ disp('Starting calculation of the Eigenvectors.')
 [Eigenvals, leftEVs, rightEVs] = eigenvectors(totalSystem);
 disp('Finished calculation of the Eigenvectors.')
 
-Particle(1:length(chemPots)) = {zeros(1,length(Temps))};
+Transport(1:length(chemPots)) = {zeros(1,length(omegas))};
+Transmission(1:length(chemPots)) = {zeros(1,length(omegas))};
+Difference(1:length(chemPots)) = {zeros(1,length(omegas))};
 for j = 1:length(chemPots)
-    currentsParticle = zeros(1,length(Temps));
-    for k = 1:length(Temps)
-        [particleResult] = transport(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), value=sizeLead);
-        currentsParticle(k) = particleResult;
-        disp(['chemPot: ', num2str(chemPots(j)), ', Temp: ', num2str(Temps(k))])
+    currentsTransport = zeros(1,length(omegas));
+    currentsTransmission = zeros(1,length(omegas));
+    for k = 1:length(omegas)
+        TransportResult = transport(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(k), value=sizeLead);
+        Transport{j}(k) = TransportResult;
+
+        TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(k));
+        Transmission{j}(k) = TransmissionResult;
+        
+        Difference{j}(k) = TransportResult-TransmissionResult;
+        disp(['chemPot: ', num2str(chemPots(j)), ', Energy: ', num2str(omegas(k))])
     end
-    Particle{j} = currentsParticle;
 end
 
-plotGraph (1, 'Particle', Temps, Particle, chemPots)
+%% plot
+hold on
+plotGraph (1, 'Transport', omegas, Transport, chemPots)
+plotGraph (1, 'Transport', [0], {[0]}, chemPots)
 
-%%
-function [] = plotGraph (value, Title, Temps, Vals, chemPots)
+plotGraph (2, 'Transmission', omegas, Transmission, chemPots)
+plotGraph (2, 'Transmission', [0], {[0]}, chemPots)
+
+plotGraph (3, 'Transport', omegas, Transport, chemPots)
+plotGraph (3, 'Transmission', omegas, Transmission, chemPots)
+plotGraph (3, 'Both: 1->Transport, 2->Transmission', [0], {[0]}, chemPots)
+
+plotGraph (4, 'Difference: (Transport-Transmission)', omegas, Difference, chemPots)
+plotGraph (4, 'Difference: (Transport-Transmission)', [0], {[0]}, chemPots)
+
+%% plotting functions
+function [] = plotGraph (value, Title, omegas, Vals, chemPots)
     figure(value);
     title(Title);
     for i = 1:length(chemPots)
-        plot(Temps, Vals{i})
+        plot(omegas, Vals{i})
         hold on
     end
     labels = strcat('chemPot = ',cellstr(num2str(chemPots.')));
