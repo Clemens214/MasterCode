@@ -1,5 +1,5 @@
-function [Result] = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, Temp, chemPot, options)
-% calculate the transmission through a molecule
+function [Result] = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPot, options)
+% calculate the transmission through a molecule for zero temperature
 arguments
     totalSystem
     gammaL
@@ -7,15 +7,17 @@ arguments
     Eigenvals
     leftEVs
     rightEVs
-    Temp
     chemPot
-    options.value = 0
+    options.linearResponse = true
 end
     %disp('Starting calculation of the current.')
-    if Temp == 0
-        TotalResult = Transmission(chemPot, totalSystem, gammaL, gammaR);
-    else
-        TotalResult = currentElement(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, Temp, chemPot);
+    if options.linearResponse == true
+        Energy = chemPot;
+        TotalResult = Transmission(Energy, totalSystem, gammaL, gammaR);
+    elseif options.linearResponse == false
+        chemPotL = chemPot;
+        chemPotR = -1*chemPot;
+        TotalResult = currentElement(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, Temp, chemPotL, chemPotR);
     end
     Result = real(trace(TotalResult));
     %disp('Finished calculation of the current.')
@@ -34,20 +36,7 @@ function [Result] = Transmission(Energy, totalSystem, gammaL, gammaR)
 end
 
 %% 
-function [Result] = currentElement(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, Temp, chemPot)
-    %disp('Starting calculation of the Hurwitz Zeta values.')
-    Hurwitz = zeros(length(Eigenvals));
-    HurwitzDagger = zeros(length(Eigenvals));
-    for k = 1:length(Eigenvals)
-        EigVal = Eigenvals(k,k) - chemPot;
-        EigValDagger = Eigenvals(k,k)' - chemPot;
-        % compute the Hurwitz Zeta functions
-        beta = 1/Temp;
-        Hurwitz(k) = HurwitzZeta(EigVal, 1/beta);
-        HurwitzDagger(k) = HurwitzZeta(EigValDagger, 1/beta);
-    end
-    %disp('Finished calculation of the Hurwitz Zeta values.')
-    
+function [Result] = currentElement(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, Temp, chemPotL, chemPotR)
     %disp('Starting calculation of the current element.')
     Result = 0;
     for i = 1:length(leftEVs)
@@ -57,7 +46,7 @@ function [Result] = currentElement(Eigenvals, leftEVs, rightEVs, gammaL, gammaR,
         rightEV = rightEVs(:,i);
         
         ProductLeft = rightEV;
-        ProductMidLeft = leftEV * gammaL;
+        ProductMidLeft = leftEV * gammaR;
         for j = 1:length(leftEVs)
             % get the daggered Eigenvectors
             EigValDagger = Eigenvals(j,j)';
@@ -66,12 +55,12 @@ function [Result] = currentElement(Eigenvals, leftEVs, rightEVs, gammaL, gammaR,
             
             % compute the matrix element for chosen i and j
             ProductMid = ProductMidLeft * leftEVdagger;
-            ProductRight = rightEVdagger * gammaR;
+            ProductRight = rightEVdagger * gammaL;
             
             Product = ProductLeft * ProductMid * ProductRight;
             
             % compute the additional matrix element
-            factor = factorElement(EigVal, EigValDagger, Hurwitz(i), HurwitzDagger(j));
+            factor = factorElement(EigVal, EigValDagger, chemPotL) - factorElement(EigVal, EigValDagger, chemPotR);
             
             Result = Result + Product*factor;
         end
@@ -79,15 +68,11 @@ function [Result] = currentElement(Eigenvals, leftEVs, rightEVs, gammaL, gammaR,
     %disp('Finished calculation of the current element.')
 end
 
-%% calculate the factor for temperatures other than zero
-function [result] = factorElement(eig1, eig2, HurwitzEig1, HurwitzEig2)
+%% calculate the factor for temperatures equal to zero
+function [result] = factorElement(eig1, eig2, chemPot)
+    %pot = chemPot(1);
     factor = 1/(eig1 -eig2);
-    result = factor*HurwitzEig1 - factor*HurwitzEig2;
+    element1 = log(chemPot - eig1);
+    element2 = log(chemPot - eig2);
+    result = factor*(element1 - element2);
 end
-
-function [result] = HurwitzZeta(x, beta)
-    factor = sign(imag(x))/(2*pi*1j*beta);
-    value = 0.5+factor*x;
-    result = -1*factor * hurwitzZeta(2, value);
-end
-

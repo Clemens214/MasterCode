@@ -1,4 +1,4 @@
-function [Result] = transport(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, Temp, chemPot, options)
+function [Result, varargout] = transport(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPot, options)
 % calculates the transport through a molecule
 arguments
     totalSystem
@@ -7,8 +7,8 @@ arguments
     Eigenvals
     leftEVs
     rightEVs
-    Temp
     chemPot
+    options.Temp = 0
     options.value = 0
 end
     % define the states to be used for calculating the current
@@ -18,14 +18,17 @@ end
     stateRight(options.value+2) = 1;
     
     %compute the current
-    midFactor = gammaL - gammaR;
+    midFactor = -1*(gammaL - gammaR);
     %disp('Starting calculation of the current.')
+    Temp = options.Temp;
     if Temp == 0
-        TotalResult = Transport(stateLeft, stateRight, chemPot, totalSystem, midFactor);
+        TransportMatrix = Transport(stateLeft, stateRight, chemPot, totalSystem, midFactor);
+        TotalResult = stateLeft * TransportMatrix * stateRight;
+        varargout{1} = imag(Transportmatrix);
     else
         TotalResult = currentElement(stateLeft, stateRight, Eigenvals, leftEVs, rightEVs, midFactor, Temp, chemPot);
     end
-    Result = -1*imag(TotalResult);
+    Result = imag(TotalResult);
     %disp('Finished calculation of the current.')
 end
 
@@ -43,7 +46,7 @@ function [T] = Transport (stateLeft, stateRight, Energy, totalSystem, midFactor)
     T = stateLeft * Transport * stateRight;
 end
 
-%% 
+%% calculate the Transport for non-zero temperature
 function [Result] = currentElement(stateLeft, stateRight, Eigenvals, leftEVs, rightEVs, midFactor, Temp, chemPot)
     %disp('Starting calculation of the Hurwitz Zeta values.')
     Hurwitz = zeros(length(Eigenvals));
@@ -89,7 +92,6 @@ function [Result] = currentElement(stateLeft, stateRight, Eigenvals, leftEVs, ri
     %disp('Finished calculation of the current element.')
 end
 
-%% calculate the factor for temperatures other than zero
 function [result] = factorElement(eig1, eig2, HurwitzEig1, HurwitzEig2)
     factor = 1/(eig1 -eig2);
     result = factor*HurwitzEig1 - factor*HurwitzEig2;
