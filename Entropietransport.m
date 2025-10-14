@@ -2,7 +2,7 @@
 
 % variables for the sample
 sizeSample = 48;
-orderSample = 1;
+orderSample = 2;
 eigenenergy = 0;
 hopping = 1;
 hoppingsSample = hopping*eye(orderSample);
@@ -11,7 +11,11 @@ hoppingsSample = hopping*eye(orderSample);
 sizeLead = 104;
 [leadVals, derivVals] = calcVals(maxVal = 1, decay = 0.2, offset = 32);
 hoppingLead = hopping;
-hoppingsInter = [hopping; hopping];
+
+% variables for the hopping
+angleMax = 2*pi;
+angleStep = pi/8;
+angles = makeList(angleMax, angleStep);
 
 %variables for the calculation of the current
 chemPotMax = 0;%1;
@@ -26,64 +30,66 @@ omegas = makeList(omegaMax, omegaStep, full=true);
 
 %% Calculation
 
-for i = 1:2
-if i == 1
-    orderSample = 1;
-    hoppingsInter = [hopping; hopping];
-elseif i == 2
-    orderSample = 2;
-    hoppingsInter = [hopping, 0; hopping, 0];
-end
-hoppingsSample = hopping*eye(orderSample);
-
-% compute the Hamiltonian of the Sample
-sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
-
-% preparing the Extended Molecule Hamiltonian
-[totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
-
-%compute the Eigenvectors and the Eigenvalues of the system
-disp('Starting calculation of the Eigenvectors.')
-[Eigenvals, leftEVs, rightEVs] = eigenvectors(totalSystem);
-disp('Finished calculation of the Eigenvectors.')
-
-Transmission(1:length(chemPots)) = {zeros(1,length(omegas))};
-for j = 1:length(chemPots)
-    for k = 1:length(omegas)
-        TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(k));
-        Transmission{j}(k) = TransmissionResult;
-        
-        disp(['chemPot: ', num2str(chemPots(j)), ', Energy: ', num2str(omegas(k))])
+Transmission = zeros(length(angles), length(angles));
+for i = 1:length(angles)
+for j = 1:length(angles)
+    if orderSample == 1
+        hoppingsInter = [hopping; hopping];
+    elseif orderSample == 2
+        hoppingsInter = [cos(angles(i)), sin(angles(i)); cos(angles(j)), sin(angles(j))];
+    end
+    
+    % compute the Hamiltonian of the Sample
+    sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
+    
+    % preparing the Extended Molecule Hamiltonian
+    [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
+    
+    %compute the Eigenvectors and the Eigenvalues of the system
+    disp('Starting calculation of the Eigenvectors.')
+    [Eigenvals, leftEVs, rightEVs] = eigenvectors(totalSystem);
+    disp('Finished calculation of the Eigenvectors.')
+    
+    omegas = [1];
+    for idx = 1:length(omegas)
+        TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(idx));
+        Transmission(i, j) = TransmissionResult;
+        disp([  'Angle1: ', num2str(angles(i)), ', i=', num2str(i), ...
+                ', Angle2: ', num2str(angles(j)), ', j=', num2str(j)])
     end
 end
-
-if i == 1
-    totalSystem1D = totalSystem;
-    Transmission1D = Transmission;
-elseif i == 2
-    totalSystem2D = totalSystem;
-    Transmission2D = Transmission;
 end
-end
-
-Difference = {Transmission1D{1}-Transmission2D{1}};
 
 %% plot
-hold on
-plotGraph (1, 'Transmission: 1D', omegas, Transmission1D, chemPots)
-plotGraph (1, 'Transmission: 1D', [0], {[0]}, chemPots)
-
-plotGraph (2, 'Transmission: 2D', omegas, Transmission2D, chemPots)
-plotGraph (2, 'Transmission: 2D', [0], {[0]}, chemPots)
-
-plotGraph (3, 'Transmission: 1D', omegas, Transmission1D, chemPots)
-plotGraph (3, 'Transmission: 2D', omegas, Transmission2D, chemPots)
-plotGraph (3, 'Both: 1->1D, 2->2D', [0], {[0]}, chemPots)
-
-plotGraph (4, 'Difference: (1D-2D)', omegas, Difference, chemPots)
-plotGraph (4, 'Difference: (1D-2D)', [0], {[0]}, chemPots)
+plotLin3D (angles, Transmission)
+indices = plotLin2D (2, 'Transmission', angles, Transmission);
 
 %% plotting functions
+function [varargout] = plotLin2D (value, Title, angles, Vals)
+    TransPlot = zeros(length(angles)*length(angles));
+    angleDiff = zeros(length(angles)*length(angles));
+    indices = zeros(length(angles)*length(angles));
+    for i = 1:length(angles)
+        for j = 1:length(angles)
+            idx = (i-1)*length(angles) + j;
+            TransPlot(idx) = Vals(i, j);
+            angleDiff(idx) = angles(i) - angles(j);
+            indices(idx) = idx;
+        end
+    end
+    varargout{1} = indices;
+    [angleSort, indices] = sort(angleDiff);
+    TransSort = TransPlot(indices);
+    % plot the data
+    figure(value);
+    plot(angleSort, TransSort)
+    title(Title);
+end
+
+function [] = plotLin3D (angles, Vals)
+    surf(angles, angles, Vals)
+end
+
 function [] = plotGraph (value, Title, omegas, Vals, chemPots)
     figure(value);
     title(Title);
