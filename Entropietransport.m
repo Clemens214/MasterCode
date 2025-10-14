@@ -31,6 +31,7 @@ omegas = makeList(omegaMax, omegaStep, full=true);
 %% Calculation
 
 Transmission = zeros(length(angles), length(angles));
+Torque = zeros(length(angles), length(angles));
 for i = 1:length(angles)
 for j = 1:length(angles)
     if orderSample == 1
@@ -44,6 +45,7 @@ for j = 1:length(angles)
     
     % preparing the Extended Molecule Hamiltonian
     [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
+    [totalSysDeriv, ~, ~] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, derivVals, check=false);
     
     %compute the Eigenvectors and the Eigenvalues of the system
     disp('Starting calculation of the Eigenvectors.')
@@ -52,8 +54,12 @@ for j = 1:length(angles)
     
     omegas = [1];
     for idx = 1:length(omegas)
-        TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(idx));
-        Transmission(i, j) = TransmissionResult;
+        %TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(idx), linearResponse=true);
+        %Transmission(i, j) = TransmissionResult;
+
+        TorqueResult = torque(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(idx), linearResponse=true, conservative=true);
+        Torque(i, j) = TorqueResult;
+
         disp([  'Angle1: ', num2str(angles(i)), ', i=', num2str(i), ...
                 ', Angle2: ', num2str(angles(j)), ', j=', num2str(j)])
     end
@@ -61,8 +67,11 @@ end
 end
 
 %% plot
-plotLin3D (angles, Transmission)
-indices = plotLin2D (2, 'Transmission', angles, Transmission);
+%plotLin3D (angles, Transmission)
+%indices = plotLin2D (2, 'Transmission', angles, Transmission);
+
+plotLin3D (angles, Torque)
+indices = plotLin2D (2, 'Torque', angles, Torque);
 
 %% plotting functions
 function [varargout] = plotLin2D (value, Title, angles, Vals)

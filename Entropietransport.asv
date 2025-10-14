@@ -14,7 +14,7 @@ hoppingLead = hopping;
 
 % variables for the hopping
 angleMax = 2*pi;
-angleStep = pi/10;
+angleStep = pi/8;
 angles = makeList(angleMax, angleStep);
 
 %variables for the calculation of the current
@@ -30,7 +30,8 @@ omegas = makeList(omegaMax, omegaStep, full=true);
 
 %% Calculation
 
-Transport = zeros(lentgh(angles), length(angles));
+Transmission = zeros(length(angles), length(angles));
+Torque = zeros(length(angles), length(angles));
 for i = 1:length(angles)
 for j = 1:length(angles)
     if orderSample == 1
@@ -44,16 +45,21 @@ for j = 1:length(angles)
     
     % preparing the Extended Molecule Hamiltonian
     [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
+    [totalSysDeriv, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
     
     %compute the Eigenvectors and the Eigenvalues of the system
     disp('Starting calculation of the Eigenvectors.')
     [Eigenvals, leftEVs, rightEVs] = eigenvectors(totalSystem);
     disp('Finished calculation of the Eigenvectors.')
     
-    Transmission(1:length(chemPots)) = {zeros(1,length(omegas))};
-    for idx = 1:length(chemPots)
-        TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(idx));
-        Transmission(i, j) = TransmissionResult;
+    omegas = [1];
+    for idx = 1:length(omegas)
+        %TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(idx), linearResponse=true);
+        %Transmission(i, j) = TransmissionResult;
+
+        TorqueResult = torque(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(idx), linearResponse=true);
+        Torque(i, j) = TorqueResult;
+
         disp([  'Angle1: ', num2str(angles(i)), ', i=', num2str(i), ...
                 ', Angle2: ', num2str(angles(j)), ', j=', num2str(j)])
     end
@@ -61,31 +67,31 @@ end
 end
 
 %% plot
-plotLin3D (angles, Transmission)
-plotLin2D (2, 'Transmission', angles, Transmission)
+%plotLin3D (angles, Transmission)
+%indices = plotLin2D (2, 'Transmission', angles, Transmission);
+
+plotLin3D (angles, Torque)
+indices = plotLin2D (2, 'Torque', angles, Torque);
 
 %% plotting functions
 function [varargout] = plotLin2D (value, Title, angles, Vals)
     TransPlot = zeros(length(angles)*length(angles));
     angleDiff = zeros(length(angles)*length(angles));
-    indices = zeros()
+    indices = zeros(length(angles)*length(angles));
     for i = 1:length(angles)
         for j = 1:length(angles)
             idx = (i-1)*length(angles) + j;
-
+            TransPlot(idx) = Vals(i, j);
+            angleDiff(idx) = angles(i) - angles(j);
+            indices(idx) = idx;
         end
     end
-
-
-    [sorted, indices] = sort(c)
-% get your output with
-a(indices)
-b(indices)
-
-
+    varargout{1} = indices;
+    [angleSort, indices] = sort(angleDiff);
+    TransSort = TransPlot(indices);
+    % plot the data
     figure(value);
-    title(Title);
-    plot(angleDiffs, Vals)
+    plot(angleSort, TransSort)
     title(Title);
 end
 
