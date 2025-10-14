@@ -18,14 +18,15 @@ end
     stateRight(options.value+2) = 1;
     
     %compute the current
-    midFactor = -1*(gammaL - gammaR);
     %disp('Starting calculation of the current.')
-    Temp = options.Temp;
-    if Temp == 0
-        TransportMatrix = Transport(stateLeft, stateRight, chemPot, totalSystem, midFactor);
+    midFactor = -1*(gammaL - gammaR);
+    if options.Temp == 0
+        Energy = chemPot;
+        TransportMatrix = Transport(Energy, totalSystem, midFactor);
         TotalResult = stateLeft * TransportMatrix * stateRight;
-        varargout{1} = imag(Transportmatrix);
+        varargout{1} = imag(TransportMatrix);
     else
+        Temp = options.Temp;
         TotalResult = currentElement(stateLeft, stateRight, Eigenvals, leftEVs, rightEVs, midFactor, Temp, chemPot);
     end
     Result = imag(TotalResult);
@@ -33,7 +34,7 @@ end
 end
 
 %% calculate the Transport for zero temperature
-function [T] = Transport (stateLeft, stateRight, Energy, totalSystem, midFactor)
+function [Transport] = Transport (Energy, totalSystem, midFactor)
     % calculate the Transport through the molecule
 
     % calculate the Greens Function
@@ -42,8 +43,6 @@ function [T] = Transport (stateLeft, stateRight, Energy, totalSystem, midFactor)
     
     % calculate the matrix product
     Transport = GreensFunc * midFactor * GreensFunc';
-    % calculate the current
-    T = stateLeft * Transport * stateRight;
 end
 
 %% calculate the Transport for non-zero temperature

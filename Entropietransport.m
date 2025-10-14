@@ -1,14 +1,14 @@
 %% Variables
 
 % variables for the sample
-sizeSample = 4;%48;
+sizeSample = 48;
 orderSample = 1;
 eigenenergy = 0;
 hopping = 1;
 hoppingsSample = hopping*eye(orderSample);
 
 % variables for the leads
-sizeLead = 10;%104;
+sizeLead = 104;
 [leadVals, derivVals] = calcVals(maxVal = 1, decay = 0.2, offset = 32);
 hoppingLead = hopping;
 hoppingsInter = [hopping; hopping];
@@ -43,10 +43,10 @@ for j = 1:length(chemPots)
     currentsTransport = zeros(1,length(omegas));
     currentsTransmission = zeros(1,length(omegas));
     for k = 1:length(omegas)
-        TransportResult = transport(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(k), chemPots(j), value=sizeLead);
+        TransportResult = transport(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(k), value=sizeLead);
         currentsTransport(k) = TransportResult;
 
-        TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(k), chemPots(j));
+        TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(k));
         currentsTransmission(k) = TransmissionResult;
 
         disp(['chemPot: ', num2str(chemPots(j)), ', Energy: ', num2str(omegas(k))])
