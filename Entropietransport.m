@@ -39,25 +39,36 @@ disp('Finished calculation of the Eigenvectors.')
 
 Transport(1:length(chemPots)) = {zeros(1,length(omegas))};
 Transmission(1:length(chemPots)) = {zeros(1,length(omegas))};
+Difference(1:length(chemPots)) = {zeros(1,length(omegas))};
 for j = 1:length(chemPots)
     currentsTransport = zeros(1,length(omegas));
     currentsTransmission = zeros(1,length(omegas));
     for k = 1:length(omegas)
         TransportResult = transport(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(k), value=sizeLead);
-        currentsTransport(k) = TransportResult;
+        Transport{j}(k) = TransportResult;
 
         TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(k));
-        currentsTransmission(k) = TransmissionResult;
-
+        Transmission{j}(k) = TransmissionResult;
+        
+        Difference{j}(k) = TransportResult-TransmissionResult;
         disp(['chemPot: ', num2str(chemPots(j)), ', Energy: ', num2str(omegas(k))])
     end
-    Transport{j} = currentsTransport;
-    Transmission{j} = currentsTransmission;
 end
 
 %% plot
+hold on
 plotGraph (1, 'Transport', omegas, Transport, chemPots)
+plotGraph (1, 'Transport', [0], {[0]}, chemPots)
+
 plotGraph (2, 'Transmission', omegas, Transmission, chemPots)
+plotGraph (2, 'Transmission', [0], {[0]}, chemPots)
+
+plotGraph (3, 'Transport', omegas, Transport, chemPots)
+plotGraph (3, 'Transmission', omegas, Transmission, chemPots)
+plotGraph (3, 'Both: 1->Transport, 2->Transmission', [0], {[0]}, chemPots)
+
+plotGraph (4, 'Difference: (Transport-Transmission)', omegas, Difference, chemPots)
+plotGraph (4, 'Difference: (Transport-Transmission)', [0], {[0]}, chemPots)
 
 %% plotting functions
 function [] = plotGraph (value, Title, omegas, Vals, chemPots)
