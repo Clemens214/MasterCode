@@ -1,0 +1,142 @@
+function [Result] = torque(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPot, options)
+% calculate the torque through a molecule for zero temperature
+arguments
+    totalSystem
+    totalSysDeriv
+    gammaL
+    gammaR
+    Eigenvals
+    leftEVs
+    rightEVs
+    chemPot
+    options.linearResponse = false
+    options.conservative = false
+    options.nonconservative = false
+    options.left = false
+    options.right = false
+end
+    choice = struct('conservative', options.conservative, ...
+                    'nonconservative', options.nonconservative, ...
+                    'left', options.left, 'right', options.right);
+    %disp('Starting calculation of the torque.')
+    if options.linearResponse == true
+        Energy = chemPot;
+        TotalResult = choiceLin(Energy, totalSystem, totalSysDeriv, gammaL, gammaR, choice);
+    elseif options.linearResponse == false
+        chemPotL = chemPot;
+        chemPotR = -1*chemPot;
+        TotalResult = choiceCalc(Eigenvals, leftEVs, rightEVs, totalSysDeriv, gammaL, gammaR, chemPotL, chemPotR, choice);
+    end
+    Result = real(trace(TotalResult));
+    %disp('Finished calculation of the torque.')
+end
+
+%% calculate the Torque for zero temperature
+function [TotalResult] = choiceLin(Energy, totalSystem, totalSysDeriv, gammaL, gammaR, choice)
+    if choice.conservative == true
+        midFactor = gammaL + gammaR;
+        TotalResult = Transmission(Energy, totalSystem, totalSysDeriv, midFactor);
+    elseif choice.nonconservative == true
+        midFactor = gammaL - gammaR;
+        TotalResult = Transmission(Energy, totalSystem, totalSysDeriv, midFactor);
+    elseif choice.left == true
+        midFactor = gammaL;
+        TotalResult = Transmission(Energy, totalSystem, totalSysDeriv, midFactor);
+    elseif choice.right == true
+        midFactor = gammaR;
+        TotalResult = Transmission(Energy, totalSystem, totalSysDeriv, midFactor);
+    else
+        ResultL = Transmission(Energy, totalSystem, totalSysDeriv, gammaL);
+        ResultR = Transmission(Energy, totalSystem, totalSysDeriv, gammaR);
+        TotalResult = ResultL + ResultR;
+    end
+end
+
+function [Result] = Transmission(Energy, totalSystem, totalSysDeriv, midFactor)
+    % calculate the Transport through the molecule
+
+    % calculate the Greens Function
+    GreensFuncInv = Energy*eye(length(totalSystem)) - totalSystem;
+    GreensFunc = inv(GreensFuncInv);
+    
+    % calculate the matrix product
+    Result = totalSysDeriv * GreensFunc * midFactor * GreensFunc';
+end
+
+%% 
+function [TotalResult] = choiceCalc(Eigenvals, leftEVs, rightEVs, totalSysDeriv, gammaL, gammaR, chemPotL, chemPotR, choice)
+    if choice.conservative == true
+        midFactor = gammaL + gammaR;
+        TotalResult = currentElement(Eigenvals, leftEVs, rightEVs, totalSysDeriv, midFactor, chemPotL, chemPotR, choice);
+    elseif choice.nonconservative == true
+        midFactor = gammaL + gammaR;
+        TotalResult = currentElement(Eigenvals, leftEVs, rightEVs, totalSysDeriv, midFactor, chemPotL, chemPotR, choice);
+    elseif choice.left == true
+        midFactor = gammaL;
+        TotalResult = currentElement(Eigenvals, leftEVs, rightEVs, totalSysDeriv, midFactor, chemPotL, chemPotR, choice);
+    elseif choice.right == true
+        midFactor = gammaR;
+        TotalResult = currentElement(Eigenvals, leftEVs, rightEVs, totalSysDeriv, midFactor, chemPotL, chemPotR, choice);
+    else
+        choiceL = choice;
+        choiceL.left = true;
+        ResultL = currentElement(Eigenvals, leftEVs, rightEVs, totalSysDeriv, gammaL, chemPotL, chemPotR, choiceL);
+        choiceR = choice;
+        choiceR.left = true;
+        ResultR = currentElement(Eigenvals, leftEVs, rightEVs, totalSysDeriv, gammaR, chemPotL, chemPotR, choiceR);
+        TotalResult = ResultL + ResultR;
+    end
+end
+
+function [Result] = currentElement(Eigenvals, leftEVs, rightEVs, totalSysDeriv, midFactor, chemPotL, chemPotR, choice)
+    %disp('Starting calculation of the current element.')
+    Result = 0;
+    for i = 1:length(leftEVs)
+        % get the normal left and right Eigenvectors
+        EigVal = Eigenvals(i,i);
+        leftEV = leftEVs(:,i)';
+        rightEV = rightEVs(:,i);
+        
+        ProductLeft = totalSysDeriv * rightEV;
+        ProductMidLeft = leftEV * midFactor;
+        for j = 1:length(leftEVs)
+            % get the daggered Eigenvectors
+            EigValDagger = Eigenvals(j,j)';
+            leftEVdagger = leftEVs(:,j);
+            rightEVdagger = rightEVs(:,j)';
+            
+            % compute the matrix element for chosen i and j
+            ProductMid = ProductMidLeft * leftEVdagger;
+            ProductRight = rightEVdagger;
+            
+            Product = ProductLeft * ProductMid * ProductRight;
+            
+            % compute the additional matrix element
+            factor = choiceFactor(EigVal, EigValDagger, chemPotL, chemPotR);
+            
+            Result = Result + Product*factor;
+        end
+    end
+    %disp('Finished calculation of the current element.')
+end
+
+%% calculate the factor
+function [Factor] = choiceFactor(EigVal, EigValDagger, chemPotL, chemPotR)
+    if choice.conservative == true
+        Factor = factorElement(EigVal, EigValDagger, chemPotL) + factorElement(EigVal, EigValDagger, chemPotR);
+    elseif choice.nonconservative == true
+        Factor = factorElement(EigVal, EigValDagger, chemPotL) - factorElement(EigVal, EigValDagger, chemPotR);
+    elseif choice.left == true
+        Factor = factorElement(EigVal, EigValDagger, chemPotL);
+    elseif choice.right == true
+        Factor = factorElement(EigVal, EigValDagger, chemPotR);
+    end
+end
+
+function [result] = factorElement(eig1, eig2, chemPot)
+    %pot = chemPot(1);
+    factor = 1/(eig1 -eig2);
+    element1 = log(chemPot - eig1);
+    element2 = log(chemPot - eig2);
+    result = factor*(element1 - element2);
+end
