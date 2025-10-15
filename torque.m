@@ -89,35 +89,51 @@ function [TotalResult] = choiceCalc(Eigenvals, leftEVs, rightEVs, totalSysDeriv,
 end
 
 function [Result] = currentElement(Eigenvals, leftEVs, rightEVs, totalSysDeriv, midFactor, chemPotL, chemPotR, choice)
-    %disp('Starting calculation of the current element.')
-    Result = 0;
-    for i = 1:length(leftEVs)
-        % get the normal left and right Eigenvectors
-        EigVal = Eigenvals(i,i);
-        leftEV = leftEVs(:,i)';
-        rightEV = rightEVs(:,i);
-        
-        ProductLeft = totalSysDeriv * rightEV;
-        ProductMidLeft = leftEV * midFactor;
-        for j = 1:length(leftEVs)
-            % get the daggered Eigenvectors
-            EigValDagger = Eigenvals(j,j)';
-            leftEVdagger = leftEVs(:,j);
-            rightEVdagger = rightEVs(:,j)';
-            
-            % compute the matrix element for chosen i and j
-            ProductMid = ProductMidLeft * leftEVdagger;
-            ProductRight = rightEVdagger;
-            
-            Product = ProductLeft * ProductMid * ProductRight;
-            
-            % compute the additional matrix element
-            factor = choiceFactor(EigVal, EigValDagger, chemPotL, chemPotR, choice);
-            
-            Result = Result + Product*factor;
+    index = struct('i', [], 'j', [], ...
+                    'Eigenval', [], 'EigenvalD', [], ...
+                    'leftEV', [], 'leftEVD', [], ...
+                    'rightEV', [], 'rightEVD', []);
+    for i = 1:length(Eigenvals)
+        for j = 1:length(Eigenvals)
+            idx = (i-1)*length(Eigenvals) + j;
+            index(idx).i = i;
+            index(idx).j = j;
+            index(idx).Eigenval = Eigenvals(i,i);
+            index(idx).leftEV = leftEVs(:,i)';
+            index(idx).rightEV = rightEVs(:,i);
+            index(idx).EigenvalD = Eigenvals(j,j)';
+            index(idx).leftEVD = leftEVs(:,j);
+            index(idx).rightEVD = rightEVs(:,j)';
         end
     end
-    %disp('Finished calculation of the current element.')
+
+    %disp('Starting calculation of the torque element.')
+    Result = 0;
+    parfor idx = 1:length(index)
+        % get the normal left and right Eigenvectors
+        EigVal = index(idx).Eigenval;
+        leftEV = index(idx).leftEV;
+        rightEV = index(idx).rightEV;
+        
+        % get the daggered Eigenvectors
+        EigValDagger = index(idx).EigenvalD;
+        leftEVdagger = index(idx).leftEVD;
+        rightEVdagger = index(idx).rightEVD;
+            
+        % compute the matrix element for chosen i and j
+        ProductLeft = totalSysDeriv * rightEV;
+        ProductMidLeft = leftEV * midFactor;
+        ProductMid = ProductMidLeft * leftEVdagger;
+        ProductRight = rightEVdagger;
+        
+        Product = ProductLeft * ProductMid * ProductRight;
+        
+        % compute the additional matrix element
+        factor = choiceFactor(EigVal, EigValDagger, chemPotL, chemPotR, choice);
+        
+        Result = Result + Product*factor;
+    end
+    %disp('Finished calculation of the torque element.')
 end
 
 %% calculate the factor
