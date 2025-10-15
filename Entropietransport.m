@@ -30,14 +30,14 @@ omegas = makeList(omegaMax, omegaStep, full=true);
 
 %% Calculation
 
-Transmission = zeros(length(angles), length(angles));
-Torque = zeros(length(angles), length(angles));
+Transmission = zeros(1, length(angles));
+Torque = zeros(1, length(angles));
 for i = 1:length(angles)
-for j = 1:length(angles)
     if orderSample == 1
         hoppingsInter = [hopping; hopping];
     elseif orderSample == 2
-        hoppingsInter = [cos(angles(i)), sin(angles(i)); cos(angles(j)), sin(angles(j))];
+        %hoppingsInter = [cos(angles(i)), sin(angles(i)); cos(angles(j)), sin(angles(j))];
+        hoppingsInter = [cos(angles(i)), sin(angles(i)); 1, 0];
     end
     
     % compute the Hamiltonian of the Sample
@@ -55,25 +55,34 @@ for j = 1:length(angles)
     omegas = [1];
     for idx = 1:length(omegas)
         TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(idx));
-        Transmission(i, j) = TransmissionResult;
+        Transmission(i) = TransmissionResult;
 
         TorqueResult = torque(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(idx));
-        Torque(i, j) = TorqueResult;
+        Torque(i) = TorqueResult;
 
-        disp([  'Angle1: ', num2str(angles(i)), ', i=', num2str(i), ...
-                ', Angle2: ', num2str(angles(j)), ', j=', num2str(j)])
+        disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
     end
-end
 end
 
 %% plot
-plotLin3D (1, angles, Transmission)
-plotLin2D (2, 'Transmission', angles, Transmission);
+plotAngle (1, 'Transmission', angles, Transmission);
+plotAngle (3, 'Torque', angles, Torque);
 
-plotLin3D (3, angles, Torque)
-plotLin2D (4, 'Torque', angles, Torque);
+%plotBoth (1, 'Transmission', angles, Transmission);
+%plotBoth (3, 'Torque', angles, Torque);
 
 %% plotting functions
+function [] = plotAngle (value, Title, angles, Vals)
+    figure(value);
+    plot(angles, Vals)
+    title(Title);
+end
+
+function [] = plotBoth(value, Title, angles, Vals)
+    plotLin2D (value, Title, angles, Vals)
+    plotLin3D (value, angles, Vals)
+end
+
 function [varargout] = plotLin2D (value, Title, angles, Vals)
     TransPlot = zeros(1, length(angles)*length(angles));
     angleDiff = zeros(1, length(angles)*length(angles));
