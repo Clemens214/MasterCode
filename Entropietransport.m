@@ -14,7 +14,7 @@ hoppingLead = hopping;
 
 % variables for the hopping
 angleMax = 2*pi;
-angleStep = pi/8;
+angleStep = pi/4;
 angles = makeList(angleMax, angleStep);
 
 %variables for the calculation of the current
@@ -54,10 +54,10 @@ for j = 1:length(angles)
     
     omegas = [1];
     for idx = 1:length(omegas)
-        %TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(idx), linearResponse=true);
-        %Transmission(i, j) = TransmissionResult;
+        TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(idx));
+        Transmission(i, j) = TransmissionResult;
 
-        TorqueResult = torque(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(idx), linearResponse=true, conservative=true);
+        TorqueResult = torque(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(idx));
         Torque(i, j) = TorqueResult;
 
         disp([  'Angle1: ', num2str(angles(i)), ', i=', num2str(i), ...
@@ -67,17 +67,17 @@ end
 end
 
 %% plot
-%plotLin3D (angles, Transmission)
-%indices = plotLin2D (2, 'Transmission', angles, Transmission);
+plotLin3D (1, angles, Transmission)
+plotLin2D (2, 'Transmission', angles, Transmission);
 
-plotLin3D (angles, Torque)
-indices = plotLin2D (2, 'Torque', angles, Torque);
+plotLin3D (3, angles, Torque)
+plotLin2D (4, 'Torque', angles, Torque);
 
 %% plotting functions
 function [varargout] = plotLin2D (value, Title, angles, Vals)
-    TransPlot = zeros(length(angles)*length(angles));
-    angleDiff = zeros(length(angles)*length(angles));
-    indices = zeros(length(angles)*length(angles));
+    TransPlot = zeros(1, length(angles)*length(angles));
+    angleDiff = zeros(1, length(angles)*length(angles));
+    indices = zeros(1, length(angles)*length(angles));
     for i = 1:length(angles)
         for j = 1:length(angles)
             idx = (i-1)*length(angles) + j;
@@ -95,7 +95,8 @@ function [varargout] = plotLin2D (value, Title, angles, Vals)
     title(Title);
 end
 
-function [] = plotLin3D (angles, Vals)
+function [] = plotLin3D (value, angles, Vals)
+figure(value)
     surf(angles, angles, Vals)
 end
 

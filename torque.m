@@ -112,7 +112,7 @@ function [Result] = currentElement(Eigenvals, leftEVs, rightEVs, totalSysDeriv, 
             Product = ProductLeft * ProductMid * ProductRight;
             
             % compute the additional matrix element
-            factor = choiceFactor(EigVal, EigValDagger, chemPotL, chemPotR);
+            factor = choiceFactor(EigVal, EigValDagger, chemPotL, chemPotR, choice);
             
             Result = Result + Product*factor;
         end
@@ -121,7 +121,7 @@ function [Result] = currentElement(Eigenvals, leftEVs, rightEVs, totalSysDeriv, 
 end
 
 %% calculate the factor
-function [Factor] = choiceFactor(EigVal, EigValDagger, chemPotL, chemPotR)
+function [Factor] = choiceFactor(EigVal, EigValDagger, chemPotL, chemPotR, choice)
     if choice.conservative == true
         Factor = factorElement(EigVal, EigValDagger, chemPotL) + factorElement(EigVal, EigValDagger, chemPotR);
     elseif choice.nonconservative == true
