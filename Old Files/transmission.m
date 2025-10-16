@@ -8,7 +8,7 @@ arguments
     leftEVs
     rightEVs
     chemPot
-    options.linearResponse = true
+    options.linearResponse = false
 end
     %disp('Starting calculation of the current.')
     if options.linearResponse == true
@@ -17,7 +17,7 @@ end
     elseif options.linearResponse == false
         chemPotL = chemPot;
         chemPotR = -1*chemPot;
-        TotalResult = currentElement(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, Temp, chemPotL, chemPotR);
+        TotalResult = currentElement(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR);
     end
     Result = real(trace(TotalResult));
     %disp('Finished calculation of the current.')
@@ -36,43 +36,62 @@ function [Result] = Transmission(Energy, totalSystem, gammaL, gammaR)
 end
 
 %% 
-function [Result] = currentElement(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, Temp, chemPotL, chemPotR)
-    %disp('Starting calculation of the current element.')
-    Result = 0;
-    for i = 1:length(leftEVs)
-        % get the normal left and right Eigenvectors
-        EigVal = Eigenvals(i,i);
-        leftEV = leftEVs(:,i)';
-        rightEV = rightEVs(:,i);
-        
-        ProductLeft = rightEV;
-        ProductMidLeft = leftEV * gammaR;
-        for j = 1:length(leftEVs)
-            % get the daggered Eigenvectors
-            EigValDagger = Eigenvals(j,j)';
-            leftEVdagger = leftEVs(:,j);
-            rightEVdagger = rightEVs(:,j)';
-            
-            % compute the matrix element for chosen i and j
-            ProductMid = ProductMidLeft * leftEVdagger;
-            ProductRight = rightEVdagger * gammaL;
-            
-            Product = ProductLeft * ProductMid * ProductRight;
-            
-            % compute the additional matrix element
-            factor = factorElement(EigVal, EigValDagger, chemPotL) - factorElement(EigVal, EigValDagger, chemPotR);
-            
-            Result = Result + Product*factor;
+function [Result] = currentElement(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR)
+    index = struct('i', [], 'j', [], ...
+                    'Eigenval', [], 'EigenvalD', [], ...
+                    'leftEV', [], 'leftEVD', [], ...
+                    'rightEV', [], 'rightEVD', []);
+    for i = 1:length(Eigenvals)
+        for j = 1:length(Eigenvals)
+            idx = (i-1)*length(Eigenvals) + j;
+            index(idx).i = i;
+            index(idx).j = j;
+            % set the variables
+            index(idx).Eigenval = Eigenvals(i,i);
+            index(idx).leftEV = leftEVs(:,i)';
+            index(idx).rightEV = rightEVs(:,i);
+            index(idx).EigenvalD = Eigenvals(j,j)';
+            index(idx).leftEVD = leftEVs(:,j);
+            index(idx).rightEVD = rightEVs(:,j)';
         end
     end
-    %disp('Finished calculation of the current element.')
+
+    %disp('Starting calculation of the transmission element.')
+    Result = 0;
+    parfor idx = 1:length(index)
+        % get the normal left and right Eigenvectors
+        leftEV = index(idx).leftEV;
+        rightEV = index(idx).rightEV;
+        
+        % get the daggered Eigenvectors
+        leftEVdagger = index(idx).leftEVD;
+        rightEVdagger = index(idx).rightEVD;
+            
+        % compute the matrix element for chosen i and j
+        ProductLeft = rightEV;
+        ProductMid = leftEV * gammaR * leftEVdagger;
+        ProductRight = rightEVdagger * gammaL;
+            
+        Product = ProductLeft * ProductMid * ProductRight;
+        
+        % compute the additional matrix element
+        EigVal = index(idx).Eigenval;
+        EigValDagger = index(idx).EigenvalD;
+        factor = factorElement(EigVal, EigValDagger, chemPotL) - factorElement(EigVal, EigValDagger, chemPotR);
+        
+        Result = Result + Product*factor;
+    end
+    %disp('Finished calculation of the transmission element.')
 end
 
 %% calculate the factor for temperatures equal to zero
 function [result] = factorElement(eig1, eig2, chemPot)
-    %pot = chemPot(1);
-    factor = 1/(eig1 -eig2);
-    element1 = log(chemPot - eig1);
-    element2 = log(chemPot - eig2);
-    result = factor*(element1 - element2);
+    if eig1 ~= eig2
+        factor = 1/(eig1 - eig2);
+        element1 = log(chemPot - eig1);
+        element2 = log(chemPot - eig2);
+        result = factor*(element1 - element2);
+    else
+        result = -1/(chemPot - eig1);
+    end
 end
