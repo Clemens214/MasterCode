@@ -4,17 +4,17 @@ arguments
     options.check = true
     options.checkMore = false
 end
-    %disp('Starting calculation of the Eigenvectors.')
+    % [V,D,W] = eig(A)
+    % returns a diagonal matrix D of eigenvalues 
+    % and matrix V whose columns are the corresponding right eigenvectors, so that A*V = V*D.
+    % also returns full matrix W whose columns are the corresponding left eigenvectors, so that W'*A = D*W'.
     [rightEVs, Eigenvals, leftEVs] = eig(totalSystem);
-    %disp('Finished calculation of the Eigenvectors.')
     
-    %disp('Starting normalization of the Eigenvectors.')
     [leftEVs, rightEVs] = normalize(leftEVs, rightEVs);
-    %disp('Finished normalization of the Eigenvectors.')
     
     %disp('Start checking the Eigenvectors.')
     if options.check == true
-        [Product, maxOffDiag, minOnDiag] = TestProduct (Eigenvals, leftEVs, rightEVs);
+        [Product, maxOffDiag, minOnDiag] = TestProduct(Eigenvals, leftEVs, rightEVs);
         varargout{1} = Product;
         if options.checkMore == true
             CorrVal = 2;
@@ -30,11 +30,21 @@ end
         varargout{3+CorrVal} = MatchRight;
         varargout{4+CorrVal} = DiffLeft;
         varargout{5+CorrVal} = DiffRight;
+        if options.checkMore == true
+            if all(MatchLeft) == true
+                disp(['All the left eigenvectors match! Maximum Difference: ', num2str(max(max(DiffLeft)))]);
+            end
+            if all(MatchRight) == true
+                disp(['All the right eigenvectors match! Maximum Difference: ', num2str(max(max(DiffRight)))]);
+            end
+        end
     end
     %disp('Finished checking the Eigenvectors.')
+    disp('Test')
 end
 
-function [leftEVs, rightEVs] = normalize (leftEVs, rightEVs)
+function [leftEVs, rightEVs, varargout] = normalize (leftEVs, rightEVs)
+    values = zeros()
     for i = 1:length(leftEVs)
         leftEV = leftEVs(:,i)';
         rightEV = rightEVs(:,i);
@@ -67,15 +77,23 @@ function [Product, maxOffDiag, minOnDiag] = TestProduct (Eigenvals, leftEVs, rig
     end
 end
 
-function [TestLeft, TestRight, DiffLeft, DiffRight] = TestEV (Matrix, Eigenvals, leftEVs, rightEVs)
-    Tolerance = 1e-10;
+function [TestLeft, TestRight, DiffLeft, DiffRight] = TestEV (Matrix, Eigenvals, leftEVs, rightEVs, options)
+arguments
+    Matrix 
+    Eigenvals 
+    leftEVs 
+    rightEVs 
+    options.returnAbs = true
+    options.Tolerance = 1e-10;
+    %Tolerance = 1e-10;
+end
 
     % check the left Eigenvectors
     % W = full matrix W whose columns are the corresponding left eigenvectors
     % W'*A = D*W'
     MatrixMultLeft = leftEVs' * Matrix;
     EigMultLeft = Eigenvals * leftEVs';
-    TestLeft = isapprox(MatrixMultLeft, EigMultLeft, AbsoluteTolerance=Tolerance);
+    TestLeft = isapprox(MatrixMultLeft, EigMultLeft, AbsoluteTolerance=options.Tolerance);
     DiffLeft = MatrixMultLeft-EigMultLeft;
 
     % check the right Eigenvectors
@@ -83,6 +101,11 @@ function [TestLeft, TestRight, DiffLeft, DiffRight] = TestEV (Matrix, Eigenvals,
     % A*V = V*D
     MatrixMultRight = Matrix * rightEVs;
     EigMultRight = rightEVs * Eigenvals;
-    TestRight = isapprox(MatrixMultRight, EigMultRight, AbsoluteTolerance=Tolerance);
+    TestRight = isapprox(MatrixMultRight, EigMultRight, AbsoluteTolerance=options.Tolerance);
     DiffRight = MatrixMultRight-EigMultRight;
+
+    if options.returnAbs == true
+        DiffLeft = abs(DiffLeft);
+        DiffRight = abs(DiffRight);
+    end
 end

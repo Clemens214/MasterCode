@@ -29,9 +29,12 @@ Torque = zeros(1, length(angles));
 for i = 1:length(angles)
     if orderSample == 1
         hoppingsInter = [hopping; hopping];
+        hoppingsDeriv = [0; 0];
     elseif orderSample == 2
         %hoppingsInter = [cos(angles(i)), sin(angles(i)); cos(angles(j)), sin(angles(j))];
+        %hoppingsDeriv = [-1*sin(angles(i)), cos(angles(i)); -1*sin(angles(j)), cos(angles(j))];
         hoppingsInter = [cos(angles(i)), sin(angles(i)); 1, 0];
+        hoppingsDeriv = [-1*sin(angles(i)), cos(angles(i)); 0, 0];
     end
     
     % compute the Hamiltonian of the Sample
@@ -39,7 +42,7 @@ for i = 1:length(angles)
     
     % preparing the Extended Molecule Hamiltonian
     [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
-    [totalSysDeriv, ~, ~] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, derivVals, check=false);
+    [totalSysDeriv, ~, ~] = makeSystemEM(zeros(size(sample)), sizeSample, orderSample, sizeLead, 0, hoppingsDeriv, derivVals, check=false);
     
     %compute the Eigenvectors and the Eigenvalues of the system
     disp('Starting calculation of the Eigenvectors.')
