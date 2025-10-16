@@ -14,19 +14,13 @@ hoppingLead = hopping;
 
 % variables for the hopping
 angleMax = 2*pi;
-angleStep = pi/4;
+angleStep = pi/8;
 angles = makeList(angleMax, angleStep);
 
 %variables for the calculation of the current
-chemPotMax = 0;%1;
-chemPotStep = 1;
-chemPots = makeList(chemPotMax, chemPotStep, full=true);
-
-%variables for the calculation of the transmission
-omegaVal = 2.5;
-omegaMax = omegaVal*hopping;
-omegaStep = 0.05;
-omegas = makeList(omegaMax, omegaStep, full=true);
+voltageMax = 5;
+voltageStep = 0.05;
+voltages = makeList(voltageMax, voltageStep);
 
 %% Calculation
 
@@ -49,27 +43,45 @@ for i = 1:length(angles)
     
     %compute the Eigenvectors and the Eigenvalues of the system
     disp('Starting calculation of the Eigenvectors.')
-    [Eigenvals, leftEVs, rightEVs] = eigenvectors(totalSystem);
+    [Eigenvals, leftEVs, rightEVs, Product] = eigenvectors(totalSystem, checkMore=true);
     disp('Finished calculation of the Eigenvectors.')
     
-    omegas = [1];
-    for idx = 1:length(omegas)
-        TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(idx));
+    voltages = [0];
+    chemPots = setupPots(voltages);
+    Transmission(i) = TransCalc(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, linearResponse=true);
+    voltages = [2];
+    chemPots = setupPots(voltages);
+    chemPots(1).right = chemPots(1).left;
+    Torque(i) = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, linearResponse=true);
+    if false
+    for j = 1:length(voltages)
+        TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, voltages(j));
         Transmission(i) = TransmissionResult;
 
-        TorqueResult = torque(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(idx));
-        Torque(i) = TorqueResult;
-
+        %TorqueResult = torque(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, voltages(idx));
+        %Torque(i) = TorqueResult;
+        
         disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
+    end
     end
 end
 
 %% plot
 plotAngle (1, 'Transmission', angles, Transmission);
-plotAngle (3, 'Torque', angles, Torque);
+plotAngle (2, 'Torque', angles, Torque);
 
 %plotBoth (1, 'Transmission', angles, Transmission);
 %plotBoth (3, 'Torque', angles, Torque);
+
+%% chemPots
+function [chemPots] = setupPots(voltages)
+    chemPots = struct('left', [], 'right', []);
+    for j = 1:length(voltages)
+        chemPotL = voltages(j)/2;
+        chemPotR = -1*voltages(j)/2;
+        chemPots(j) = struct('left', chemPotL, 'right', chemPotR);
+    end
+end
 
 %% plotting functions
 function [] = plotAngle (value, Title, angles, Vals)
@@ -107,17 +119,6 @@ end
 function [] = plotLin3D (value, angles, Vals)
 figure(value)
     surf(angles, angles, Vals)
-end
-
-function [] = plotGraph (value, Title, omegas, Vals, chemPots)
-    figure(value);
-    title(Title);
-    for i = 1:length(chemPots)
-        plot(omegas, Vals{i})
-        hold on
-    end
-    labels = strcat('chemPot = ',cellstr(num2str(chemPots.')));
-    legend(labels)
 end
 
 %% helping functions

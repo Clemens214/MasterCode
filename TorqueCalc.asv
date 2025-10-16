@@ -1,4 +1,4 @@
-function [Result] = torque(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPot, options)
+function [Result] = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPot, options)
 % calculate the torque through a molecule for zero temperature
 arguments
     totalSystem
@@ -154,4 +154,78 @@ function [result] = factorElement(eig1, eig2, chemPot)
     element1 = log(chemPot - eig1);
     element2 = log(chemPot - eig2);
     result = factor*(element1 - element2);
+end
+
+
+%% total transmission in the linear transport approximation
+function [Results, varargout] = AllCalc(Energies, totalSystem, gammaL, gammaR, options)
+    %calculates the transport through a molecule in the linear transport approximation
+    arguments
+        Energies
+        totalSystem
+        gammaL
+        gammaR
+        options.evalIndex = 1
+    end
+    % calculate the transport matrix and the traces
+    Matrices = AllMatrix(Energies, totalSystem, gammaL, gammaR);
+
+    % calculate the final results
+    allResults = zeros(1, length(Energies));
+    for i = 1:length(allMatrices)
+        Traces = trace(real(Matrices{i}));
+        allResults(i) = Traces(options.evalIndex);
+    end
+    
+    % return the results
+    Results = allResults;
+    varargout{2} = allTraces;
+    varargout{3} = allMatrices;
+end
+
+function [Result, varargout] = ValCalc(Energies, totalSystem, gammaL, gammaR, options)
+    %calculates the transport through a molecule in the linear transport approximation
+    arguments
+        Energies
+        totalSystem
+        gammaL
+        gammaR
+        options.EnergyVal = 0
+        options.evalIndex = 1
+    end
+    % calculate the transport matrix and the traces
+    Matrix = ValMatrix(Energies, totalSystem, gammaL, gammaR, EnergyVal=options.EnergyVal);
+    Traces = allTrace(real(Matrix));
+    
+    % calculate the final results
+    Result = Traces(options.evalIndex);
+    varargout{1} = Traces;
+    varargout{2} = real(Matrix);
+end
+
+%% matrices
+function [Results] = AllMatrix(Energies, totalSystem, gammaL, gammaR)
+    % calculate the conductance matrices in the linear transport approximation
+    arguments
+        Energies
+        totalSystem
+        gammaL
+        gammaR
+    end    
+    % calculate all the different Transmission matrix values
+    Results = cell(1, length(Energies));
+    for i = 1:length(Energies)
+        TransMatrix = TransmissionZeroTemp(Energies(i), totalSystem, gammaL, gammaR);
+        Results{i} = TransMatrix;
+    end
+end
+
+%% calculation of the transport matrices
+function [Transmission] = TransmissionZeroTemp(Energy, totalSystem, gammaL, gammaR)
+    % calculate the Greens Function
+    GreensFuncInv = Energy*eye(length(totalSystem)) - totalSystem;
+    GreensFunc = inv(GreensFuncInv);
+    
+    % calculate the matrix product
+    Transmission = GreensFunc * gammaR * GreensFunc' * gammaL;
 end

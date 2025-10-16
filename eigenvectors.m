@@ -34,7 +34,6 @@ end
     %disp('Finished checking the Eigenvectors.')
 end
 
-%% 
 function [leftEVs, rightEVs] = normalize (leftEVs, rightEVs)
     for i = 1:length(leftEVs)
         leftEV = leftEVs(:,i)';
@@ -58,11 +57,10 @@ function [Product, maxOffDiag, minOnDiag] = TestProduct (Eigenvals, leftEVs, rig
     maxOffDiag = 0;
     minOnDiag = 1;
     for i = 1:length(Eigenvals)
-        if abs(Product(i,i)) < minOnDiag
-            minOnDiag = abs(Product(i,i));
-        end
         for j = 1:length(Eigenvals)
-            if i ~= j && abs(Product(i,j)) > maxOffDiag
+            if i ==j && abs(Product(i,j)) < minOnDiag
+                minOnDiag = abs(Product(i,i));
+            elseif i ~= j && abs(Product(i,j)) > maxOffDiag
                 maxOffDiag = abs(Product(i,j));
             end
         end
