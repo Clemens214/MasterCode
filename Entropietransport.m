@@ -53,12 +53,12 @@ for i = 1:length(angles)
     disp('Finished calculation of the Eigenvectors.')
     
     omegas = [1];
-    for idx = 1:length(omegas)
-        TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(idx));
+    for j = 1:length(omegas)
+        TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(j));
         Transmission(i) = TransmissionResult;
 
-        TorqueResult = torque(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(idx));
-        Torque(i) = TorqueResult;
+        %TorqueResult = torque(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, omegas(idx));
+        %Torque(i) = TorqueResult;
 
         disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
     end
@@ -66,7 +66,7 @@ end
 
 %% plot
 plotAngle (1, 'Transmission', angles, Transmission);
-plotAngle (3, 'Torque', angles, Torque);
+%plotAngle (2, 'Torque', angles, Torque);
 
 %plotBoth (1, 'Transmission', angles, Transmission);
 %plotBoth (3, 'Torque', angles, Torque);
