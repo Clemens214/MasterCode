@@ -1,4 +1,4 @@
-function [Result] = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPot, options)
+function [Results] = TransCalc(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, options)
 % calculate the transmission through a molecule for zero temperature
 arguments
     totalSystem
@@ -7,36 +7,27 @@ arguments
     Eigenvals
     leftEVs
     rightEVs
-    chemPot
+    chemPots
     options.linearResponse = false
 end
     %disp('Starting calculation of the current.')
     if options.linearResponse == true
-        Energy = chemPot;
-        TotalResult = Transmission(Energy, totalSystem, gammaL, gammaR);
+        Energies = getEnergies(chemPots);
+        Results = Transmission(Energies, totalSystem, gammaL, gammaR);
     elseif options.linearResponse == false
-        chemPotL = chemPot;
-        chemPotR = -1*chemPot;
-        TotalResult = currentElement(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR);
+        Results = zeros(1, length(chemPots));
+        for i = 1:length(chemPots)
+            chemPotL = chemPots(i).left;
+            chemPotR = chemPots(i).right;
+            TotalResult = TransmissionMatrix(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR);
+            Results(i) = real(trace(TotalResult));
+        end
     end
-    Result = real(trace(TotalResult));
     %disp('Finished calculation of the current.')
 end
 
-%% calculate the Transmission for zero temperature
-function [Result] = Transmission(Energy, totalSystem, gammaL, gammaR)
-    % calculate the Transport through the molecule
-
-    % calculate the Greens Function
-    GreensFuncInv = Energy*eye(length(totalSystem)) - totalSystem;
-    GreensFunc = inv(GreensFuncInv);
-    
-    % calculate the matrix product
-    Result = GreensFunc * gammaL * GreensFunc' * gammaR;
-end
-
-%% 
-function [Result] = currentElement(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR)
+%% total transmission for finite voltages
+function [Result] = TransmissionMatrix(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR)
     index = struct('i', [], 'j', [], ...
                     'Eigenval', [], 'EigenvalD', [], ...
                     'leftEV', [], 'leftEVD', [], ...
@@ -46,10 +37,11 @@ function [Result] = currentElement(Eigenvals, leftEVs, rightEVs, gammaL, gammaR,
             idx = (i-1)*length(Eigenvals) + j;
             index(idx).i = i;
             index(idx).j = j;
-            % set the variables
+            % set the normal variables
             index(idx).Eigenval = Eigenvals(i,i);
             index(idx).leftEV = leftEVs(:,i)';
             index(idx).rightEV = rightEVs(:,i);
+            % set the daggered variables
             index(idx).EigenvalD = Eigenvals(j,j)';
             index(idx).leftEVD = leftEVs(:,j);
             index(idx).rightEVD = rightEVs(:,j)';
@@ -84,7 +76,6 @@ function [Result] = currentElement(Eigenvals, leftEVs, rightEVs, gammaL, gammaR,
     %disp('Finished calculation of the transmission element.')
 end
 
-%% calculate the factor for temperatures equal to zero
 function [result] = factorElement(eig1, eig2, chemPot)
     if eig1 ~= eig2
         factor = 1/(eig1 - eig2);
@@ -94,4 +85,43 @@ function [result] = factorElement(eig1, eig2, chemPot)
     else
         result = -1/(chemPot - eig1);
     end
+end
+
+%% total transmission in the linear transport approximation
+function [Results] = Transmission(Energies, totalSystem, gammaL, gammaR)
+    %calculates the transport through a molecule in the linear transport approximation
+    arguments
+        Energies
+        totalSystem
+        gammaL
+        gammaR
+    end
+    % calculate the transport matrix and the trace
+    Traces = zeros(1, length(Energies));
+    for i = 1:length(Energies)
+        Matrix = TransmissionZeroTemp(Energies(i), totalSystem, gammaL, gammaR);
+        Traces(i) = trace(real(Matrix));
+    end
+    % return the results
+    Results = Traces;
+end
+
+function [Result] = TransmissionZeroTemp(Energy, totalSystem, gammaL, gammaR)
+    % calculate the Greens Function
+    GreensFuncInv = Energy*eye(length(totalSystem)) - totalSystem;
+    GreensFunc = inv(GreensFuncInv);
+    
+    % calculate the matrix product
+    Result = GreensFunc * gammaL * GreensFunc' * gammaR;
+end
+
+%% helping functions
+function [Filtered] = getEnergies(chemPots)
+    Energies = zeros(1, length(chemPots)*2);
+    for i = 1:length(chemPots)
+        Energies(2*i-1) = chemPots(i).left;
+        Energies(2*i) = chemPots(i).right;
+    end
+    Sorted = sort(Energies);
+    Filtered = unique(Sorted);
 end
