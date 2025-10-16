@@ -122,8 +122,7 @@ function [Result] = currentElement(Eigenvals, leftEVs, rightEVs, totalSysDeriv, 
             
         % compute the matrix element for chosen i and j
         ProductLeft = totalSysDeriv * rightEV;
-        ProductMidLeft = leftEV * midFactor;
-        ProductMid = ProductMidLeft * leftEVdagger;
+        ProductMid = leftEV * midFactor * leftEVdagger;
         ProductRight = rightEVdagger;
         
         Product = ProductLeft * ProductMid * ProductRight;

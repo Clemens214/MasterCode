@@ -70,8 +70,7 @@ function [Result] = currentElement(Eigenvals, leftEVs, rightEVs, gammaL, gammaR,
             
         % compute the matrix element for chosen i and j
         ProductLeft = rightEV;
-        ProductMidLeft = leftEV * gammaR;
-        ProductMid = ProductMidLeft * leftEVdagger;
+        ProductMid = leftEV * gammaR * leftEVdagger;
         ProductRight = rightEVdagger * gammaL;
             
         Product = ProductLeft * ProductMid * ProductRight;
