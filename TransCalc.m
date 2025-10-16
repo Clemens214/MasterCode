@@ -21,6 +21,9 @@ end
             chemPotR = chemPots(i).right;
             TotalResult = TransmissionMatrix(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR);
             Results(i) = real(trace(TotalResult));
+
+            voltage = chemPotL - chemPotR;
+            disp(['Voltage: ', num2str(voltage), ', j=', num2str(i)])
         end
     end
     %disp('Finished calculation of the current.')

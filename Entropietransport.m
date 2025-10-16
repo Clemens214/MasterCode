@@ -1,14 +1,14 @@
 %% Variables
 
 % variables for the sample
-sizeSample = 50;%48;
+sizeSample = 5;%48;
 orderSample = 2;
 eigenenergy = 0;
 hopping = 1;
 hoppingsSample = hopping*eye(orderSample);
 
 % variables for the leads
-sizeLead = 104;
+sizeLead = 104;%104;
 [leadVals, derivVals] = calcVals(maxVal = 1, decay = 0.2, offset = 32);
 hoppingLead = hopping;
 
@@ -51,11 +51,12 @@ for i = 1:length(angles)
     
     Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots);
     %Torque(i) = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots);
+    disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
 %% plot
-plot3D(1, 'Transmission', angles, Energies, Transmission)
-plot2D(2, 'Transmission', angles, Energies, Transmission)
+plot3D(1, 'Transmission', angles, voltages, Transmission)
+plot2D(2, 'Transmission', angles, voltages, Transmission)
 
 %plot3D(2, 'Torque', angles, Energies, Torque)
 

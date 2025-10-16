@@ -29,6 +29,9 @@ end
             chemPotR = chemPots(i).right;
             TotalResult = TorqueChoice(Eigenvals, leftEVs, rightEVs, totalSysDeriv, gammaL, gammaR, chemPotL, chemPotR, choice);
             Results(i) = real(trace(TotalResult));
+
+            voltage = chemPotL - chemPotR;
+            disp(['Voltage: ', num2str(voltage), ', j=', num2str(i)])
         end
     end
     %disp('Finished calculation of the torque.')

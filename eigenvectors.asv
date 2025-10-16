@@ -3,6 +3,7 @@ arguments
     totalSystem
     options.check = true
     options.checkMore = false
+    options.returnAbs = true
 end
     % [V,D,W] = eig(A)
     % returns a diagonal matrix D of eigenvalues 
@@ -10,12 +11,17 @@ end
     % also returns full matrix W whose columns are the corresponding left eigenvectors, so that W'*A = D*W'.
     [rightEVs, Eigenvals, leftEVs] = eig(totalSystem);
     
-    [leftEVs, rightEVs] = normalize(leftEVs, rightEVs);
+    [leftEVs, rightEVs, valuesOld] = normalize(leftEVs, rightEVs);
+    [~, ~, valuesNew] = normalize(leftEVs, rightEVs);
     
     %disp('Start checking the Eigenvectors.')
     if options.check == true
         [Product, maxOffDiag, minOnDiag] = TestProduct(Eigenvals, leftEVs, rightEVs);
-        varargout{1} = Product;
+        if options.returnAbs == true
+            varargout{1} = abs(Product);
+        else
+            varargout{1} = Product;
+        end
         if options.checkMore == true
             CorrVal = 2;
             varargout{2} = maxOffDiag;
@@ -40,7 +46,9 @@ end
         end
     end
     %disp('Finished checking the Eigenvectors.')
-    disp('Test')
+    if maxOffDiag > 10
+        disp('Test')
+    end
 end
 
 function [leftEVs, rightEVs, varargout] = normalize (leftEVs, rightEVs)
@@ -54,11 +62,42 @@ function [leftEVs, rightEVs, varargout] = normalize (leftEVs, rightEVs)
         leftEVs(:,i) = leftEVs(:,i)/squareRoot';
         rightEVs(:,i) = rightEVs(:,i)/squareRoot;
 
-        values(i) = value
+        values(i) = value;
     end
+    varargout{1} = values;
 end
 
 %% checking functions
+function [ProductOld, ProductNew, maxOffDiag, minOnDiag] = Products (Eigenvals, leftEVs, rightEVs)
+    ProductOld = zeros(length(Eigenvals), length(Eigenvals));
+    for i = 1:length(Eigenvals)
+        leftEV = leftEVs(:,i)';
+        rightEV = rightEVs(:,i);
+        ProductOld = ProductOld + (rightEV * leftEV);
+    end
+    maxOffDiag = 0;
+    minOnDiag = 1;
+    for i = 1:length(Eigenvals)
+        for j = 1:length(Eigenvals)
+            if i ==j && abs(Product(i,j)) < minOnDiag
+                minOnDiag = abs(Product(i,i));
+            elseif i ~= j && abs(Product(i,j)) > maxOffDiag
+                maxOffDiag = abs(Product(i,j));
+            end
+        end
+    end
+    ValsOld = struct('OnDiag', minOnDiag, 'OffDiag', ma);
+
+    ProductNew = zeros(length(Eigenvals), length(Eigenvals));
+    for i = 1:length(Eigenvals)
+        for j = 1:length(Eigenvals)
+            leftEV = leftEVs(:,i)';
+            rightEV = rightEVs(:,j);
+            ProductNew(i, j) = leftEV * rightEV;
+        end
+    end
+end
+
 function [Product, maxOffDiag, minOnDiag] = TestProduct (Eigenvals, leftEVs, rightEVs)
     Product = zeros(length(Eigenvals), length(Eigenvals));
     for i = 1:length(Eigenvals)

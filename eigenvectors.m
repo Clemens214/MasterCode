@@ -46,7 +46,10 @@ end
         end
     end
     %disp('Finished checking the Eigenvectors.')
-    disp('Test')
+    [ProductOld, ProductNew, ValsOld, ValsNew] = Products (Eigenvals, leftEVs, rightEVs);
+    if maxOffDiag > 10
+        disp('Test')
+    end
 end
 
 function [leftEVs, rightEVs, varargout] = normalize (leftEVs, rightEVs)
@@ -66,6 +69,43 @@ function [leftEVs, rightEVs, varargout] = normalize (leftEVs, rightEVs)
 end
 
 %% checking functions
+function [ProductOld, ProductNew, ValsOld, ValsNew] = Products (Eigenvals, leftEVs, rightEVs)
+    ProductOld = zeros(length(Eigenvals), length(Eigenvals));
+    for i = 1:length(Eigenvals)
+        leftEV = leftEVs(:,i)';
+        rightEV = rightEVs(:,i);
+        ProductOld = ProductOld + (rightEV * leftEV);
+    end
+    maxOffDiag = 0;
+    minOnDiag = 1;
+    for i = 1:length(Eigenvals)
+        for j = 1:length(Eigenvals)
+            if i ==j && abs(ProductOld(i,j)) < minOnDiag
+                minOnDiag = abs(ProductOld(i,i));
+            elseif i ~= j && abs(ProductOld(i,j)) > maxOffDiag
+                maxOffDiag = abs(ProductOld(i,j));
+            end
+        end
+    end
+    ValsOld = struct('OnDiag', minOnDiag, 'OffDiag', maxOffDiag);
+
+    ProductNew = zeros(length(Eigenvals), length(Eigenvals));
+    ValsNew = struct('OnDiag', 1, 'OffDiag', 0);
+    for i = 1:length(Eigenvals)
+        for j = 1:length(Eigenvals)
+            leftEV = leftEVs(:,i)';
+            rightEV = rightEVs(:,j);
+            ProductNew(i, j) = leftEV * rightEV;
+            
+            if i ==j && abs(ProductNew(i,j)) < minOnDiag
+                ValsNew.OnDiag = abs(ProductNew(i,i));
+            elseif i ~= j && abs(ProductNew(i,j)) > maxOffDiag
+                ValsNew.OffDiag = abs(ProductNew(i,j));
+            end
+        end
+    end
+end
+
 function [Product, maxOffDiag, minOnDiag] = TestProduct (Eigenvals, leftEVs, rightEVs)
     Product = zeros(length(Eigenvals), length(Eigenvals));
     for i = 1:length(Eigenvals)
