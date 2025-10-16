@@ -14,7 +14,7 @@ hoppingLead = hopping;
 
 % variables for the hopping
 angleMax = 2*pi;
-angleStep = pi/8;
+angleStep = pi/32;
 angles = makeList(angleMax, angleStep);
 
 %variables for the calculation of the current
@@ -53,17 +53,6 @@ for i = 1:length(angles)
     chemPots = setupPots(voltages);
     chemPots(1).right = chemPots(1).left;
     Torque(i) = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, linearResponse=true);
-    if false
-    for j = 1:length(voltages)
-        TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, voltages(j));
-        Transmission(i) = TransmissionResult;
-
-        %TorqueResult = torque(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, voltages(idx));
-        %Torque(i) = TorqueResult;
-        
-        disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
-    end
-    end
 end
 
 %% plot
