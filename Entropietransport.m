@@ -1,7 +1,7 @@
 %% Variables
 
 % variables for the sample
-sizeSample = 48;
+sizeSample = 50;%48;
 orderSample = 2;
 eigenenergy = 0;
 hopping = 1;
@@ -14,18 +14,20 @@ hoppingLead = hopping;
 
 % variables for the hopping
 angleMax = 2*pi;
-angleStep = pi/32;
+angleStep = pi/4;
 angles = makeList(angleMax, angleStep);
 
 %variables for the calculation of the current
-voltageMax = 5;
-voltageStep = 0.05;
+voltageMax = 1;%4;
+voltageStep = 0.5;%0.05;
 voltages = makeList(voltageMax, voltageStep);
+chemPots = setupPots(voltages);
+Energies = getEnergies(chemPots);
 
 %% Calculation
 
-Transmission = zeros(1, length(angles));
-Torque = zeros(1, length(angles));
+Transmission = cell(1, length(angles));
+Torque = cell(1, length(angles));
 for i = 1:length(angles)
     if orderSample == 1
         hoppingsInter = [hopping; hopping];
@@ -41,29 +43,24 @@ for i = 1:length(angles)
     sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
     
     % preparing the Extended Molecule Hamiltonian
-    [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
-    [totalSysDeriv, ~, ~] = makeSystemEM(zeros(size(sample)), sizeSample, orderSample, sizeLead, 0, hoppingsDeriv, derivVals, check=false);
+    [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals, check=false);
+    totalSysDeriv = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv, derivVals);
     
     %compute the Eigenvectors and the Eigenvalues of the system
-    disp('Starting calculation of the Eigenvectors.')
     [Eigenvals, leftEVs, rightEVs, Product] = eigenvectors(totalSystem, checkMore=true);
-    disp('Finished calculation of the Eigenvectors.')
     
-    voltages = [0];
-    chemPots = setupPots(voltages);
-    Transmission(i) = TransCalc(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, linearResponse=true);
-    voltages = [2];
-    chemPots = setupPots(voltages);
-    chemPots(1).right = chemPots(1).left;
-    Torque(i) = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, linearResponse=true);
+    Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots);
+    %Torque(i) = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots);
 end
 
 %% plot
-plotAngle (1, 'Transmission', angles, Transmission);
-plotAngle (2, 'Torque', angles, Torque);
+plot3D(1, 'Transmission', angles, Energies, Transmission)
+plot2D(2, 'Transmission', angles, Energies, Transmission)
 
-%plotBoth (1, 'Transmission', angles, Transmission);
-%plotBoth (3, 'Torque', angles, Torque);
+%plot3D(2, 'Torque', angles, Energies, Torque)
+
+%plotAngle (1, 'Transmission', angles, Transmission);
+%plotAngle (2, 'Torque', angles, Torque);
 
 %% chemPots
 function [chemPots] = setupPots(voltages)
@@ -75,6 +72,12 @@ function [chemPots] = setupPots(voltages)
     end
 end
 
+function [totalSysDeriv] = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv, derivVals)
+    sampleDeriv = zeros(sizeSample*orderSample, sizeSample*orderSample);
+    hoppingDeriv = 0;
+    [totalSysDeriv, ~, ~] = makeSystemEM(sampleDeriv, sizeSample, orderSample, sizeLead, hoppingDeriv, hoppingsDeriv, derivVals, check=false);
+end
+
 %% plotting functions
 function [] = plotAngle (value, Title, angles, Vals)
     figure(value);
@@ -82,10 +85,37 @@ function [] = plotAngle (value, Title, angles, Vals)
     title(Title);
 end
 
-function [] = plotBoth(value, Title, angles, Vals)
-    plotLin2D (value, Title, angles, Vals)
-    plotLin3D (value, angles, Vals)
+function [] = plot2D (value, Title, angles, voltages, Data)
+    TransPlot = cell(1, length(voltages));
+    for i = 1:length(voltages)
+        TransPlot{i} = zeros(1, length(angles));
+        for j = 1:length(angles)
+            TransPlot{i}(j) = Data{j}(i);
+        end
+    end
+    % plot the data
+    figure(value)
+    hold on
+    for i = 1:length(voltages)
+        plot(angles, TransPlot{i});
+    end
+    hold off
+    title(Title);
+    labels = strcat('chemPot = ',cellstr(num2str(angles.')));
+    legend(labels)
 end
+
+function [] = plot3D (value, Title, angles, voltages, Data)
+    TransPlot = zeros(length(voltages), length(angles));
+    for i = 1:length(Data)
+        test = Data{i}.';
+        TransPlot(:, i) = Data{i}.';
+    end
+    figure(value)
+    surf(angles, voltages, TransPlot)
+    title(Title);
+end
+
 
 function [varargout] = plotLin2D (value, Title, angles, Vals)
     TransPlot = zeros(1, length(angles)*length(angles));
@@ -108,9 +138,21 @@ function [varargout] = plotLin2D (value, Title, angles, Vals)
     title(Title);
 end
 
-function [] = plotLin3D (value, angles, Vals)
-figure(value)
+function [] = plotLin3D (value, Title, angles, Vals)
+    figure(value)
     surf(angles, angles, Vals)
+    title(Title);
+end
+
+function [] = plotGraph (value, Title, omegas, Vals, chemPots)
+    figure(value);
+    title(Title);
+    for i = 1:length(chemPots)
+        plot(omegas, Vals{i})
+        hold on
+    end
+    labels = strcat('chemPot = ',cellstr(num2str(chemPots.')));
+    legend(labels)
 end
 
 %% helping functions
@@ -142,6 +184,16 @@ function [leadVals, derivVals] = calcVals(opt)%(maxVal, decay, offset)
     offset = opt.offset;
     leadVals = {maxVal, decay, offset};
     derivVals = {0, decay, offset};
+end
+
+function [Filtered] = getEnergies(chemPots)
+    Energies = zeros(1, length(chemPots)*2);
+    for i = 1:length(chemPots)
+        Energies(2*i-1) = chemPots(i).left;
+        Energies(2*i) = chemPots(i).right;
+    end
+    Sorted = sort(Energies);
+    Filtered = unique(Sorted);
 end
 
 function [] = saveVar(var, order)

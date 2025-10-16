@@ -3,6 +3,7 @@ arguments
     totalSystem
     options.check = true
     options.checkMore = false
+    options.returnAbs = true
 end
     % [V,D,W] = eig(A)
     % returns a diagonal matrix D of eigenvalues 
@@ -10,12 +11,17 @@ end
     % also returns full matrix W whose columns are the corresponding left eigenvectors, so that W'*A = D*W'.
     [rightEVs, Eigenvals, leftEVs] = eig(totalSystem);
     
-    [leftEVs, rightEVs] = normalize(leftEVs, rightEVs);
+    [leftEVs, rightEVs, valuesOld] = normalize(leftEVs, rightEVs);
+    [~, ~, valuesNew] = normalize(leftEVs, rightEVs);
     
     %disp('Start checking the Eigenvectors.')
     if options.check == true
         [Product, maxOffDiag, minOnDiag] = TestProduct(Eigenvals, leftEVs, rightEVs);
-        varargout{1} = Product;
+        if options.returnAbs == true
+            varargout{1} = abs(Product);
+        else
+            varargout{1} = Product;
+        end
         if options.checkMore == true
             CorrVal = 2;
             varargout{2} = maxOffDiag;
@@ -44,7 +50,7 @@ end
 end
 
 function [leftEVs, rightEVs, varargout] = normalize (leftEVs, rightEVs)
-    values = zeros()
+    values = zeros(1, length(leftEVs));
     for i = 1:length(leftEVs)
         leftEV = leftEVs(:,i)';
         rightEV = rightEVs(:,i);
@@ -53,7 +59,10 @@ function [leftEVs, rightEVs, varargout] = normalize (leftEVs, rightEVs)
         squareRoot = sqrt(value);
         leftEVs(:,i) = leftEVs(:,i)/squareRoot';
         rightEVs(:,i) = rightEVs(:,i)/squareRoot;
+
+        values(i) = value;
     end
+    varargout{1} = values;
 end
 
 %% checking functions

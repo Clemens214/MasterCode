@@ -44,7 +44,7 @@ end
 end
 
 function [leftEVs, rightEVs, varargout] = normalize (leftEVs, rightEVs)
-    values = zeros()
+    values = zeros(1, length(leftEVs));
     for i = 1:length(leftEVs)
         leftEV = leftEVs(:,i)';
         rightEV = rightEVs(:,i);
@@ -53,6 +53,8 @@ function [leftEVs, rightEVs, varargout] = normalize (leftEVs, rightEVs)
         squareRoot = sqrt(value);
         leftEVs(:,i) = leftEVs(:,i)/squareRoot';
         rightEVs(:,i) = rightEVs(:,i)/squareRoot;
+
+        values(i) = value
     end
 end
 
