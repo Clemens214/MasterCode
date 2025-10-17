@@ -97,9 +97,9 @@ function [ProductOld, ProductNew, ValsOld, ValsNew] = Products (Eigenvals, leftE
             rightEV = rightEVs(:,j);
             ProductNew(i, j) = leftEV * rightEV;
             
-            if i ==j && abs(ProductNew(i,j)) < minOnDiag
+            if i ==j && abs(ProductNew(i,j)) < ValsNew.OnDiag
                 ValsNew.OnDiag = abs(ProductNew(i,i));
-            elseif i ~= j && abs(ProductNew(i,j)) > maxOffDiag
+            elseif i ~= j && abs(ProductNew(i,j)) > ValsNew.OffDiag
                 ValsNew.OffDiag = abs(ProductNew(i,j));
             end
         end

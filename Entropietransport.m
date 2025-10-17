@@ -49,14 +49,14 @@ for i = 1:length(angles)
     %compute the Eigenvectors and the Eigenvalues of the system
     [Eigenvals, leftEVs, rightEVs, Product] = eigenvectors(totalSystem, checkMore=true);
     
-    Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots);
+    %Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots);
     %Torque(i) = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots);
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
 %% plot
-plot3D(1, 'Transmission', angles, voltages, Transmission)
-plot2D(2, 'Transmission', angles, voltages, Transmission)
+%plot3D(1, 'Transmission', angles, voltages, Transmission)
+%plot2D(2, 'Transmission', angles, voltages, Transmission)
 
 %plot3D(2, 'Torque', angles, Energies, Torque)
 
