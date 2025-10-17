@@ -21,6 +21,7 @@ end
     %disp('Starting calculation of the torque.')
     if options.linearResponse == true
         Energies = getEnergies(chemPots);
+        Energies = [1];
         Results = Torque(Energies, totalSystem, totalSysDeriv, gammaL, gammaR, choice);
     elseif options.linearResponse == false
         Results = zeros(1, length(chemPots));

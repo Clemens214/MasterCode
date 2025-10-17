@@ -13,6 +13,8 @@ end
     
     [leftEVs, rightEVs, valuesOld] = normalize(leftEVs, rightEVs);
     [~, ~, valuesNew] = normalize(leftEVs, rightEVs);
+
+    checkResult(totalSystem, rightEVs, Eigenvals, leftEVs)
     
     %disp('Start checking the Eigenvectors.')
     if options.check == true
@@ -48,6 +50,8 @@ end
     %disp('Finished checking the Eigenvectors.')
     [ProductOld, ProductNew, ValsOld, ValsNew] = Products (Eigenvals, leftEVs, rightEVs);
     if maxOffDiag > 10
+        absValuesOld = sort(abs(valuesOld));
+        absValuesNew = sort(abs(valuesNew));
         disp('Test')
     end
 end
@@ -69,6 +73,48 @@ function [leftEVs, rightEVs, varargout] = normalize (leftEVs, rightEVs)
 end
 
 %% checking functions
+function [] = checkResult(totalSystem, rightEVs, Eigenvals, leftEVs)
+    % Example matrix (replace with your A)
+    A = totalSystem;
+
+    % 1) Compute right eigenvectors and eigenvalues
+    [V, D] = eig(A);      % A * V = V * D
+    
+    % 2) Compute left eigenvectors (right eigenvectors of A.')
+    [W, ~] = eig(A.');    % A.' * W = W * D   (columns of W are left eigenvectors)
+    
+    % 3) Enforce biorthonormality: W' * V should be the identity.
+    %    Use matrix right-division to avoid explicit inv when possible:
+    W = W / (W' * V);     % MATLAB: W * inv(W'*V). After this, W' * V ~ I
+    
+    % 4) Reconstruct A from the decomposition
+    A_rec = V * D * W';   % uses transpose-conjugate of W (W' is conjugate transpose)
+    
+    % 5) Diagnostics: check biorthogonality and reconstruction error
+    biorth_error = norm(W' * V - eye(size(A)), 'fro');     % should be ~0
+    recon_error   = norm(A - A_rec, 'fro');                % should be small if diagonalizable
+    
+    fprintf('||W''*V - I||_F = %g\n', biorth_error);
+    fprintf('||A - A_rec||_F = %g\n', recon_error);
+    
+    % Optional: also check condition number of V (large -> unstable)
+    fprintf('cond(V) = %g\n', cond(V));
+
+    % Conditioning of eigenvector matrix
+    condV = cond(V);
+    
+    % Rank of eigenvector matrix
+    rankV = rank(V);
+    
+    % Check if matrix is defective
+    if rankV < size(A,1)
+        disp('Matrix appears defective (not diagonalizable).');
+    else
+        disp('Matrix is diagonalizable but ill-conditioned.');
+    end
+    fprintf('Condition number of V: %g\n', condV);
+end
+
 function [ProductOld, ProductNew, ValsOld, ValsNew] = Products (Eigenvals, leftEVs, rightEVs)
     ProductOld = zeros(length(Eigenvals), length(Eigenvals));
     for i = 1:length(Eigenvals)

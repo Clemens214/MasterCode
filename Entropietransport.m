@@ -1,7 +1,7 @@
 %% Variables
 
 % variables for the sample
-sizeSample = 5;%48;
+sizeSample = 48;%48;
 orderSample = 2;
 eigenenergy = 0;
 hopping = 1;
@@ -14,7 +14,7 @@ hoppingLead = hopping;
 
 % variables for the hopping
 angleMax = 2*pi;
-angleStep = pi/4;
+angleStep = pi/16;
 angles = makeList(angleMax, angleStep);
 
 %variables for the calculation of the current
@@ -50,7 +50,7 @@ for i = 1:length(angles)
     [Eigenvals, leftEVs, rightEVs, Product] = eigenvectors(totalSystem, checkMore=true);
     
     %Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots);
-    %Torque(i) = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots);
+    Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, linearResponse=true, right=true);
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
@@ -61,7 +61,7 @@ end
 %plot3D(2, 'Torque', angles, Energies, Torque)
 
 %plotAngle (1, 'Transmission', angles, Transmission);
-%plotAngle (2, 'Torque', angles, Torque);
+plotAngle (2, 'Torque', angles, Torque);
 
 %% chemPots
 function [chemPots] = setupPots(voltages)
@@ -81,8 +81,9 @@ end
 
 %% plotting functions
 function [] = plotAngle (value, Title, angles, Vals)
+    plotVals = cell2mat(Vals);
     figure(value);
-    plot(angles, Vals)
+    plot(angles, plotVals)
     title(Title);
 end
 
