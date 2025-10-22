@@ -33,10 +33,14 @@ for i = 1:length(angles)
         hoppingsInter = [hopping; hopping];
         hoppingsDeriv = [0; 0];
     elseif orderSample == 2
-        %hoppingsInter = [cos(angles(i)), sin(angles(i)); cos(angles(j)), sin(angles(j))];
-        %hoppingsDeriv = [-1*sin(angles(i)), cos(angles(i)); -1*sin(angles(j)), cos(angles(j))];
-        hoppingsInter = [cos(angles(i)), sin(angles(i)); 1, 0];
-        hoppingsDeriv = [-1*sin(angles(i)), cos(angles(i)); 0, 0];
+        reduced = true;
+        if reduced == true
+            hoppingsInter = [cos(angles(i)), sin(angles(i)); 1, 0];
+            hoppingsDeriv = [-1*sin(angles(i)), cos(angles(i)); 0, 0];
+        elseif reduced == false
+            hoppingsInter = [cos(angles(i)), sin(angles(i)); cos(angles(j)), sin(angles(j))];
+            hoppingsDeriv = [-1*sin(angles(i)), cos(angles(i)); -1*sin(angles(j)), cos(angles(j))];
+        end
     end
     
     % compute the Hamiltonian of the Sample
