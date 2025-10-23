@@ -18,8 +18,8 @@ angleStep = pi/16;
 angles = makeList(angleMax, angleStep);
 
 %variables for the calculation of the current
-voltageMax = 1;%4;
-voltageStep = 0.5;%0.05;
+voltageMax = 2;
+voltageStep = 0.5;
 voltages = makeList(voltageMax, voltageStep);
 chemPots = setupPots(voltages);
 Energies = getEnergies(chemPots);
@@ -49,23 +49,25 @@ for i = 1:length(angles)
     % preparing the Extended Molecule Hamiltonian
     [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals, check=false);
     totalSysDeriv = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv, derivVals);
+
+    checkMatrix(totalSystem);
     
     %compute the Eigenvectors and the Eigenvalues of the system
-    [Eigenvals, leftEVs, rightEVs, Product] = eigenvectors(totalSystem, checkMore=true);
+    [Eigenvals, leftEVs, rightEVs, Product] = eigenvectors(totalSystem);%, checkMore=true);
     
-    %Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots);
-    Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, linearResponse=true, right=true);
+    Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, linearResponse=true);
+    Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, linearResponse=true);
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
 %% plot
-%plot3D(1, 'Transmission', angles, voltages, Transmission)
+plot3D(1, 'Transmission', angles, Energies, Transmission)
 %plot2D(2, 'Transmission', angles, voltages, Transmission)
 
-%plot3D(2, 'Torque', angles, Energies, Torque)
+plot3D(2, 'Torque', angles, Energies, Torque)
 
 %plotAngle (1, 'Transmission', angles, Transmission);
-plotAngle (2, 'Torque', angles, Torque);
+%plotAngle (2, 'Torque', angles, Torque);
 
 %% chemPots
 function [chemPots] = setupPots(voltages)
@@ -205,4 +207,22 @@ end
 function [] = saveVar(var, order)
     filename = append('Indices', int2str(order), '.mat');
     save(filename, "var")
+end
+
+function [] = checkMatrix(totalSystem)
+    % Example matrix (replace with your A)
+    A = totalSystem;
+    % 1) Compute right eigenvectors and eigenvalues
+    [V, D] = eig(A);      % A * V = V * D
+    % Conditioning of eigenvector matrix
+    condV = cond(V);
+    % Rank of eigenvector matrix
+    rankV = rank(V);
+    % Check if matrix is defective
+    if rankV < size(A,1)
+        disp('Matrix appears defective (not diagonalizable).');
+    else
+        disp('Matrix is diagonalizable but ill-conditioned.');
+    end
+    fprintf('Condition number of V: %g\n', condV);
 end

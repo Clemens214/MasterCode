@@ -21,6 +21,14 @@ end
     %disp('Starting calculation of the torque.')
     if options.linearResponse == true
         Energies = getEnergies(chemPots);
+        Traces = zeros(1, length(Energies));
+        for i = 1:length(Energies)
+        Matrix = choiceLin(Energies(i), totalSystem, totalSysDeriv, gammaL, gammaR, choice);
+        Traces(i) = trace(real(Matrix));
+        disp(['Energy: ', num2str(voltage), ', j=', num2str(i)])
+        end
+        % return the results
+        Results = Traces;
         Results = Torque(Energies, totalSystem, totalSysDeriv, gammaL, gammaR, choice);
     elseif options.linearResponse == false
         Results = zeros(1, length(chemPots));
@@ -28,10 +36,8 @@ end
             chemPotL = chemPots(i).left;
             chemPotR = chemPots(i).right;
             TotalResult = TorqueChoice(Eigenvals, leftEVs, rightEVs, totalSysDeriv, gammaL, gammaR, chemPotL, chemPotR, choice);
+            disp(['Voltage: ', num2str(chemPotL - chemPotR), ', j=', num2str(i)])
             Results(i) = real(trace(TotalResult));
-
-            voltage = chemPotL - chemPotR;
-            disp(['Voltage: ', num2str(voltage), ', j=', num2str(i)])
         end
     end
     %disp('Finished calculation of the torque.')
@@ -142,15 +148,6 @@ function [Results] = Torque(Energies, totalSystem, totalSysDeriv, gammaL, gammaR
         choice
     end
     % calculate the transport matrix and the trace
-    Traces = zeros(1, length(Energies));
-    for i = 1:length(Energies)
-        Matrix = choiceLin(Energies(i), totalSystem, totalSysDeriv, gammaL, gammaR, choice);
-        Traces(i) = trace(real(Matrix));
-        
-        disp(['Energy: ', num2str(Energies(i)), ', j=', num2str(i)])
-    end
-    % return the results
-    Results = Traces;
 end
 
 function [TotalResult] = choiceLin(Energy, totalSystem, totalSysDeriv, gammaL, gammaR, choice)
@@ -180,18 +177,6 @@ function [Result] = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, midFactor
     
     % calculate the matrix product
     Result = totalSysDeriv * GreensFunc * midFactor * GreensFunc';
-end
-
-function [Result] = TorqueAlt(Energy, totalSystem, totalSysDeriv, midFactor)
-    % A*G*B*Gt
-    % totalSysDeriv * GreensFunc * midFactor * GreensFunc'
-    GreensInv = Energy*eye(length(totalSystem)) - totalSystem;
-    F = decomposition(GreensInv,'lu');    % create reusable factorization object
-    
-    Y = F \ B;                     % solves Aw * Y = B
-    T = A * Y;
-    Z = F' \ T;                    % solves Aw' * Z = T
-    t = trace(Z);
 end
 
 %% helping functions

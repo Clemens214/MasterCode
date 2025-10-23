@@ -118,6 +118,18 @@ function [Result] = TransmissionZeroTemp(Energy, totalSystem, gammaL, gammaR)
     Result = GreensFunc * gammaL * GreensFunc' * gammaR;
 end
 
+function [Result] = TransmissionAlt(Energy, totalSystem, gammaL, gammaR)
+    % A*G*B*Gt
+    % GreensFunc * gammaL * GreensFunc' * gammaR
+    GreensInv = Energy*eye(length(totalSystem)) - totalSystem;
+    F = decomposition(GreensInv,'lu');    % create reusable LU object (works for sparse/dense)
+    
+    Y = F \ B;
+    W = C * Y;
+    Z = F' \ W;                   % uses transpose of factorization
+    t = trace(Z);
+end
+
 %% helping functions
 function [Filtered] = getEnergies(chemPots)
     Energies = zeros(1, length(chemPots)*2);

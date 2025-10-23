@@ -1,25 +1,25 @@
 %% Variables
 
 % variables for the sample
-sizeSample = 50;%48;
+sizeSample = 48;%48;
 orderSample = 2;
 eigenenergy = 0;
 hopping = 1;
 hoppingsSample = hopping*eye(orderSample);
 
 % variables for the leads
-sizeLead = 104;
+sizeLead = 104;%104;
 [leadVals, derivVals] = calcVals(maxVal = 1, decay = 0.2, offset = 32);
 hoppingLead = hopping;
 
 % variables for the hopping
 angleMax = 2*pi;
-angleStep = pi/4;
+angleStep = pi/16;
 angles = makeList(angleMax, angleStep);
 
 %variables for the calculation of the current
-voltageMax = 1;%4;
-voltageStep = 0.5;%0.05;
+voltageMax = 2;
+voltageStep = 0.5;
 voltages = makeList(voltageMax, voltageStep);
 chemPots = setupPots(voltages);
 Energies = getEnergies(chemPots);
@@ -33,10 +33,14 @@ for i = 1:length(angles)
         hoppingsInter = [hopping; hopping];
         hoppingsDeriv = [0; 0];
     elseif orderSample == 2
-        %hoppingsInter = [cos(angles(i)), sin(angles(i)); cos(angles(j)), sin(angles(j))];
-        %hoppingsDeriv = [-1*sin(angles(i)), cos(angles(i)); -1*sin(angles(j)), cos(angles(j))];
-        hoppingsInter = [cos(angles(i)), sin(angles(i)); 1, 0];
-        hoppingsDeriv = [-1*sin(angles(i)), cos(angles(i)); 0, 0];
+        reduced = true;
+        if reduced == true
+            hoppingsInter = [cos(angles(i)), sin(angles(i)); 1, 0];
+            hoppingsDeriv = [-1*sin(angles(i)), cos(angles(i)); 0, 0];
+        elseif reduced == false
+            hoppingsInter = [cos(angles(i)), sin(angles(i)); cos(angles(j)), sin(angles(j))];
+            hoppingsDeriv = [-1*sin(angles(i)), cos(angles(i)); -1*sin(angles(j)), cos(angles(j))];
+        end
     end
     
     % compute the Hamiltonian of the Sample
@@ -47,18 +51,18 @@ for i = 1:length(angles)
     totalSysDeriv = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv, derivVals);
     
     %compute the Eigenvectors and the Eigenvalues of the system
-    [Eigenvals, leftEVs, rightEVs, Product] = eigenvectors(totalSystem, checkMore=true);
+    [Eigenvals, leftEVs, rightEVs, Product] = eigenvectors(totalSystem);%, checkMore=true);
     
-    Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots);
-    %Torque(i) = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots);
-    disp(['Angle: ', num2str(), ', i=', num2str(i)])
+    Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, linearResponse=true);
+    Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, linearResponse=true);
+    disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
 %% plot
 plot3D(1, 'Transmission', angles, Energies, Transmission)
-plot2D(2, 'Transmission', angles, Energies, Transmission)
+%plot2D(2, 'Transmission', angles, voltages, Transmission)
 
-%plot3D(2, 'Torque', angles, Energies, Torque)
+plot3D(2, 'Torque', angles, Energies, Torque)
 
 %plotAngle (1, 'Transmission', angles, Transmission);
 %plotAngle (2, 'Torque', angles, Torque);
@@ -81,8 +85,9 @@ end
 
 %% plotting functions
 function [] = plotAngle (value, Title, angles, Vals)
+    plotVals = cell2mat(Vals);
     figure(value);
-    plot(angles, Vals)
+    plot(angles, plotVals)
     title(Title);
 end
 
@@ -200,4 +205,28 @@ end
 function [] = saveVar(var, order)
     filename = append('Indices', int2str(order), '.mat');
     save(filename, "var")
+end
+
+function
+function [] = checkResult(totalSystem, rightEVs, Eigenvals, leftEVs)
+    % Example matrix (replace with your A)
+    A = totalSystem;
+
+    % Optional: also check condition number of V (large -> unstable)
+    fprintf('cond(V) = %g\n', cond(V));
+
+    % Conditioning of eigenvector matrix
+    condV = cond(V);
+    
+    % Rank of eigenvector matrix
+    rankV = rank(V);
+    
+    % Check if matrix is defective
+    if rankV < size(A,1)
+        disp('Matrix appears defective (not diagonalizable).');
+    else
+        disp('Matrix is diagonalizable but ill-conditioned.');
+    end
+    fprintf('Condition number of V: %g\n', condV);
+end
 end
