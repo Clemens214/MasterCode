@@ -154,21 +154,23 @@ function [Results] = Torque(Energies, totalSystem, totalSysDeriv, gammaL, gammaR
 end
 
 function [TotalResult] = choiceLin(Energy, totalSystem, totalSysDeriv, gammaL, gammaR, choice)
-    if choice.conservative == true
-        midFactor = gammaL + gammaR;
-        TotalResult = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, midFactor);
-    elseif choice.nonconservative == true
-        midFactor = gammaL - gammaR;
-        TotalResult = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, midFactor);
-    elseif choice.left == true
-        midFactor = gammaL;
-        TotalResult = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, midFactor);
-    elseif choice.right == true
-        midFactor = gammaR;
-        TotalResult = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, midFactor);
+    if choice.conservative == true || choice.nonconservative == true || choice.left == true || choice.right == true
+        if choice.conservative == true
+            midFactor = gammaL + gammaR;
+        elseif choice.nonconservative == true
+            midFactor = gammaL - gammaR;
+        elseif choice.left == true
+            midFactor = gammaL;
+        elseif choice.right == true
+            midFactor = gammaR;
+        end
+        %TotalResult = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, midFactor);
+        TotalResult = TorqueAlt(Energy, totalSystem, totalSysDeriv, midFactor);
     else
-        ResultL = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, gammaL);
-        ResultR = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, gammaR);
+        %ResultL = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, gammaL);
+        ResultL = TorqueAlt(Energy, totalSystem, totalSysDeriv, gammaL);
+        %ResultR = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, gammaR);
+        ResultR = TorqueAlt(Energy, totalSystem, totalSysDeriv, gammaR);
         TotalResult = ResultL + ResultR;
     end
 end
@@ -184,14 +186,22 @@ end
 
 function [Result] = TorqueAlt(Energy, totalSystem, totalSysDeriv, midFactor)
     % A*G*B*Gt
+    % F = decomposition(GreensInv,'lu');
+    % Y = F \ B;
+    % T = A * Y;
+    % Z = F' \ T;
+    % t = trace(Z);
+
     % totalSysDeriv * GreensFunc * midFactor * GreensFunc'
     GreensInv = Energy*eye(length(totalSystem)) - totalSystem;
     F = decomposition(GreensInv,'lu');    % create reusable factorization object
     
-    Y = F \ B;                     % solves Aw * Y = B
-    T = A * Y;
+    Y = F \ midFactor;                     % solves Aw * Y = B
+    T = totalSysDeriv * Y;
     Z = F' \ T;                    % solves Aw' * Z = T
-    t = trace(Z);
+    % t = trace(Z);
+
+    Result = Z;
 end
 
 %% helping functions

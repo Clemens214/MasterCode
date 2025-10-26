@@ -16,9 +16,8 @@ hoppingLead = hopping;
 angleMax = 2*pi;
 angleStep = pi/16;
 angles = makeList(angleMax, angleStep);
-
 %variables for the calculation of the current
-voltageMax = 2;
+voltageMax = 5;
 voltageStep = 0.5;
 voltages = makeList(voltageMax, voltageStep);
 chemPots = setupPots(voltages);
