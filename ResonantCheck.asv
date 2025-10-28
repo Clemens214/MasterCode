@@ -1,9 +1,10 @@
 function [] = ResonantCheck()
-[H, ~, kBT, G0] = setupEMvsBW();
-[Elist, T_NEGF, T_BW, GammaL_eff, GammaR_eff, Delta_eff, SigmaL, SigmaR, GammaL_mat, GammaR_mat] = calcEMvsBW(H, kBT, G0);
-plotEMvsBW(Elist, T_NEGF, T_BW, GammaL_eff, GammaR_eff, Delta_eff)
-sweepEMvsGW(H, SigmaL, SigmaR, GammaL_mat, GammaR_mat, G0)
+[H, I_N, kBT, G0] = setupEMvsBW();
+[Elist] = calcEMvsBW(H, kBT, G0);
+plotEMvsBW(Elist)
 disp('Finished')
+%%
+sweepEMvsGW()
 end
 
 function [data] = ResonantCheck1(Energies, gammaL, gammaR, options)
@@ -142,7 +143,7 @@ I_N = eye(N);
 
 end
 
-function [Elist, T_NEGF, T_BW, GammaL_eff, GammaR_eff, Delta_eff, SigmaL, SigmaR, GammaL_mat, GammaR_mat] = calcEMvsBW(H, kBT, G0)
+function [Elist, T_NEGF] = calcEMvsBW(H, kBT, G0)
 %% Energy grid
 t_lead = 1.0;             % lead hopping (energy units)
 Emin = -3*t_lead;
@@ -178,6 +179,7 @@ GammaL_mat = 1i * (SigmaL - SigmaL');
 GammaR_mat = 1i * (SigmaR - SigmaR');
 
 %% -------------------- Energy loop: compute GR (full) & projections --------------------
+if false
 for ii = 1:length(Elist)
     E = Elist(ii);
     % Full Green's function with both absorbers
@@ -189,6 +191,7 @@ for ii = 1:length(Elist)
     % NEGF transmission (matrix formula)
     T_NEGF(ii) = real(trace(GammaL_mat * GR_full * GammaR_mat * GA_full));
     if T_NEGF(ii) < 0 && T_NEGF(ii) > -1e-14, T_NEGF(ii) = 0; end
+end
 end
     
 for ii = 1:length(Elist)
@@ -265,7 +268,7 @@ fprintf('  G (NEGF, EM) = %.6g S  (%.6g G0)\n', G_NEGF, G_NEGF / G0);
 fprintf('  G (Breit-Wigner using EM Gammas) = %.6g S  (%.6g G0)\n\n', G_BW, G_BW / G0);
 end
 
-function [] = plotEMvsBW(Elist, T_NEGF, T_BW, GammaL_eff, GammaR_eff, Delta_eff)
+function [] = plotEMvsBW(Elist)
 %% -------------------- Plots --------------------
 figure('Name','Transmission comparison','NumberTitle','off','Position',[100 100 900 700]);
 subplot(3,1,1);
@@ -294,18 +297,14 @@ ylabel('\Delta(E) = Re[\Sigma^{eff}_L + \Sigma^{eff}_R]');
 title('Effective level shift');
 grid on;
 
-N_lead_each = 30;         % number of lead sites included on each side (extended molecule)
-eta = 0.06;               % absorbing strength (positive) -> Sigma = -i*eta on outer sites
-N_absorb_layers = 4;      % number of outer-most sites per side with absorbing Sigma
 sgtitle(sprintf('EM size: %d sites each lead, eta = %.3g, N_absorb = %d', N_lead_each, eta, N_absorb_layers));
 end
 
-function [] = sweepEMvsGW(H, SigmaL, SigmaR, GammaL_mat, GammaR_mat, G0)
+function [] = sweepEMvsGW()
 %% -------------------- Gate sweep (zero-T approx using T(EF)) --------------------
 doGateSweep = true;
 if doGateSweep
     neps = 201;
-    epsilon_dot = 0.0;        % dot onsite energy (resonant level)
     eps_range = linspace(epsilon_dot - 2.5, epsilon_dot + 2.5, neps);
     G_vs_eps_NEGF = zeros(size(eps_range));
     G_vs_eps_BW = zeros(size(eps_range));
@@ -313,15 +312,8 @@ if doGateSweep
     for k = 1:neps
         eps_tmp = eps_range(k);
         % Update dot onsite in H and recompute dot GR at EF for NEGF (full)
-        N_lead_each = 30;         % number of lead sites included on each side (extended molecule)
-        idx_dot = N_lead_each + 1;
         H_tmp = H;
         H_tmp(idx_dot, idx_dot) = eps_tmp;
-
-        N = 2*N_lead_each + 1;    % total EM sites
-        I_N = eye(N);
-        EF = 0.0;
-        num_eta = 1e-12;          % tiny numerical broadening for matrix inversion
         GR_full_tmp = ((EF + 1i*num_eta) * I_N - H_tmp - SigmaL - SigmaR) \ I_N;
         GA_full_tmp = GR_full_tmp';
         T_NEGF_EF = real(trace(GammaL_mat * GR_full_tmp * GammaR_mat * GA_full_tmp));
