@@ -1,24 +1,51 @@
 function [] = ResonantCheck()
-%% Physical constants (for conductance units)
-e = 1.602176634e-19;      % C
-h = 6.62607015e-34;       % J s
-G0 = 2*e^2/h;             % conductance quantum (S) including spin
-%% temperature
-T_K = 4.0;                % Kelvin for finite-T conductance
-kB_ev = 8.617333262145e-5; % eV/K
-kBT = kB_ev * T_K;
+N_lead_each = 30;         % number of lead sites included on each side (extended molecule)
+N = 2*N_lead_each + 1;    % total EM sites
+
+N_absorb_layers = 4;      % number of outer-most sites per side with absorbing Sigma
+left_abs_idx = 1 : min(N_absorb_layers, N_lead_each);
+right_abs_idx = N - (0:(min(N_absorb_layers, N_lead_each)-1));
+
+%% Energy grid
+t_lead = 1.0;             % lead hopping (energy units)
+Emin = -3*t_lead;
+Emax = 3*t_lead;
+nE = 2001;
+Elist = linspace(Emin, Emax, nE);
+
+%% -------------------- Absorbing self-energies on outer EM sites --------------------
+eta = 0.06;               % absorbing strength (positive) -> Sigma = -i*eta on outer sites
+
+SigmaL = zeros(N,N);
+SigmaL(sub2ind([N,N], left_abs_idx, left_abs_idx)) = -1i * eta;
+
+SigmaR = zeros(N,N);
+SigmaR(sub2ind([N,N], right_abs_idx, right_abs_idx)) = -1i * eta;
+
 %% setup
-[H] = setupEMvsBW();
+[H] = setupH();
 
 %% calc
-[Elist, T_NEGF, T_BW, GammaL_eff, GammaR_eff, Delta_eff, SigmaL, SigmaR, GammaL_mat, GammaR_mat] = calcEMvsBW(H, kBT, G0);
+[T_NEGF, GammaL_mat, GammaR_mat] = doEM(Elist, H, SigmaL, SigmaR);
+[T_BW, GammaL_eff, GammaR_eff, Delta_eff] = doBW(Elist, H, SigmaL, SigmaR);
 
+%%
 plotEMvsBW(Elist, T_NEGF, T_BW, GammaL_eff, GammaR_eff, Delta_eff)
-sweepEMvsGW(H, SigmaL, SigmaR, GammaL_mat, GammaR_mat, G0)
-disp('Finished')
+
+sweepEMvsGW(H, SigmaL, SigmaR, GammaL_mat, GammaR_mat)
+
+%% -------------------- Conductances (finite-T Landauer) --------------------
+Conductance(Elist, T_NEGF, T_BW)
+
+%% -------------------- Final suggestions & checks --------------------
+disp('--- Suggested convergence checks ---');
+disp('- Increase N_lead_each until T_NEGF and T_BW (and G) stop changing significantly.');
+disp('- Sweep eta across a few decades (e.g. 1e-3 .. 1e-0) and find an absorbing plateau.');
+disp('- Ensure N_absorb_layers is large enough to prevent reflections from the outer boundary.');
+disp('- If you need energy-independent Gamma, evaluate GammaL_eff/ GammaR_eff at E=EF and use constants in BW formula.');
 end
 
-function [H] = setupEMvsBW()
+function [H] = setupH()
 %% -------------------- Model parameters --------------------
 t_lead = 1.0;             % lead hopping (energy units)
 epsilon_lead = 0.0;       % lead onsite energy
@@ -58,37 +85,6 @@ H(idx_dot+1, idx_dot) = -t_c;
 
 % Dot onsite
 H(idx_dot, idx_dot) = epsilon_dot;
-end
-
-function [Elist, T_NEGF, T_BW, GammaL_eff, GammaR_eff, Delta_eff, SigmaL, SigmaR, GammaL_mat, GammaR_mat] = calcEMvsBW(H, kBT, G0)
-%% Energy grid
-t_lead = 1.0;             % lead hopping (energy units)
-Emin = -3*t_lead;
-Emax = 3*t_lead;
-nE = 2001;
-Elist = linspace(Emin, Emax, nE);
-
-%% -------------------- Absorbing self-energies on outer EM sites --------------------
-N_lead_each = 30;         % number of lead sites included on each side (extended molecule)
-N = 2*N_lead_each + 1;    % total EM sites
-
-SigmaL = zeros(N,N);
-SigmaR = zeros(N,N);
-
-N_absorb_layers = 4;      % number of outer-most sites per side with absorbing Sigma
-left_abs_idx = 1 : min(N_absorb_layers, N_lead_each);
-right_abs_idx = N - (0:(min(N_absorb_layers, N_lead_each)-1));
-
-eta = 0.06;               % absorbing strength (positive) -> Sigma = -i*eta on outer sites
-SigmaL(sub2ind([N,N], left_abs_idx, left_abs_idx)) = -1i * eta;
-SigmaR(sub2ind([N,N], right_abs_idx, right_abs_idx)) = -1i * eta;
-
-%% calc
-[T_NEGF, GammaL_mat, GammaR_mat] = doEM(Elist, H, SigmaL, SigmaR);
-[T_BW, GammaL_eff, GammaR_eff, Delta_eff] = doBW(Elist, H, SigmaL, SigmaR);
-
-%% -------------------- Conductances (finite-T Landauer) --------------------
-Conductance(Elist, T_NEGF, T_BW, kBT, G0)
 end
 
 function [T_NEGF, GammaL_mat, GammaR_mat] = doEM(Elist, H, SigmaL, SigmaR)
@@ -183,28 +179,88 @@ for ii = 1:length(Elist)
 end
 end
 
-function [] = Conductance(Elist, T_NEGF, T_BW, kBT, G0)
-%% -------------------- Conductances (finite-T Landauer) --------------------
-% Fermi derivative
-if kBT > 0
-    EF = 0.0;
-    dfdE = -1 ./ (4 * kBT * (cosh((Elist - EF) ./ (2*kBT))).^2);
-else
-    % approximate delta -> pick value of T at EF
-    dfdE = zeros(size(Elist));
-    % put a narrow spike near EF
-    EF = 0.0;
-    [~, idxEF] = min(abs(Elist - EF));
-    dfdE(idxEF) = -1;
+function [] = sweepEMvsGW(H, SigmaL, SigmaR, GammaL_mat, GammaR_mat)
+N_lead_each = 30;         % number of lead sites included on each side (extended molecule)
+idx_dot = N_lead_each + 1;
+N = 2*N_lead_each + 1;    % total EM sites
+I_N = eye(N);
+EF = 0.0;
+num_eta = 1e-12;          % tiny numerical broadening for matrix inversion
+
+%% Physical constants (for conductance units)
+e = 1.602176634e-19;      % C
+h = 6.62607015e-34;       % J s
+G0 = 2*e^2/h;             % conductance quantum (S) including spin
+%% -------------------- Gate sweep (zero-T approx using T(EF)) --------------------
+    neps = 201;
+    epsilon_dot = 0.0;        % dot onsite energy (resonant level)
+    eps_range = linspace(epsilon_dot - 2.5, epsilon_dot + 2.5, neps);
+    % For speed, evaluate approximate zero-T conductance by using T(EF) with shifted eps
+
+    [G_vs_eps_NEGF] = sweepEM(eps_range, H, I_N, SigmaL, SigmaR, GammaL_mat, GammaR_mat, G0, idx_dot, EF, num_eta);
+
+    [G_vs_eps_BW] = sweepBW(eps_range, H, I_N, SigmaL, SigmaR, G0, idx_dot, EF, num_eta);
+
+    figure('Name','Gate sweep (zero-T approx)','NumberTitle','off');
+    plot(eps_range, G_vs_eps_NEGF / G0, 'LineWidth', 1.4); hold on;
+    plot(eps_range, G_vs_eps_BW / G0, '--', 'LineWidth', 1.4);
+    xlabel('\epsilon_d');
+    ylabel('G / G_0');
+    legend('G_{NEGF}','G_{BW}','Location','Best');
+    title('Gate sweep: NEGF (EM) vs Breit–Wigner using EM-extracted \Gamma');
+    grid on;
 end
 
-G_NEGF = G0 * trapz(Elist, -dfdE .* T_NEGF);
-G_BW   = G0 * trapz(Elist, -dfdE .* T_BW);
+function [G_vs_eps_NEGF] = sweepEM(eps_range, H, I_N, SigmaL, SigmaR, GammaL_mat, GammaR_mat, G0, idx_dot, EF, num_eta)
+    % reuse T_of_E calculation but easier: compute zero-T conductance approx by T at E=EF
+    % We'll compute T(EF) for each gate (shift dot onsite)
+    G_vs_eps_NEGF = zeros(size(eps_range));
+    for k = 1:length(eps_range)
+        eps_tmp = eps_range(k);
+        % Update dot onsite in H and recompute dot GR at EF for NEGF (full)
+        H_tmp = H;
+        H_tmp(idx_dot, idx_dot) = eps_tmp;
 
-T_K = 4.0;                % Kelvin for finite-T conductance
-fprintf('Finite-T linear conductance at T=%.2f K (EF=%.3g):\n', T_K, EF);
-fprintf('  G (NEGF, EM) = %.6g S  (%.6g G0)\n', G_NEGF, G_NEGF / G0);
-fprintf('  G (Breit-Wigner using EM Gammas) = %.6g S  (%.6g G0)\n\n', G_BW, G_BW / G0);
+        % compute GR at EF
+        GR_full_tmp = ((EF + 1i*num_eta) * I_N - H_tmp - SigmaL - SigmaR) \ I_N;
+        GA_full_tmp = GR_full_tmp';
+
+        T_NEGF_EF = real(trace(GammaL_mat * GR_full_tmp * GammaR_mat * GA_full_tmp));
+        if T_NEGF_EF < 0 && T_NEGF_EF > -1e-14, T_NEGF_EF = 0; end
+        G_vs_eps_NEGF(k) = G0 * T_NEGF_EF;  % zero-T linear conductance in S (approx)
+    end
+end
+
+function [G_vs_eps_BW] = sweepBW(eps_range, H, I_N, SigmaL, SigmaR, G0, idx_dot, EF, num_eta)
+    G_vs_eps_BW = zeros(size(eps_range));
+    for k = 1:length(eps_range)
+        eps_tmp = eps_range(k);
+
+        % Update dot onsite in H and recompute dot GR at EF for NEGF (full)
+        H_tmp = H;
+        H_tmp(idx_dot, idx_dot) = eps_tmp;
+
+        % For BW: compute GR_dd with left-only to get GammaL at EF
+        GR_L_tmp = ((EF + 1i*num_eta) * I_N - H_tmp - SigmaL) \ I_N;
+        Gdd_L = GR_L_tmp(idx_dot, idx_dot);
+        Sigma_eff_L_tmp = EF - eps_tmp - 1.0 / Gdd_L;
+        GammaL_tmp = -2 * imag(Sigma_eff_L_tmp);
+
+        % For BW: compute GR_dd with right-only to get GammaR at EF
+        GR_R_tmp = ((EF + 1i*num_eta) * I_N - H_tmp - SigmaR) \ I_N;
+        Gdd_R = GR_R_tmp(idx_dot, idx_dot);
+        Sigma_eff_R_tmp = EF - eps_tmp - 1.0 / Gdd_R;
+        GammaR_tmp = -2 * imag(Sigma_eff_R_tmp);
+        
+        Delta_tmp = real(Sigma_eff_L_tmp + Sigma_eff_R_tmp);
+        denom = (EF - eps_tmp - Delta_tmp)^2 + ( (GammaL_tmp + GammaR_tmp)/2 )^2;
+        if denom <= 0
+            Tbw_tmp = 0;
+        else
+            Tbw_tmp = (GammaL_tmp * GammaR_tmp) / denom;
+        end
+        G_vs_eps_BW(k) = G0 * Tbw_tmp;
+    end
 end
 
 function [] = plotEMvsBW(Elist, T_NEGF, T_BW, GammaL_eff, GammaR_eff, Delta_eff)
@@ -242,118 +298,36 @@ N_absorb_layers = 4;      % number of outer-most sites per side with absorbing S
 sgtitle(sprintf('EM size: %d sites each lead, eta = %.3g, N_absorb = %d', N_lead_each, eta, N_absorb_layers));
 end
 
-function [] = sweepEMvsGW(H, SigmaL, SigmaR, GammaL_mat, GammaR_mat, G0)
-%% -------------------- Gate sweep (zero-T approx using T(EF)) --------------------
-doGateSweep = true;
-if doGateSweep
-    neps = 201;
-    epsilon_dot = 0.0;        % dot onsite energy (resonant level)
-    eps_range = linspace(epsilon_dot - 2.5, epsilon_dot + 2.5, neps);
-    G_vs_eps_NEGF = zeros(size(eps_range));
-    G_vs_eps_BW = zeros(size(eps_range));
-    % For speed, evaluate approximate zero-T conductance by using T(EF) with shifted eps
-    for k = 1:neps
-        eps_tmp = eps_range(k);
-        % Update dot onsite in H and recompute dot GR at EF for NEGF (full)
-        N_lead_each = 30;         % number of lead sites included on each side (extended molecule)
-        idx_dot = N_lead_each + 1;
-        H_tmp = H;
-        H_tmp(idx_dot, idx_dot) = eps_tmp;
+function [] = Conductance(Elist, T_NEGF, T_BW)
+%% Physical constants (for conductance units)
+e = 1.602176634e-19;      % C
+h = 6.62607015e-34;       % J s
+G0 = 2*e^2/h;             % conductance quantum (S) including spin
 
-        N = 2*N_lead_each + 1;    % total EM sites
-        I_N = eye(N);
-        EF = 0.0;
-        num_eta = 1e-12;          % tiny numerical broadening for matrix inversion
-        GR_full_tmp = ((EF + 1i*num_eta) * I_N - H_tmp - SigmaL - SigmaR) \ I_N;
-        GA_full_tmp = GR_full_tmp';
-        T_NEGF_EF = real(trace(GammaL_mat * GR_full_tmp * GammaR_mat * GA_full_tmp));
-        if T_NEGF_EF < 0 && T_NEGF_EF > -1e-14, T_NEGF_EF = 0; end
-        G_vs_eps_NEGF(k) = G0 * T_NEGF_EF;
-        
-        % For BW: compute GR_dd with left-only and right-only to get Gammas at EF
-        GR_L_tmp = ((EF + 1i*num_eta) * I_N - H_tmp - SigmaL) \ I_N;
-        Gdd_L = GR_L_tmp(idx_dot, idx_dot);
-        Sigma_eff_L_tmp = EF - eps_tmp - 1.0 / Gdd_L;
-        GR_R_tmp = ((EF + 1i*num_eta) * I_N - H_tmp - SigmaR) \ I_N;
-        Gdd_R = GR_R_tmp(idx_dot, idx_dot);
-        Sigma_eff_R_tmp = EF - eps_tmp - 1.0 / Gdd_R;
-        GammaL_tmp = -2 * imag(Sigma_eff_L_tmp);
-        GammaR_tmp = -2 * imag(Sigma_eff_R_tmp);
-        Delta_tmp = real(Sigma_eff_L_tmp + Sigma_eff_R_tmp);
-        denom = (EF - eps_tmp - Delta_tmp)^2 + ( (GammaL_tmp + GammaR_tmp)/2 )^2;
-        if denom <= 0
-            Tbw_tmp = 0;
-        else
-            Tbw_tmp = (GammaL_tmp * GammaR_tmp) / denom;
-        end
-        G_vs_eps_BW(k) = G0 * Tbw_tmp;
-    end
-    
-    figure('Name','Gate sweep (zero-T approx)','NumberTitle','off');
-    plot(eps_range, G_vs_eps_NEGF / G0, 'LineWidth', 1.4); hold on;
-    plot(eps_range, G_vs_eps_BW / G0, '--', 'LineWidth', 1.4);
-    xlabel('\epsilon_d');
-    ylabel('G / G_0');
-    legend('G_{NEGF}','G_{BW}','Location','Best');
-    title('Gate sweep: NEGF (EM) vs Breit–Wigner using EM-extracted \Gamma');
-    grid on;
+%% temperature
+T_K = 4.0;                % Kelvin for finite-T conductance
+kB_ev = 8.617333262145e-5; % eV/K
+kBT = kB_ev * T_K;
+
+%% -------------------- Conductances (finite-T Landauer) --------------------
+% Fermi derivative
+if kBT > 0
+    EF = 0.0;
+    dfdE = -1 ./ (4 * kBT * (cosh((Elist - EF) ./ (2*kBT))).^2);
+else
+    % approximate delta -> pick value of T at EF
+    dfdE = zeros(size(Elist));
+    % put a narrow spike near EF
+    EF = 0.0;
+    [~, idxEF] = min(abs(Elist - EF));
+    dfdE(idxEF) = -1;
 end
 
-%% -------------------- Final suggestions & checks --------------------
-disp('--- Suggested convergence checks ---');
-disp('- Increase N_lead_each until T_NEGF and T_BW (and G) stop changing significantly.');
-disp('- Sweep eta across a few decades (e.g. 1e-3 .. 1e-0) and find an absorbing plateau.');
-disp('- Ensure N_absorb_layers is large enough to prevent reflections from the outer boundary.');
-disp('- If you need energy-independent Gamma, evaluate GammaL_eff/ GammaR_eff at E=EF and use constants in BW formula.');
-end
+G_NEGF = G0 * trapz(Elist, -dfdE .* T_NEGF);
+G_BW   = G0 * trapz(Elist, -dfdE .* T_BW);
 
-function [] = sweepEM()
-    Nd = 121;
-    epsilons = linspace(-1.5, 1.5, Nd);
-    G_vs_eps = zeros(size(epsilons));
-    % reuse T_of_E calculation but easier: compute zero-T conductance approx by T at E=EF
-    % We'll compute T(EF) for each gate (shift dot onsite)
-    for k = 1:length(epsilons)
-        H_tmp = H;
-        H_tmp(idx_dot, idx_dot) = epsilons(k);
-        % compute GR at EF
-        GR_tmp = ((EF + 1i*num_eta) * I_N - H_tmp - SigmaL - SigmaR) \ I_N;
-        GA_tmp = GR_tmp';
-        GammaL = 1i * (SigmaL - SigmaL');
-        GammaR = 1i * (SigmaR - SigmaR');
-        T0 = real(trace(GammaL * GR_tmp * GammaR * GA_tmp));
-        if T0 < 0 && T0 > -1e-12, T0 = 0; end
-        G_vs_eps(k) = G0 * T0;  % zero-T linear conductance in S (approx)
-    end
-    
-    figure;
-    plot(epsilons, G_vs_eps / G0, 'LineWidth', 1.5);
-    xlabel('\epsilon_{d}');
-    ylabel('G / G_0');
-    title('Zero-T (approx) Conductance vs Dot Level (gate sweep)');
-    grid on;
-end
-
-function [] = sweepBW()
-    eps_range = linspace(eps_d - 2*Gamma - 1.0, eps_d + 2*Gamma + 1.0, 401);
-    G_vs_eps = zeros(size(eps_range));
-    for ii = 1:length(eps_range)
-        eps_tmp = eps_range(ii);
-        T_tmp = (GammaL * GammaR) ./ ( (Gamma/2).^2 + (EF - eps_tmp).^2 );
-        if useFiniteT
-            % finite T convolution but since T(E) is analytic we evaluate T(E) for existing E grid shifted by eps_tmp
-            T_shifted = (GammaL .* GammaR) ./ ( (Gamma/2).^2 + (E - eps_tmp).^2 );
-            integrand = -dfdE .* T_shifted;
-            G_vs_eps(ii) = G0 * trapz(E, integrand);
-        else
-            G_vs_eps(ii) = G0 * T_tmp;
-        end
-    end
-
-    figure('Name','Gate sweep: G vs \epsilon_d','NumberTitle','off');
-    plot(eps_range, G_vs_eps / G0, 'LineWidth', 1.5);
-    xlabel('\epsilon_d (gate)');
-    ylabel('G / G_0');
-    title('Conductance vs dot level position');
-    grid on;
+T_K = 4.0;                % Kelvin for finite-T conductance
+fprintf('Finite-T linear conductance at T=%.2f K (EF=%.3g):\n', T_K, EF);
+fprintf('  G (NEGF, EM) = %.6g S  (%.6g G0)\n', G_NEGF, G_NEGF / G0);
+fprintf('  G (Breit-Wigner using EM Gammas) = %.6g S  (%.6g G0)\n\n', G_BW, G_BW / G0);
 end
