@@ -26,13 +26,13 @@ SigmaR(sub2ind([N,N], right_abs_idx, right_abs_idx)) = -1i * eta;
 [H] = setupH();
 
 %% calc
-[T_NEGF, GammaL_mat, GammaR_mat] = doEM(Elist, H, SigmaL, SigmaR);
+[T_NEGF] = doEM(Elist, H, SigmaL, SigmaR);
 [T_BW, GammaL_eff, GammaR_eff, Delta_eff] = doBW(Elist, H, SigmaL, SigmaR);
 
 %%
-plotEMvsBW(Elist, T_NEGF, T_BW, GammaL_eff, GammaR_eff, Delta_eff)
+sweepEMvsGW(H, SigmaL, SigmaR)
 
-sweepEMvsGW(H, SigmaL, SigmaR, GammaL_mat, GammaR_mat)
+plotEMvsBW(Elist, T_NEGF, T_BW, GammaL_eff, GammaR_eff, Delta_eff)
 
 if false
 % -------------------- Conductances (finite-T Landauer) --------------------
@@ -89,7 +89,33 @@ H(idx_dot+1, idx_dot) = -t_c;
 H(idx_dot, idx_dot) = epsilon_dot;
 end
 
-function [T_NEGF, GammaL_mat, GammaR_mat] = doEM(Elist, H, SigmaL, SigmaR)
+function [] = sweepEMvsGW(H, SigmaL, SigmaR)
+N_lead_each = 30;         % number of lead sites included on each side (extended molecule)
+idx_dot = N_lead_each + 1;
+
+% -------------------- Gate sweep (zero-T approx using T(EF)) --------------------
+    neps = 201;
+    epsilon_dot = 0.0;        % dot onsite energy (resonant level)
+    eps_range = linspace(epsilon_dot - 2.5, epsilon_dot + 2.5, neps);
+    % For speed, evaluate approximate zero-T conductance by using T(EF) with shifted eps
+
+    [G_NEGF] = sweepEM(eps_range, H, SigmaL, SigmaR, idx_dot);
+
+    [G_BW] = sweepBW(eps_range, H, SigmaL, SigmaR, idx_dot);
+
+    figure('Name','Gate sweep (zero-T approx)','NumberTitle','off');
+    plot(eps_range, G_NEGF);
+    hold on;
+    plot(eps_range, G_BW, '--');
+    xlabel('\epsilon_d');
+    ylabel('G / G_0');
+    legend('G_{NEGF}','G_{BW}','Location','Best');
+    title('Gate sweep: NEGF (EM) vs Breit–Wigner using EM-extracted \Gamma');
+    grid on;
+end
+
+%% -------------------- Other functions: EM -------------------- 
+function [T_NEGF] = doEM(Elist, H, SigmaL, SigmaR)
 num_eta = 1e-12;          % tiny numerical broadening for matrix inversion
 
 % Gamma matrices for the outer absorbers (used in NEGF transmission)
@@ -108,229 +134,207 @@ for ii = 1:length(Elist)
     
     % NEGF transmission (matrix formula)
     T_NEGF(ii) = real(trace(GammaL_mat * GR_full * GammaR_mat * GA_full));
-    if T_NEGF(ii) < 0 && T_NEGF(ii) > -1e-14, T_NEGF(ii) = 0; end
 end
 end
 
+function [G_NEGF] = sweepEM(eps_range, H, SigmaL, SigmaR, idx_dot)
+num_eta = 1e-12;          % tiny numerical broadening for matrix inversion
+EF = 0.0;
+
+% Gamma matrices for the outer absorbers (used in NEGF transmission)
+GammaL_mat = 1i * (SigmaL - SigmaL');
+GammaR_mat = 1i * (SigmaR - SigmaR');
+
+% reuse T_of_E calculation but easier: compute zero-T conductance approx by T at E=EF
+% We'll compute T(EF) for each gate (shift dot onsite)
+G_NEGF = zeros(size(eps_range));
+I_N = eye(size(H));
+for k = 1:length(eps_range)
+    eps_tmp = eps_range(k);
+    % Update dot onsite in H and recompute dot GR at EF for NEGF (full)
+    H_tmp = H;
+    H_tmp(idx_dot, idx_dot) = eps_tmp;
+
+    % compute GR at EF
+    GR_full_tmp = ((EF + 1i*num_eta) * I_N - H_tmp - SigmaL - SigmaR) \ I_N;
+    GA_full_tmp = GR_full_tmp';
+
+    G_NEGF(k) = real(trace(GammaL_mat * GR_full_tmp * GammaR_mat * GA_full_tmp));
+    % zero-T linear conductance in S (approx)
+end
+end
+
+%% -------------------- Other functions: BW -------------------- 
 function [T_BW, GammaL_eff, GammaR_eff, Delta_eff] = doBW(Elist, H, SigmaL, SigmaR)
 % -------------------- Energy loop: compute GR (full) & projections --------------------
 N_lead_each = 30;         % number of lead sites included on each side (extended molecule)
 idx_dot = N_lead_each + 1;
 
-I_N = eye(size(H));
+[SigmaL_eff, GammaL_eff] = doBWside(Elist, H, SigmaL, idx_dot);
 
-[SigmaL_eff, GammaL_eff] = doBWleft(Elist, I_N, H, SigmaL, idx_dot);
-
-[SigmaR_eff, GammaR_eff] = doBWright(Elist, I_N, H, SigmaR, idx_dot);
+[SigmaR_eff, GammaR_eff] = doBWside(Elist, H, SigmaR, idx_dot);
 
 [T_BW, Delta_eff] = doBWboth(Elist, SigmaL_eff, SigmaR_eff, GammaL_eff, GammaR_eff);
 
 if false
-[A_dot, Gdd_full] = doBWfull(Elist, I_N, H, SigmaL, SigmaR);
+[A_dot, Gdd_full] = doBWfull(Elist, H, SigmaL, SigmaR);
 end
 end
 
-function [SigmaL_eff, GammaL_eff] = doBWleft(Elist, I_N, H, SigmaL, idx_dot)
+function [G_BW] = sweepBW(eps_range, H, SigmaL, SigmaR, idx_dot)
+    % reuse T_of_E calculation but easier: compute zero-T conductance approx by T at E=EF
+    % We'll compute T(EF) for each gate (shift dot onsite)
+
+    % For BW: compute GR_dd with left-only to get GammaL at EF
+    [SigmaL_tmp, GammaL] = sweepBWside(eps_range, H, SigmaL, idx_dot);
+
+    % For BW: compute GR_dd with right-only to get GammaR at EF
+    [SigmaR_tmp, GammaR] = sweepBWside(eps_range, H, SigmaR, idx_dot);
+    
+    [G_BW] = sweepBWboth(eps_range, SigmaL_tmp, SigmaR_tmp, GammaL, GammaR);
+end
+
+function [Sigma_eff, Gamma_eff] = doBWside(Elist, H, Sigma, idx_dot)
 num_eta = 1e-12;          % tiny numerical broadening for matrix inversion
 epsilon_dot = 0.0;        % dot onsite energy (resonant level)
 
-SigmaL_eff = zeros(size(Elist));
-GammaL_eff = zeros(size(Elist));
+I_N = eye(size(H));
+Sigma_eff = zeros(size(Elist));
+Gamma_eff = zeros(size(Elist));
 for ii = 1:length(Elist)
     E = Elist(ii);
 
     % Now compute dot Green's function for left-only absorber (SigmaR = 0)
-    GR_Lonly = ((E + 1i*num_eta) * I_N - H - SigmaL) \ I_N;
-    Gdd_Lonly = GR_Lonly(idx_dot, idx_dot);
+    GR = ((E + 1i*num_eta) * I_N - H - Sigma) \ I_N;
+    Gdd = GR(idx_dot, idx_dot);
 
-    % effective self-energy due to left lead as seen by dot:
-    SigmaL_eff(ii) = E - epsilon_dot - 1.0 / Gdd_Lonly;
+    % effective self-energy due to left lead as seen by dot
+    Sigma_eff(ii) = E - epsilon_dot - 1.0 / Gdd;
 
     % Extract Gammas and shift (energy dependent)
-    GammaL_eff(ii) = -2 * imag(SigmaL_eff(ii));
+    Gamma_eff(ii) = -2 * imag(Sigma_eff(ii));
 end
 end
 
-function [SigmaR_eff, GammaR_eff] = doBWright(Elist, I_N, H, SigmaR, idx_dot)
+function [Sigma_tmp, Gamma_tmp] = sweepBWside(eps_range, H, Sigma, idx_dot)
 num_eta = 1e-12;          % tiny numerical broadening for matrix inversion
-epsilon_dot = 0.0;        % dot onsite energy (resonant level)
+EF = 0.0;
 
-SigmaR_eff = zeros(size(Elist));
-GammaR_eff = zeros(size(Elist));
-for ii = 1:length(Elist)
-    E = Elist(ii);
-    
-    % Now compute dot Green's function for right-only absorber (SigmaL = 0)
-    GR_Ronly = ((E + 1i*num_eta) * I_N - H - SigmaR) \ I_N;
-    Gdd_Ronly = GR_Ronly(idx_dot, idx_dot);
-
-    % effective self-energy due to left lead as seen by dot:
-    SigmaR_eff(ii) = E - epsilon_dot - 1.0 / Gdd_Ronly;
+I_N = eye(size(H));
+Sigma_tmp = zeros(size(eps_range));
+Gamma_tmp = zeros(size(eps_range));
+for k = 1:length(eps_range)
+    eps_tmp = eps_range(k);
+        
+    % Update dot onsite in H and recompute dot GR at EF for NEGF (full)
+    H(idx_dot, idx_dot) = eps_tmp;
+        
+    % For BW: compute GR_dd with left-only to get GammaL at EF
+    GR = ((EF + 1i*num_eta) * I_N - H - Sigma) \ I_N;
+    Gdd = GR(idx_dot, idx_dot);
+        
+    % effective self-energy due to left lead as seen by dot
+    Sigma_tmp(k) = EF - eps_tmp - 1.0 / Gdd;
 
     % Extract Gammas and shift (energy dependent)
-    GammaR_eff(ii) = -2 * imag(SigmaR_eff(ii));
+    Gamma_tmp(k) = -2 * imag(Sigma_tmp(k));
 end
 end
 
-function [T_BW, Delta_eff] = doBWboth(Elist, SigmaL_eff, SigmaR_eff, GammaL_eff, GammaR_eff)
+function [T_BW, Delta] = doBWboth(Elist, SigmaL, SigmaR, GammaL, GammaR)
+epsilon_dot = 0.0;        % dot onsite energy (resonant level)
+    
 T_BW   = zeros(size(Elist));    % Breit-Wigner using EM-extracted Gammas
-Delta_eff = zeros(size(Elist)); % real level shift
+Delta = zeros(size(Elist)); % real level shift
 for ii = 1:length(Elist)
     E = Elist(ii);
-    epsilon_dot = 0.0;        % dot onsite energy (resonant level)
-    
     % Effective total self-energy from both sides (optionally we can also do Sigma_eff_total = E - eps - 1/Gdd_full)
-    Sigma_eff_total = SigmaL_eff(ii) + SigmaR_eff(ii);  % should be close to E - eps - 1/Gdd_full
-    
+    Sigma = SigmaL(ii) + SigmaR(ii);  % should be close to E - eps - 1/Gdd_full
     % Extract Gammas (energy dependent)
-    Gamma_tot = GammaL_eff(ii) + GammaR_eff(ii);
-
+    Gamma = GammaL(ii) + GammaR(ii);
     % Extract shift (energy dependent)
-    Delta_eff(ii) = real(Sigma_eff_total);  % level shift = Re Sigma_eff_total
+    Delta(ii) = real(Sigma);  % level shift = Re Sigma_eff_total
     
     % Breit-Wigner transmission using extracted Gammas and shift
-    numerator = GammaL_eff(ii) * GammaR_eff(ii);
-    denom = (E - epsilon_dot - Delta_eff(ii))^2 + (Gamma_tot/2)^2;
-    if denom <= 0
-        T_BW(ii) = 0;
-    else
-        T_BW(ii) = numerator / denom;
-    end
+    T_BW(ii) = (GammaL(ii) * GammaR(ii)) / ((E - epsilon_dot - Delta(ii))^2 + (Gamma/2)^2);
 end
 end
 
-function [] = sweepEMvsGW(H, SigmaL, SigmaR, GammaL_mat, GammaR_mat)
-N_lead_each = 30;         % number of lead sites included on each side (extended molecule)
-idx_dot = N_lead_each + 1;
-N = 2*N_lead_each + 1;    % total EM sites
-I_N = eye(N);
+function [G_BW] = sweepBWboth(eps_range, SigmaL, SigmaR, GammaL, GammaR)
 EF = 0.0;
-num_eta = 1e-12;          % tiny numerical broadening for matrix inversion
+    
+G_BW = zeros(size(eps_range));
+Delta = zeros(size(eps_range));
+for k = 1:length(eps_range)
+    eps_tmp = eps_range(k);
+    % Effective total self-energy from both sides
+    Sigma = SigmaL(k) + SigmaR(k);
+    % Extract Gammas (energy dependent)
+    Gamma = GammaL(k) + GammaR(k);
+    % Extract shift (energy dependent)
+    Delta(k) = real(Sigma);
 
-%% Physical constants (for conductance units)
-e = 1.602176634e-19;      % C
-h = 6.62607015e-34;       % J s
-G0 = 2*e^2/h;             % conductance quantum (S) including spin
-%% -------------------- Gate sweep (zero-T approx using T(EF)) --------------------
-    neps = 201;
-    epsilon_dot = 0.0;        % dot onsite energy (resonant level)
-    eps_range = linspace(epsilon_dot - 2.5, epsilon_dot + 2.5, neps);
-    % For speed, evaluate approximate zero-T conductance by using T(EF) with shifted eps
-
-    [G_vs_eps_NEGF] = sweepEM(eps_range, H, I_N, SigmaL, SigmaR, GammaL_mat, GammaR_mat, G0, idx_dot, EF, num_eta);
-
-    [G_vs_eps_BW] = sweepBW(eps_range, H, I_N, SigmaL, SigmaR, G0, idx_dot, EF, num_eta);
-
-    figure('Name','Gate sweep (zero-T approx)','NumberTitle','off');
-    plot(eps_range, G_vs_eps_NEGF / G0, 'LineWidth', 1.4); hold on;
-    plot(eps_range, G_vs_eps_BW / G0, '--', 'LineWidth', 1.4);
-    xlabel('\epsilon_d');
-    ylabel('G / G_0');
-    legend('G_{NEGF}','G_{BW}','Location','Best');
-    title('Gate sweep: NEGF (EM) vs Breit–Wigner using EM-extracted \Gamma');
-    grid on;
+    % Breit-Wigner conductance using extracted Gammas and shift
+    G_BW(k) = (GammaL(k) * GammaR(k)) / ((EF - eps_tmp - Delta(k))^2 + (Gamma/2)^2);
+end
 end
 
-function [G_vs_eps_NEGF] = sweepEM(eps_range, H, I_N, SigmaL, SigmaR, GammaL_mat, GammaR_mat, G0, idx_dot, EF, num_eta)
-    % reuse T_of_E calculation but easier: compute zero-T conductance approx by T at E=EF
-    % We'll compute T(EF) for each gate (shift dot onsite)
-    G_vs_eps_NEGF = zeros(size(eps_range));
-    for k = 1:length(eps_range)
-        eps_tmp = eps_range(k);
-        % Update dot onsite in H and recompute dot GR at EF for NEGF (full)
-        H_tmp = H;
-        H_tmp(idx_dot, idx_dot) = eps_tmp;
-
-        % compute GR at EF
-        GR_full_tmp = ((EF + 1i*num_eta) * I_N - H_tmp - SigmaL - SigmaR) \ I_N;
-        GA_full_tmp = GR_full_tmp';
-
-        T_NEGF_EF = real(trace(GammaL_mat * GR_full_tmp * GammaR_mat * GA_full_tmp));
-        if T_NEGF_EF < 0 && T_NEGF_EF > -1e-14, T_NEGF_EF = 0; end
-        G_vs_eps_NEGF(k) = G0 * T_NEGF_EF;  % zero-T linear conductance in S (approx)
-    end
-end
-
-function [G_vs_eps_BW] = sweepBW(eps_range, H, I_N, SigmaL, SigmaR, G0, idx_dot, EF, num_eta)
-    G_vs_eps_BW = zeros(size(eps_range));
-    for k = 1:length(eps_range)
-        eps_tmp = eps_range(k);
-
-        % Update dot onsite in H and recompute dot GR at EF for NEGF (full)
-        H_tmp = H;
-        H_tmp(idx_dot, idx_dot) = eps_tmp;
-
-        % For BW: compute GR_dd with left-only to get GammaL at EF
-        GR_L_tmp = ((EF + 1i*num_eta) * I_N - H_tmp - SigmaL) \ I_N;
-        Gdd_L = GR_L_tmp(idx_dot, idx_dot);
-        Sigma_eff_L_tmp = EF - eps_tmp - 1.0 / Gdd_L;
-        GammaL_tmp = -2 * imag(Sigma_eff_L_tmp);
-
-        % For BW: compute GR_dd with right-only to get GammaR at EF
-        GR_R_tmp = ((EF + 1i*num_eta) * I_N - H_tmp - SigmaR) \ I_N;
-        Gdd_R = GR_R_tmp(idx_dot, idx_dot);
-        Sigma_eff_R_tmp = EF - eps_tmp - 1.0 / Gdd_R;
-        GammaR_tmp = -2 * imag(Sigma_eff_R_tmp);
-        
-        Delta_tmp = real(Sigma_eff_L_tmp + Sigma_eff_R_tmp);
-        denom = (EF - eps_tmp - Delta_tmp)^2 + ( (GammaL_tmp + GammaR_tmp)/2 )^2;
-        if denom <= 0
-            Tbw_tmp = 0;
-        else
-            Tbw_tmp = (GammaL_tmp * GammaR_tmp) / denom;
-        end
-        G_vs_eps_BW(k) = G0 * Tbw_tmp;
-    end
-end
-
+%% -------------------- Plotting functions -------------------- 
 function [] = plotEMvsBW(Elist, T_NEGF, T_BW, GammaL_eff, GammaR_eff, Delta_eff)
 %% -------------------- Plots --------------------
 figure('Name','Transmission comparison','NumberTitle','off','Position',[100 100 900 700]);
+
+% 1st subplot
 subplot(3,1,1);
-plot(Elist, T_NEGF, 'LineWidth', 1.5); hold on;
-plot(Elist, T_BW, '--', 'LineWidth', 1.4);
+plot(Elist, T_NEGF);
+hold on;
+plot(Elist, T_BW, '--');
 xlabel('Energy (units of t)');
 ylabel('T(E)');
 legend('T_{NEGF}','T_{BW (EM)}','Location','Best');
 title('Transmission: full NEGF vs Breit–Wigner using EM-extracted \Gamma_{L,R}');
 grid on;
 
+% 2nd subplot
 subplot(3,1,2);
-plot(Elist, GammaL_eff, 'LineWidth', 1.2); hold on;
-plot(Elist, GammaR_eff, 'LineWidth', 1.2);
-plot(Elist, GammaL_eff + GammaR_eff, ':k','LineWidth',1);
+plot(Elist, GammaL_eff);
+hold on;
+plot(Elist, GammaR_eff);
+plot(Elist, GammaL_eff + GammaR_eff, ':k');
 xlabel('Energy');
 ylabel('\Gamma(E)');
 legend('\Gamma_L','\Gamma_R','\Gamma_{tot}','Location','Best');
 title('Effective broadenings (projected to dot) computed from EM');
 grid on;
 
+% 3rd subplot
 subplot(3,1,3);
-plot(Elist, Delta_eff, 'LineWidth', 1.2);
+plot(Elist, Delta_eff);
 xlabel('Energy');
 ylabel('\Delta(E) = Re[\Sigma^{eff}_L + \Sigma^{eff}_R]');
 title('Effective level shift');
 grid on;
 
+% Title
 N_lead_each = 30;         % number of lead sites included on each side (extended molecule)
 eta = 0.06;               % absorbing strength (positive) -> Sigma = -i*eta on outer sites
 N_absorb_layers = 4;      % number of outer-most sites per side with absorbing Sigma
 sgtitle(sprintf('EM size: %d sites each lead, eta = %.3g, N_absorb = %d', N_lead_each, eta, N_absorb_layers));
 end
 
-%%############################################ Other ############################################
+%% -------------------- Other functions -------------------- 
 function [] = Conductance(Elist, T_NEGF, T_BW)
-%% Physical constants (for conductance units)
+% Physical constants (for conductance units)
 e = 1.602176634e-19;      % C
 h = 6.62607015e-34;       % J s
 G0 = 2*e^2/h;             % conductance quantum (S) including spin
 
-%% temperature
+% temperature
 T_K = 4.0;                % Kelvin for finite-T conductance
 kB_ev = 8.617333262145e-5; % eV/K
 kBT = kB_ev * T_K;
 
-%% -------------------- Conductances (finite-T Landauer) --------------------
+% -------------------- Conductances (finite-T Landauer) --------------------
 % Fermi derivative
 if kBT > 0
     EF = 0.0;
@@ -353,17 +357,19 @@ fprintf('  G (NEGF, EM) = %.6g S  (%.6g G0)\n', G_NEGF, G_NEGF / G0);
 fprintf('  G (Breit-Wigner using EM Gammas) = %.6g S  (%.6g G0)\n\n', G_BW, G_BW / G0);
 end
 
-function [A_dot, Gdd_full] = doBWfull(Elist, I_N, H, SigmaL, SigmaR)
+function [A_dot, Gdd_full] = doBWfull(Elist, H, SigmaL, SigmaR)
+N_lead_each = 30;         % number of lead sites included on each side (extended molecule)
+idx_dot = N_lead_each + 1;
+
+I_N = eye(size(H));
 A_dot = zeros(size(Elist));     % spectral function at dot from full GR (A = -2 Im G_dd)
 for ii = 1:length(Elist)
     E = Elist(ii);
-    % Full Green's function with both absorbers
     num_eta = 1e-12;          % tiny numerical broadening for matrix inversion
+    % Full Green's function with both absorbers
     GR_full = ((E + 1i*num_eta) * I_N - H - SigmaL - SigmaR) \ I_N;
 
     % Dot Green's function element (dd)
-    N_lead_each = 30;         % number of lead sites included on each side (extended molecule)
-    idx_dot = N_lead_each + 1;
     Gdd_full = GR_full(idx_dot, idx_dot);
     A_dot(ii) = -2 * imag(Gdd_full);
 end
