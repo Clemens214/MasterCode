@@ -33,32 +33,59 @@ end
 end
 
 %% integrate the transmission
-function [Results] = integrate(chemPots, totalSystem, gammaL, gammaR)
+function [Results] = integrate(chemPots, totalSystem, gammaL, gammaR, options)
+arguments
+    chemPots
+    totalSystem
+    gammaL
+    gammaR
+    options.stepMult = 10
+end
     Energies = getEnergies(chemPots);
     Diffs = zeros(1, length(Energies)-1);
     for i = 2:length(Energies)
         Diffs(i) = Energies(i) - Energies(i-1); 
     end
     lcd = LowestCommonDenominator(Diffs);
-    stepSize = 1/lcd;
+    stepSize = (1/lcd) / options.stepMult;
+
     % calculate the transmissions
-    evalPoints = makeList(max(Energies), stepSize/100);
+    evalPoints = makeList(max(Energies), min(Energies), stepSize);
     values = Transmission(evalPoints, totalSystem, gammaL, gammaR);
+
     % calculate the integrals
     Results = zeros(1, length(chemPots));
     for i = 1:length(chemPots)
-        indexStart = find(evalPoints == min(chemPots(i).left, chemPots(i).right));
-        indexEnd = find(evalPoints == max(chemPots(i).left, chemPots(i).right));
-        % filter the data
-        evalFilt = evalPoints(indexStart:indexEnd);
-        valuesFilt = values(indexStart:indexEnd);
+        fermiFunc = getFermiFunc(evalPoints, chemPots(i).left) - getFermiFunc(evalPoints, chemPots(i).right);
         % calculate the Result
-        if length(evalFilt) > 1
-            Results(i) = trapz(evalFilt, valuesFilt);
-        elseif isscalar(evalFilt)
+        yData = fermiFunc .* values;
+        if length(evalPoints) > 1
+            Results(i) = trapz(evalPoints, yData);
+        elseif isscalar(evalPoints)
             Results(i) = 0;
         end
-        disp(['Voltage: ', num2str(2*max(evalFilt)), ', j=', num2str(i)])
+        disp(['Voltage: ', num2str(chemPots(i).left-chemPots(i).right), ', j=', num2str(i)])
+    end
+end
+
+function [fermiFunc] = getFermiFunc(evalPoints, chemPot, Temp)
+arguments
+    evalPoints
+    chemPot
+    Temp = 0
+end
+    fermiFunc = zeros(size(evalPoints));
+    for i = 1:length(evalPoints)
+        E = evalPoints(i);
+        if Temp ~= 0
+            fermiFunc(i) = 1/(exp((E-chemPot)/Temp)+1);
+        elseif Temp == 0
+            if E <= chemPot
+                fermiFunc(i) = 1;
+            else
+                fermiFunc(i) = 0;
+            end
+        end
     end
 end
 
@@ -80,15 +107,6 @@ function [Results] = Transmission(Energies, totalSystem, gammaL, gammaR)
     end
     % return the results
     Results = Traces;
-end
-
-function [Result] = TransmissionZeroTemp(Energy, totalSystem, gammaL, gammaR)
-    % calculate the Greens Function
-    GreensFuncInv = Energy*eye(length(totalSystem)) - totalSystem;
-    GreensFunc = inv(GreensFuncInv);
-    
-    % calculate the matrix product
-    Result = GreensFunc * gammaL * GreensFunc' * gammaR;
 end
 
 function [Result] = TransmissionAlt(Energy, totalSystem, gammaL, gammaR)
@@ -121,12 +139,12 @@ function [Filtered] = getEnergies(chemPots)
     Filtered = unique(Sorted);
 end
 
-function [values] = makeList(maxVal, stepVal)
+function [values] = makeList(maxVal, minVal, stepVal)
     arguments
         maxVal
+        minVal
         stepVal
     end
-    minVal = -1*maxVal;
     numVal = (maxVal-minVal)/stepVal+1;
     values = linspace(minVal, maxVal, numVal);
 end
@@ -191,4 +209,14 @@ function [result] = factorElement(eig1, eig2, chemPot)
     else
         result = -1/(chemPot - eig1);
     end
+end
+
+%% total transmission in the linear transport approximation
+function [Result] = TransmissionZeroTemp(Energy, totalSystem, gammaL, gammaR)
+    % calculate the Greens Function
+    GreensFuncInv = Energy*eye(length(totalSystem)) - totalSystem;
+    GreensFunc = inv(GreensFuncInv);
+    
+    % calculate the matrix product
+    Result = GreensFunc * gammaL * GreensFunc' * gammaR;
 end

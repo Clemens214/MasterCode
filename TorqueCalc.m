@@ -22,9 +22,29 @@ end
     %disp('Starting calculation of the torque.')
     if options.linearResponse == true
         Energies = getEnergies(chemPots);
-        Results = Torque(Energies, totalSystem, totalSysDeriv, gammaL, gammaR, choice);
+        if choice.conservative == true || choice.nonconservative == true || choice.left == true || choice.right == true
+            Results = Torque(Energies, totalSystem, totalSysDeriv, gammaL, gammaR, choice);
+        else
+            choiceL = choice;
+            choiceL.left = true;
+            ResultsL = Torque(Energies, totalSystem, totalSysDeriv, gammaL, gammaR, choiceL);
+            choiceR = choice;
+            choiceR.right = true;
+            ResultsR = Torque(Energies, totalSystem, totalSysDeriv, gammaL, gammaR, choiceR);
+            Results = ResultsL + ResultsR;
+        end
     elseif options.linearResponse == false && options.integrate == true
-        Results = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, choice);
+        if choice.conservative == true || choice.nonconservative == true || choice.left == true || choice.right == true
+            Results = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, choice);
+        else
+            choiceL = choice;
+            choiceL.left = true;
+            ResultsL = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, choiceL);
+            choiceR = choice;
+            choiceR.right = true;
+            ResultsR = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, choiceR);
+            Results = ResultsL + ResultsR;
+        end
     elseif options.linearResponse == false && options.integrate == false
         Results = zeros(1, length(chemPots));
         for i = 1:length(chemPots)
@@ -32,7 +52,6 @@ end
             chemPotR = chemPots(i).right;
             TotalResult = TorqueChoice(Eigenvals, leftEVs, rightEVs, totalSysDeriv, gammaL, gammaR, chemPotL, chemPotR, choice);
             Results(i) = real(trace(TotalResult));
-
             voltage = chemPotL - chemPotR;
             disp(['Voltage: ', num2str(voltage), ', j=', num2str(i)])
         end
@@ -41,32 +60,93 @@ end
 end
 
 %% integrate the torque
-function [Results] = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, choice)
+function [Results] = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, choice, options)
+arguments
+    chemPots
+    totalSystem
+    totalSysDeriv
+    gammaL
+    gammaR
+    choice
+    options.stepMult = 10
+    options.minVal = -3
+end
+    % get the bounds
+    if choice.conservative == true
+        maxPoint = max([[chemPots.left], [chemPots.right]]);
+        minPoint = min([[chemPots.left], [chemPots.right], options.minVal]);
+    elseif choice.nonconservative == true
+        maxPoint = max([[chemPots.left], [chemPots.right]]);
+        minPoint = min([[chemPots.left], [chemPots.right]]);
+    elseif choice.left == true
+        maxPoint = max([chemPots.left]);
+        minPoint = min([[chemPots.left], options.minVal]);
+    elseif choice.right == true
+        maxPoint = max([chemPots.right]);
+        minPoint = min([[chemPots.right], options.minVal]);
+    end
+    % get the step size
     Energies = getEnergies(chemPots);
     Diffs = zeros(1, length(Energies)-1);
     for i = 2:length(Energies)
         Diffs(i) = Energies(i) - Energies(i-1); 
     end
     lcd = LowestCommonDenominator(Diffs);
-    stepSize = 1/lcd;
-    % calculate the torques
-    evalPoints = makeList(max(Energies), stepSize);
+    stepSize = (1/lcd) / options.stepMult;
+
+    % calculate the transmissions
+    evalPoints = makeList(maxPoint, minPoint, stepSize);
     values = Torque(evalPoints, totalSystem, totalSysDeriv, gammaL, gammaR, choice);
+    
     % calculate the integrals
     Results = zeros(1, length(chemPots));
     for i = 1:length(chemPots)
-        indexStart = find(evalPoints == min(chemPots(i).left, chemPots(i).right));
-        indexEnd = find(evalPoints == max(chemPots(i).left, chemPots(i).right));
-        % filter the data
-        evalFilt = evalPoints(indexStart:indexEnd);
-        valuesFilt = values(indexStart:indexEnd);
+        fermiFunc = choiceFermiFunc(evalPoints, chemPots(i).left, chemPots(i).right, choice);
         % calculate the Result
-        if length(evalFilt) > 1
-            Results(i) = trapz(evalFilt, valuesFilt);
-        elseif isscalar(evalFilt)
+        yData = fermiFunc .* values;
+        if length(evalPoints) > 1
+            Results(i) = trapz(evalPoints, yData);
+        elseif isscalar(evalPoints)
             Results(i) = 0;
         end
-        disp(['Voltage: ', num2str(2*max(evalFilt)), ', j=', num2str(i)])
+        disp(['Voltage: ', num2str(chemPots(i).left-chemPots(i).right), ', j=', num2str(i)])
+    end
+end
+
+function [fermiFunc] = choiceFermiFunc(evalPoints, chemPotL, chemPotR, choice)
+    if choice.conservative == true
+        fermiFuncL = getFermiFunc(evalPoints, chemPotL);
+        fermiFuncR = getFermiFunc(evalPoints, chemPotR);
+        fermiFunc = fermiFuncL + fermiFuncR;
+    elseif choice.nonconservative == true
+        fermiFuncL = getFermiFunc(evalPoints, chemPotL);
+        fermiFuncR = getFermiFunc(evalPoints, chemPotR);
+        fermiFunc = fermiFuncL - fermiFuncR;
+    elseif choice.left == true
+        fermiFunc = getFermiFunc(evalPoints, chemPotL);
+    elseif choice.right == true
+        fermiFunc = getFermiFunc(evalPoints, chemPotR);
+    end
+end
+
+function [fermiFunc] = getFermiFunc(evalPoints, chemPot, Temp)
+arguments
+    evalPoints
+    chemPot
+    Temp = 0
+end
+    fermiFunc = zeros(size(evalPoints));
+    for i = 1:length(evalPoints)
+        E = evalPoints(i);
+        if Temp ~= 0
+            fermiFunc(i) = 1/(exp((E-chemPot)/Temp)+1);
+        elseif Temp == 0
+            if E <= chemPot
+                fermiFunc(i) = 1;
+            else
+                fermiFunc(i) = 0;
+            end
+        end
     end
 end
 
@@ -113,15 +193,6 @@ function [TotalResult] = choiceLin(Energy, totalSystem, totalSysDeriv, gammaL, g
     end
 end
 
-function [Result] = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, midFactor)
-    % calculate the Greens Function
-    GreensFuncInv = Energy*eye(length(totalSystem)) - totalSystem;
-    GreensFunc = inv(GreensFuncInv);
-    
-    % calculate the matrix product
-    Result = totalSysDeriv * GreensFunc * midFactor * GreensFunc';
-end
-
 function [Result] = TorqueAlt(Energy, totalSystem, totalSysDeriv, midFactor)
     % A*G*B*Gt
     % F = decomposition(GreensInv,'lu');
@@ -152,12 +223,12 @@ function [Filtered] = getEnergies(chemPots)
     Filtered = unique(Sorted);
 end
 
-function [values] = makeList(maxVal, stepVal)
+function [values] = makeList(maxVal, minVal, stepVal)
     arguments
         maxVal
+        minVal
         stepVal
     end
-    minVal = -1*maxVal;
     numVal = (maxVal-minVal)/stepVal+1;
     values = linspace(minVal, maxVal, numVal);
 end
@@ -254,4 +325,14 @@ function [result] = factorElement(eig1, eig2, chemPot)
     element1 = log(chemPot - eig1);
     element2 = log(chemPot - eig2);
     result = factor*(element1 - element2);
+end
+
+%% total torque in the linear transport approximation
+function [Result] = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, midFactor)
+    % calculate the Greens Function
+    GreensFuncInv = Energy*eye(length(totalSystem)) - totalSystem;
+    GreensFunc = inv(GreensFuncInv);
+    
+    % calculate the matrix product
+    Result = totalSysDeriv * GreensFunc * midFactor * GreensFunc';
 end
