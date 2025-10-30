@@ -42,7 +42,7 @@ for i = 1:length(angles)
     sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
     
     % preparing the Extended Molecule Hamiltonian
-    [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
+    [totalSystem, gammaL, gammaR, sigmaL, sigmaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
     totalSysDeriv = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv, derivVals);
 
     checkMatrix(totalSystem);
