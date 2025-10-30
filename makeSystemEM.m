@@ -141,7 +141,6 @@ end
     elseif options.left == false && options.right == true
         inter = zeros(sizeLead, sizeCentral);
         for i = 1:endVal
-            test = sizeCentral-endVal+i;
             inter(1, sizeCentral-endVal+i) = hoppingsInter(2, i);
         end
     end
