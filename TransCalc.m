@@ -21,6 +21,9 @@ end
             chemPotR = chemPots(i).right;
             TotalResult = TransmissionMatrix(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR);
             Results(i) = real(trace(TotalResult));
+
+            voltage = chemPotL - chemPotR;
+            disp(['Voltage: ', num2str(voltage), ', j=', num2str(i)])
         end
     end
     %disp('Finished calculation of the current.')
@@ -99,8 +102,11 @@ function [Results] = Transmission(Energies, totalSystem, gammaL, gammaR)
     % calculate the transport matrix and the trace
     Traces = zeros(1, length(Energies));
     for i = 1:length(Energies)
-        Matrix = TransmissionZeroTemp(Energies(i), totalSystem, gammaL, gammaR);
+        %Matrix = TransmissionZeroTemp(Energies(i), totalSystem, gammaL, gammaR);
+        Matrix = TransmissionAlt(Energies(i), totalSystem, gammaL, gammaR);
         Traces(i) = trace(real(Matrix));
+        
+        disp(['Energy: ', num2str(Energies(i)), ', j=', num2str(i)])
     end
     % return the results
     Results = Traces;
@@ -113,6 +119,26 @@ function [Result] = TransmissionZeroTemp(Energy, totalSystem, gammaL, gammaR)
     
     % calculate the matrix product
     Result = GreensFunc * gammaL * GreensFunc' * gammaR;
+end
+
+function [Result] = TransmissionAlt(Energy, totalSystem, gammaL, gammaR)
+    % G*B*Gt*C
+    % F = decomposition(GreensInv,'lu');
+    % Y = F \ B;
+    % W = C * Y;
+    % Z = F' \ W;
+    % t = trace(Z);
+    
+    % GreensFunc * gammaL * GreensFunc' * gammaR
+    GreensInv = Energy*eye(length(totalSystem)) - totalSystem;
+    F = decomposition(GreensInv,'lu');    % create reusable LU object (works for sparse/dense)
+    
+    Y = F \ gammaL;
+    W = gammaR * Y;
+    Z = F' \ W;                   % uses transpose of factorization
+    % t = trace(Z);
+
+    Result = Z;
 end
 
 %% helping functions

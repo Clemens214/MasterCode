@@ -164,8 +164,8 @@ function [TotalResult] = choiceLin(Energy, totalSystem, totalSysDeriv, gammaL, g
         elseif choice.right == true
             midFactor = gammaR;
         end
-        %TotalResult = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, midFactor);
-        TotalResult = TorqueAlt(Energy, totalSystem, totalSysDeriv, midFactor);
+        TotalResult = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, midFactor);
+        %TotalResult = TorqueAlt(Energy, totalSystem, totalSysDeriv, midFactor);
     else
         %ResultL = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, gammaL);
         ResultL = TorqueAlt(Energy, totalSystem, totalSysDeriv, gammaL);
