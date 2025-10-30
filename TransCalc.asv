@@ -9,6 +9,7 @@ arguments
     rightEVs
     chemPots
     options.linearResponse = false
+    options.integrate = true
 end
     %disp('Starting calculation of the current.')
     if options.linearResponse == true
@@ -16,6 +17,17 @@ end
         Results = Transmission(Energies, totalSystem, gammaL, gammaR);
     elseif options.linearResponse == false && options.integrate == true
         Results = integrate(chemPots, totalSystem, gammaL, gammaR);
+    elseif options.linearResponse == false && options.integrate == false
+        Results = zeros(1, length(chemPots));
+        for i = 1:length(chemPots)
+            chemPotL = chemPots(i).left;
+            chemPotR = chemPots(i).right;
+            TotalResult = TransmissionMatrix(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR);
+            Results(i) = real(trace(TotalResult));
+
+            voltage = chemPotL - chemPotR;
+            disp(['Voltage: ', num2str(voltage), ', j=', num2str(i)])
+        end
     end
     %disp('Finished calculation of the current.')
 end
@@ -45,6 +57,7 @@ end
     Results = zeros(1, length(chemPots));
     for i = 1:length(chemPots)
         fermiFunc = getFermiFunc(evalPoints, chemPots(i).left) - getFermiFunc(evalPoints, chemPots(i).right);
+        fermiFunc = choiceFermiFunc(evalPoints, chemPots(i).left, chemPots(i).right);
         % calculate the Result
         yData = fermiFunc .* values;
         if length(evalPoints) > 1
@@ -52,7 +65,23 @@ end
         elseif isscalar(evalPoints)
             Results(i) = 0;
         end
-        disp(['Voltage: ', num2str(chemPots(i).left-chemPots(i).right), ', j=', num2str(i)])
+        disp(['Voltage: ', num2str(2*max(evalPoints)), ', j=', num2str(i)])
+    end
+end
+
+function [fermiFunc] = choiceFermiFunc(evalPoints, chemPotL, chemPotR, choice)
+    if choice.conservative == true
+        fermiFuncL = getFermiFunc(evalPoints, chemPotL);
+        fermiFuncR = getFermiFunc(evalPoints, chemPotR);
+        fermiFunc = fermiFuncL + fermiFuncR;
+    elseif choice.nonconservative == true
+        fermiFuncL = getFermiFunc(evalPoints, chemPotL);
+        fermiFuncR = getFermiFunc(evalPoints, chemPotR);
+        fermiFunc = fermiFuncL - fermiFuncR;
+    elseif choice.left == true
+        fermiFunc = getFermiFunc(evalPoints, chemPotL);
+    elseif choice.right == true
+        fermiFunc = getFermiFunc(evalPoints, chemPotR);
     end
 end
 
