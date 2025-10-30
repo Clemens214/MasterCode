@@ -42,8 +42,8 @@ function [Results] = integrate(chemPots, totalSystem, gammaL, gammaR)
     lcd = LowestCommonDenominator(Diffs);
     stepSize = 1/lcd;
     % calculate the transmissions
-    evalPoints = makeList(max(Energies), stepSize/100);
-    values = Transmission(evalPoints, totalSystem, gammaL, gammaR);
+    evalPoints = makeList(max(Energies), stepSize/);
+    values = Transmission(Energies, totalSystem, gammaL, gammaR);
     % calculate the integrals
     Results = zeros(1, length(chemPots));
     for i = 1:length(chemPots)
