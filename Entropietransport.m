@@ -25,7 +25,6 @@ chemPots = setupPots(voltages);
 Energies = getEnergies(chemPots);
 
 %% Calculation
-
 Transmission = cell(1, length(angles));
 Torque = cell(1, length(angles));
 for i = 1:length(angles)
