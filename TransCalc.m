@@ -9,7 +9,6 @@ arguments
     rightEVs
     chemPots
     options.linearResponse = false
-    options.integrate = true
 end
     %disp('Starting calculation of the current.')
     if options.linearResponse == true
@@ -17,17 +16,6 @@ end
         Results = Transmission(Energies, totalSystem, gammaL, gammaR);
     elseif options.linearResponse == false && options.integrate == true
         Results = integrate(chemPots, totalSystem, gammaL, gammaR);
-    elseif options.linearResponse == false && options.integrate == false
-        Results = zeros(1, length(chemPots));
-        for i = 1:length(chemPots)
-            chemPotL = chemPots(i).left;
-            chemPotR = chemPots(i).right;
-            TotalResult = TransmissionMatrix(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR);
-            Results(i) = real(trace(TotalResult));
-
-            voltage = chemPotL - chemPotR;
-            disp(['Voltage: ', num2str(voltage), ', j=', num2str(i)])
-        end
     end
     %disp('Finished calculation of the current.')
 end

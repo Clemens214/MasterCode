@@ -54,6 +54,7 @@ for i = 1:length(angles)
     
     %compute the Eigenvectors and the Eigenvalues of the system
     [Eigenvals, leftEVs, rightEVs, Product] = eigenvectors(totalSystem);%, checkMore=true);
+    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, linearResponse=true);
     
     Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots);
     Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots);

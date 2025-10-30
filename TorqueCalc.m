@@ -1,4 +1,4 @@
-function [Results] = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, options)
+function [Results] = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, choice, options)
 % calculate the torque through a molecule for zero temperature
 arguments
     totalSystem
@@ -9,16 +9,12 @@ arguments
     leftEVs
     rightEVs
     chemPots
+    choice.conservative = false
+    choice.nonconservative = false
+    choice.left = false
+    choice.right = false
     options.linearResponse = false
-    options.integrate = true
-    options.conservative = false
-    options.nonconservative = false
-    options.left = false
-    options.right = false
 end
-    choice = struct('conservative', options.conservative, ...
-                    'nonconservative', options.nonconservative, ...
-                    'left', options.left, 'right', options.right);
     %disp('Starting calculation of the torque.')
     if options.linearResponse == true
         Energies = getEnergies(chemPots);

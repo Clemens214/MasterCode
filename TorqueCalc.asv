@@ -1,4 +1,4 @@
-function [Results] = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, options)
+function [Results] = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, choice, options)
 % calculate the torque through a molecule for zero temperature
 arguments
     totalSystem
@@ -9,16 +9,12 @@ arguments
     leftEVs
     rightEVs
     chemPots
+    choice.conservative = false
+    choice.nonconservative = false
+    choice.left = false
+    choice.right = false
     options.linearResponse = false
-    options.integrate = true
-    options.conservative = false
-    options.nonconservative = false
-    options.left = false
-    options.right = false
 end
-    choice = struct('conservative', options.conservative, ...
-                    'nonconservative', options.nonconservative, ...
-                    'left', options.left, 'right', options.right);
     %disp('Starting calculation of the torque.')
     if options.linearResponse == true
         Energies = getEnergies(chemPots);
@@ -69,21 +65,21 @@ arguments
     gammaR
     choice
     options.stepMult = 10
-    options.minVal = 3
+    options.minVal = -3
 end
     % get the bounds
     if choice.conservative == true
-        maxPoint = max(chemPots.left, chemPots.right);
-        minPoint = min(chemPots.left, chemPots.right, options.minVal);
+        maxPoint = max([[chemPots.left], [chemPots.right]]);
+        minPoint = min([[chemPots.left], [chemPots.right], options.minVal]);
     elseif choice.nonconservative == true
-        maxPoint = max(chemPots.left, chemPots.right);
-        minPoint = min(chemPots.left, chemPots.right);
+        maxPoint = max([[chemPots.left], [chemPots.right]]);
+        minPoint = min([[chemPots.left], [chemPots.right]]);
     elseif choice.left == true
-        maxPoint = max(chemPots.left);
-        minPoint = min(chemPots.left, options.minVal);
+        maxPoint = max([chemPots.left]);
+        minPoint = min([[chemPots.left], options.minVal]);
     elseif choice.right == true
-        maxPoint = max(chemPots.right);
-        minPoint = min(chemPots.right, options.minVal);
+        maxPoint = max([chemPots.right]);
+        minPoint = min([[chemPots.right], options.minVal]);
     end
     % get the step size
     Energies = getEnergies(chemPots);
@@ -101,38 +97,43 @@ end
     % calculate the integrals
     Results = zeros(1, length(chemPots));
     for i = 1:length(chemPots)
-        indexStart = find(evalPoints == min(chemPots(i).left, chemPots(i).right));
-        indexEnd = find(evalPoints == max(chemPots(i).left, chemPots(i).right));
-        % filter the data
-        evalFilt = evalPoints(indexStart:indexEnd);
-        valuesFilt = values(indexStart:indexEnd);
+        fermiFunc = choiceFermiFunc(evalPoints, chemPots(i).left, chemPots(i).right, choice);
         % calculate the Result
-        if length(evalFilt) > 1
-            Results(i) = trapz(evalFilt, valuesFilt);
-        elseif isscalar(evalFilt)
+        yData = fermiFunc .* values;
+        if length(evalPoints) > 1
+            Results(i) = trapz(evalPoints, yData);
+        elseif isscalar(evalPoints)
             Results(i) = 0;
         end
-        disp(['Voltage: ', num2str(2*max(evalFilt)), ', j=', num2str(i)])
+        disp(['Voltage: ', num2str(chemPots(i).left-chemPots(i).right), ', j=', num2str(i)])
     end
 end
 
 function [fermiFunc] = choiceFermiFunc(evalPoints, chemPotL, chemPotR, choice)
     if choice.conservative == true
-        fermiFuncL = ;
+        fermiFuncL = getFermiFunc(evalPoints, chemPotL);
+        fermiFuncR = getFermiFunc(evalPoints, chemPotR);
+        fermiFunc = fermiFuncL + fermiFuncR;
     elseif choice.nonconservative == true
-        fermiFunc = ;
+        fermiFuncL = getFermiFunc(evalPoints, chemPotL);
+        fermiFuncR = getFermiFunc(evalPoints, chemPotR);
+        fermiFunc = fermiFuncL - fermiFuncR;
     elseif choice.left == true
-        fermiFunc = ;
+        fermiFunc = getFermiFunc(evalPoints, chemPotL);
     elseif choice.right == true
-        fermiFunc = ;
+        fermiFunc = getFermiFunc(evalPoints, chemPotR);
     end
 end
 
 function [fermiFunc] = getFermiFunc(evalPoints, chemPot, Temp)
 arguments
-    
+    evalPoints
+    chemPot
+    Temp = 0
+end
     fermiFunc = zeros(size(evalPoints));
     for i = 1:length(evalPoints)
+        E = evalPoints(i);
         if Temp ~= 0
             fermiFunc(i) = 1/(exp((E-chemPot)/Temp)+1);
         elseif Temp == 0
