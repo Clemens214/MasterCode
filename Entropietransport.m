@@ -19,7 +19,7 @@ angles = makeList(angleMax, angleStep);
 
 %variables for the calculation of the current
 voltageMax = 5;
-voltageStep = 0.1;
+voltageStep = 0.5;
 voltages = makeList(voltageMax, voltageStep);
 chemPots = setupPots(voltages);
 Energies = getEnergies(chemPots);
@@ -33,14 +33,10 @@ for i = 1:length(angles)
         hoppingsInter = [hopping; hopping];
         hoppingsDeriv = [0; 0];
     elseif orderSample == 2
-        reduced = true;
-        if reduced == true
-            hoppingsInter = [cos(angles(i)), sin(angles(i)); 1, 0];
-            hoppingsDeriv = [-1*sin(angles(i)), cos(angles(i)); 0, 0];
-        elseif reduced == false
-            hoppingsInter = [cos(angles(i)), sin(angles(i)); cos(angles(j)), sin(angles(j))];
-            hoppingsDeriv = [-1*sin(angles(i)), cos(angles(i)); -1*sin(angles(j)), cos(angles(j))];
-        end
+        hoppingsInter = [cos(angles(i)), sin(angles(i)); 1, 0];
+                        % cos(angles(j)), sin(angles(j))];
+        hoppingsDeriv = [-1*sin(angles(i)), cos(angles(i)); 0, 0];
+                        % -1*sin(angles(j)), cos(angles(j))];
     end
     
     % compute the Hamiltonian of the Sample
@@ -54,7 +50,6 @@ for i = 1:length(angles)
     
     %compute the Eigenvectors and the Eigenvalues of the system
     [Eigenvals, leftEVs, rightEVs, Product] = eigenvectors(totalSystem);%, checkMore=true);
-    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, linearResponse=true);
     
     Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots);
     Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots);
@@ -117,7 +112,6 @@ end
 function [] = plot3D (value, Title, angles, voltages, Data)
     TransPlot = zeros(length(voltages), length(angles));
     for i = 1:length(Data)
-        test = Data{i}.';
         TransPlot(:, i) = Data{i}.';
     end
     figure(value)
@@ -214,7 +208,7 @@ function [] = checkMatrix(totalSystem)
     % Example matrix (replace with your A)
     A = totalSystem;
     % 1) Compute right eigenvectors and eigenvalues
-    [V, D] = eig(A);      % A * V = V * D
+    [V, ~] = eig(A);      % A * V = V * D
     % Conditioning of eigenvector matrix
     condV = cond(V);
     % Rank of eigenvector matrix
