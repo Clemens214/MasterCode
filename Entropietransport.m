@@ -16,9 +16,10 @@ hoppingLead = hopping;
 angleMax = 2*pi;
 angleStep = pi/16;
 angles = makeList(angleMax, angleStep);
+
 %variables for the calculation of the current
 voltageMax = 5;
-voltageStep = 0.5;
+voltageStep = 0.1;
 voltages = makeList(voltageMax, voltageStep);
 chemPots = setupPots(voltages);
 Energies = getEnergies(chemPots);
@@ -46,24 +47,25 @@ for i = 1:length(angles)
     sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
     
     % preparing the Extended Molecule Hamiltonian
-    [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals, check=false);
+    [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals, check=true);
     totalSysDeriv = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv, derivVals);
 
     checkMatrix(totalSystem);
     
     %compute the Eigenvectors and the Eigenvalues of the system
     [Eigenvals, leftEVs, rightEVs, Product] = eigenvectors(totalSystem);%, checkMore=true);
+    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, linearResponse=true);
     
-    Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, linearResponse=true);
-    Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, linearResponse=true);
+    Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots);
+    Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots);
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
 %% plot
-plot3D(1, 'Transmission', angles, Energies, Transmission)
+plot3D(1, 'Transmission', angles, voltages, Transmission)
 %plot2D(2, 'Transmission', angles, voltages, Transmission)
 
-plot3D(2, 'Torque', angles, Energies, Torque)
+plot3D(2, 'Torque', angles, voltages, Torque)
 
 %plotAngle (1, 'Transmission', angles, Transmission);
 %plotAngle (2, 'Torque', angles, Torque);
