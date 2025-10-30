@@ -102,8 +102,8 @@ function [T_NEGF] = doEM(Elist, H, SigmaL, SigmaR)
     num_eta = 1e-12;          % tiny numerical broadening for matrix inversion
     
     % Gamma matrices for the outer absorbers (used in NEGF transmission)
-    GammaL_mat = 1i * (SigmaL - SigmaL');
-    GammaR_mat = 1i * (SigmaR - SigmaR');
+    GammaL = 1i * (SigmaL - SigmaL');
+    GammaR = 1i * (SigmaR - SigmaR');
     
     % -------------------- Energy loop: compute GR (full) & projections --------------------
     T_NEGF = zeros(size(Elist));    % NEGF full transmission
@@ -116,7 +116,7 @@ function [T_NEGF] = doEM(Elist, H, SigmaL, SigmaR)
         GA_full = GR_full';
         
         % NEGF transmission (matrix formula)
-        T_NEGF(ii) = real(trace(GammaL_mat * GR_full * GammaR_mat * GA_full));
+        T_NEGF(ii) = real(trace(GammaL * GR_full * GammaR * GA_full));
     end
 end
 
@@ -125,8 +125,8 @@ function [G_NEGF] = sweepEM(eps_range, H, SigmaL, SigmaR, idx_dot)
     EF = 0.0;
     
     % Gamma matrices for the outer absorbers (used in NEGF transmission)
-    GammaL_mat = 1i * (SigmaL - SigmaL');
-    GammaR_mat = 1i * (SigmaR - SigmaR');
+    GammaL = 1i * (SigmaL - SigmaL');
+    GammaR = 1i * (SigmaR - SigmaR');
     
     % reuse T_of_E calculation but easier: compute zero-T conductance approx by T at E=EF
     % We'll compute T(EF) for each gate (shift dot onsite)
@@ -139,10 +139,10 @@ function [G_NEGF] = sweepEM(eps_range, H, SigmaL, SigmaR, idx_dot)
         H_tmp(idx_dot, idx_dot) = eps_tmp;
     
         % compute GR at EF
-        GR_full_tmp = ((EF + 1i*num_eta) * I_N - H_tmp - SigmaL - SigmaR) \ I_N;
-        GA_full_tmp = GR_full_tmp';
+        GR_full = ((EF + 1i*num_eta) * I_N - H_tmp - SigmaL - SigmaR) \ I_N;
+        GA_full = GR_full';
     
-        G_NEGF(k) = real(trace(GammaL_mat * GR_full_tmp * GammaR_mat * GA_full_tmp));
+        G_NEGF(k) = real(trace(GammaL * GR_full * GammaR * GA_full));
         % zero-T linear conductance in S (approx)
     end
 end
@@ -169,12 +169,12 @@ function [G_BW] = sweepBW(eps_range, H, SigmaL, SigmaR, idx_dot)
     % We'll compute T(EF) for each gate (shift dot onsite)
 
     % For BW: compute GR_dd with left-only to get GammaL at EF
-    [SigmaL_tmp, GammaL] = sweepBWside(eps_range, H, SigmaL, idx_dot);
+    [SigmaL_tmp, GammaL_tmp] = sweepBWside(eps_range, H, SigmaL, idx_dot);
 
     % For BW: compute GR_dd with right-only to get GammaR at EF
-    [SigmaR_tmp, GammaR] = sweepBWside(eps_range, H, SigmaR, idx_dot);
+    [SigmaR_tmp, GammaR_tmp] = sweepBWside(eps_range, H, SigmaR, idx_dot);
     
-    [G_BW] = sweepBWboth(eps_range, SigmaL_tmp, SigmaR_tmp, GammaL, GammaR);
+    [G_BW] = sweepBWboth(eps_range, SigmaL_tmp, SigmaR_tmp, GammaL_tmp, GammaR_tmp);
 end
 
 function [Sigma_eff, Gamma_eff] = doBWside(Elist, H, Sigma, idx_dot)
