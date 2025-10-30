@@ -1,4 +1,4 @@
-function [Results] = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, options)
+function [Results] = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, choice, options)
 % calculate the torque through a molecule for zero temperature
 arguments
     totalSystem
@@ -9,17 +9,14 @@ arguments
     leftEVs
     rightEVs
     chemPots
+    choice.conservative = false
+    choice.nonconservative = false
+    choice.left = false
+    choice.right = false
     options.linearResponse = false
-    options.integrate = true
-    options.conservative = false
-    options.nonconservative = false
-    options.left = false
-    options.right = false
 end
-    choice = struct('conservative', options.conservative, ...
-                    'nonconservative', options.nonconservative, ...
-                    'left', options.left, 'right', options.right);
     %disp('Starting calculation of the torque.')
+    if options.linearResponse == false
     Results = zeros(1, length(chemPots));
     for i = 1:length(chemPots)
         chemPotL = chemPots(i).left;
@@ -30,9 +27,18 @@ end
         voltage = chemPotL - chemPotR;
         disp(['Voltage: ', num2str(voltage), ', j=', num2str(i)])
     end
+    else
+        Energies = getEnergies(chemPots);
+    Results = zeros(1, length(chemPots));
+    for i = 1:length(Energies)
+        Matrix = choiceLin(Energies(i), totalSystem, totalSysDeriv, gammaL, gammaR, choice);
+        Results(i) = trace(real(Matrix));
+        
+        disp(['Energy: ', num2str(Energies(i)), ', j=', num2str(i)])
+    end
+    end
     %disp('Finished calculation of the torque.')
 end
-
 
 %% total torque for finite voltages
 function [TotalResult] = TorqueChoice(Eigenvals, leftEVs, rightEVs, totalSysDeriv, gammaL, gammaR, chemPotL, chemPotR, choice)
@@ -125,4 +131,56 @@ function [result] = factorElement(eig1, eig2, chemPot)
     element1 = log(chemPot - eig1);
     element2 = log(chemPot - eig2);
     result = factor*(element1 - element2);
+end
+
+%% total torque in the linear transport approximation
+function [Results] = Torque(Energies, totalSystem, totalSysDeriv, gammaL, gammaR, choice)
+    %calculates the transport through a molecule in the linear transport approximation
+    arguments
+        Energies
+        totalSystem
+        totalSysDeriv
+        gammaL
+        gammaR
+        choice
+    end
+end
+
+function [TotalResult] = choiceLin(Energy, totalSystem, totalSysDeriv, gammaL, gammaR, choice)
+    if choice.conservative == true || choice.nonconservative == true || choice.left == true || choice.right == true
+        if choice.conservative == true
+            midFactor = gammaL + gammaR;
+        elseif choice.nonconservative == true
+            midFactor = gammaL - gammaR;
+        elseif choice.left == true
+            midFactor = gammaL;
+        elseif choice.right == true
+            midFactor = gammaR;
+        end
+        TotalResult = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, midFactor);
+    else
+        ResultL = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, gammaL);
+        ResultR = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, gammaR);
+        TotalResult = ResultL + ResultR;
+    end
+end
+
+function [Result] = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, midFactor)
+    % calculate the Greens Function
+    GreensFuncInv = Energy*eye(length(totalSystem)) - totalSystem;
+    GreensFunc = inv(GreensFuncInv);
+    
+    % calculate the matrix product
+    Result = totalSysDeriv * GreensFunc * midFactor * GreensFunc';
+end
+
+%% helping functions
+function [Filtered] = getEnergies(chemPots)
+    Energies = zeros(1, length(chemPots)*2);
+    for i = 1:length(chemPots)
+        Energies(2*i-1) = chemPots(i).left;
+        Energies(2*i) = chemPots(i).right;
+    end
+    Sorted = sort(Energies);
+    Filtered = unique(Sorted);
 end

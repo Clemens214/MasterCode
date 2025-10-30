@@ -16,15 +16,23 @@ arguments
     options.linearResponse = false
 end
     %disp('Starting calculation of the torque.')
-    Results = zeros(1, length(chemPots));
-    for i = 1:length(chemPots)
-        chemPotL = chemPots(i).left;
-        chemPotR = chemPots(i).right;
-        TotalResult = TorqueChoice(Eigenvals, leftEVs, rightEVs, totalSysDeriv, gammaL, gammaR, chemPotL, chemPotR, choice);
-        Results(i) = real(trace(TotalResult));
-        
-        voltage = chemPotL - chemPotR;
-        disp(['Voltage: ', num2str(voltage), ', j=', num2str(i)])
+    if options.linearResponse == false
+        Results = zeros(1, length(chemPots));
+        for i = 1:length(chemPots)
+            chemPotL = chemPots(i).left;
+            chemPotR = chemPots(i).right;
+            Matrix = TorqueChoice(Eigenvals, leftEVs, rightEVs, totalSysDeriv, gammaL, gammaR, chemPotL, chemPotR, choice);
+            Results(i) = trace(real(Matrix));
+            disp(['Voltage: ', num2str(chemPotL - chemPotR), ', j=', num2str(i)])
+        end
+    elseif options.linearResponse == true
+        Energies = getEnergies(chemPots);
+        Results = zeros(1, length(Energies));
+        for i = 1:length(Energies)
+            Matrix = TorqueLin(Energies(i), totalSystem, totalSysDeriv, gammaL, gammaR, choice);
+            Results(i) = trace(real(Matrix));
+            disp(['Energy: ', num2str(Energies(i)), ', j=', num2str(i)])
+        end
     end
     %disp('Finished calculation of the torque.')
 end
@@ -94,7 +102,7 @@ function [Result] = TorqueMatrix(Eigenvals, leftEVs, rightEVs, totalSysDeriv, mi
         Product = ProductLeft * ProductMid * ProductRight;
         
         % compute the additional matrix element
-        factor = choiceFactor(EigVal, EigValDagger, chemPotL, chemPotR, choice);
+        factor = FactorChoice(EigVal, EigValDagger, chemPotL, chemPotR, choice);
         
         Result = Result + Product*factor;
     end
@@ -102,22 +110,63 @@ function [Result] = TorqueMatrix(Eigenvals, leftEVs, rightEVs, totalSysDeriv, mi
 end
 
 %% calculate the factor
-function [Factor] = choiceFactor(EigVal, EigValDagger, chemPotL, chemPotR, choice)
+function [Factor] = FactorChoice(EigVal, EigValDagger, chemPotL, chemPotR, choice)
     if choice.conservative == true
-        Factor = factorElement(EigVal, EigValDagger, chemPotL) + factorElement(EigVal, EigValDagger, chemPotR);
+        Factor = FactorElement(EigVal, EigValDagger, chemPotL) + FactorElement(EigVal, EigValDagger, chemPotR);
     elseif choice.nonconservative == true
-        Factor = factorElement(EigVal, EigValDagger, chemPotL) - factorElement(EigVal, EigValDagger, chemPotR);
+        Factor = FactorElement(EigVal, EigValDagger, chemPotL) - FactorElement(EigVal, EigValDagger, chemPotR);
     elseif choice.left == true
-        Factor = factorElement(EigVal, EigValDagger, chemPotL);
+        Factor = FactorElement(EigVal, EigValDagger, chemPotL);
     elseif choice.right == true
-        Factor = factorElement(EigVal, EigValDagger, chemPotR);
+        Factor = FactorElement(EigVal, EigValDagger, chemPotR);
     end
 end
 
-function [result] = factorElement(eig1, eig2, chemPot)
+function [result] = FactorElement(eig1, eig2, chemPot)
     %pot = chemPot(1);
     factor = 1/(eig1 -eig2);
     element1 = log(chemPot - eig1);
     element2 = log(chemPot - eig2);
     result = factor*(element1 - element2);
+end
+
+%% total torque in the linear transport approximation
+function [TotalResult] = TorqueLin(Energy, totalSystem, totalSysDeriv, gammaL, gammaR, choice)
+%calculates the transport through a molecule in the linear transport approximation
+    if choice.conservative == true || choice.nonconservative == true || choice.left == true || choice.right == true
+        if choice.conservative == true
+            midFactor = gammaL + gammaR;
+        elseif choice.nonconservative == true
+            midFactor = gammaL - gammaR;
+        elseif choice.left == true
+            midFactor = gammaL;
+        elseif choice.right == true
+            midFactor = gammaR;
+        end
+        TotalResult = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, midFactor);
+    else
+        ResultL = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, gammaL);
+        ResultR = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, gammaR);
+        TotalResult = ResultL + ResultR;
+    end
+end
+
+function [Result] = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, midFactor)
+    % calculate the Greens Function
+    GreensFuncInv = Energy*eye(length(totalSystem)) - totalSystem;
+    GreensFunc = inv(GreensFuncInv);
+    
+    % calculate the matrix product
+    Result = totalSysDeriv * GreensFunc * midFactor * GreensFunc';
+end
+
+%% helping functions
+function [Filtered] = getEnergies(chemPots)
+    Energies = zeros(1, length(chemPots)*2);
+    for i = 1:length(chemPots)
+        Energies(2*i-1) = chemPots(i).left;
+        Energies(2*i) = chemPots(i).right;
+    end
+    Sorted = sort(Energies);
+    Filtered = unique(Sorted);
 end
