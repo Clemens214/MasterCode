@@ -1,194 +1,158 @@
 %% Variables
 
 % variables for the sample
-lengthSample = 48; %96
-%normal lengthSample: 96
-disorderStrength = 0; %[0.1, 1];
-averageTimes = 1; %20;
+sizeSample = 48;
+orderSample = 2;
+eigenenergy = 0;
 hopping = 1;
+hoppingsSample = hopping*eye(orderSample);
 
 % variables for the leads
-lengthTotal = 256; %256
-%normal lengthTotal: 256
-lengthLead = (lengthTotal-lengthSample)/2;
-maxVal = 1;
-decay = 0.2; %0.3
-offset = 32; %32
-%offset should be at most half the length of the leads; normal: 32
+sizeLead = 104;
+[leadVals, derivVals] = calcVals(maxVal = 1, decay = 0.2, offset = 32);
 hoppingLead = hopping;
-hoppingInter = hopping;
+
+% variables for the hopping
+angleMax = 2*pi;
+angleStep = pi/8;
+angles = makeList(angleMax, angleStep);
 
 %variables for the calculation of the current
-TempMax = 0.5; %2;
-TempStep = 0.05; %0.05;
-TempNum = TempMax/TempStep+1;
-Temps = linspace(0+TempStep, TempMax, TempNum-1);
-chemPotMax = 1; %1;
-chemPotStep = 1;
-chemPotNum = 2*chemPotMax/chemPotStep+1;
-chemPots = linspace(-chemPotMax, chemPotMax, chemPotNum);
-
-%variables for the calculation of the transmission
-omegaVal = 2;
-omegaMax = omegaVal*hopping;
-omegaStep = 0.005;
-omegaNum = 2*omegaMax/omegaStep+1;
-omegas = linspace(-omegaMax, omegaMax, omegaNum);
+voltageMax = 5;
+voltageStep = 0.05;
+voltages = makeList(voltageMax, voltageStep);
 
 %% Calculation
-AllEntropy(1:length(averageTimes)) = {cell([1, length(chemPots)])};
-AllParticle(1:length(averageTimes)) = {cell([1, length(chemPots)])};
-AllEnergy(1:length(averageTimes)) = {cell([1, length(chemPots)])};
-AllResult(1:length(averageTimes)) = {cell([1, length(chemPots)])};
-for i = 1:averageTimes
+
+Transmission = zeros(1, length(angles));
+Torque = zeros(1, length(angles));
+for i = 1:length(angles)
+    if orderSample == 1
+        hoppingsInter = [hopping; hopping];
+    elseif orderSample == 2
+        %hoppingsInter = [cos(angles(i)), sin(angles(i)); cos(angles(j)), sin(angles(j))];
+        hoppingsInter = [cos(angles(i)), sin(angles(i)); 1, 0];
+    end
+    
     % compute the Hamiltonian of the Sample
-    sample = makeHamiltonian(randomNum(disorderStrength, lengthSample), hopping, lengthSample, 'top left');
+    sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
     
     % preparing the Extended Molecule Hamiltonian
-    [totalSystemEM, gammaL_EM, gammaR_EM] = prepareEM(sample, hopping, lengthSample, lengthTotal, maxVal, decay, offset);
+    [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
+    [totalSysDeriv, ~, ~] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, derivVals, check=false);
     
-    % compute the Transmissions
-    %plotTransmission (omegas, sample, totalSystemEM, gammaL_EM, gammaR_EM, hoppingInter, hoppingLead, lengthSample, lengthLead);
-
     %compute the Eigenvectors and the Eigenvalues of the system
     disp('Starting calculation of the Eigenvectors.')
-    [Eigenvals, leftEVs, rightEVs, ControlEV, MatchLeft, MatchRight, DiffLeft, DiffRight] = eigenvectors(totalSystemEM);
+    [Eigenvals, leftEVs, rightEVs, Product] = eigenvectors(totalSystem, checkMore=true);
     disp('Finished calculation of the Eigenvectors.')
     
-    PotsEntropy(1:length(chemPots)) = {zeros(1,length(Temps))};
-    PotsParticle(1:length(chemPots)) = {zeros(1,length(Temps))};
-    PotsEnergy(1:length(chemPots)) = {zeros(1,length(Temps))};
-    PotsResult(1:length(chemPots)) = {zeros(1,length(Temps))};
-    for j = 1:length(chemPots)
-        currentsEntropy = zeros(1,length(Temps));
-        currentsParticle = zeros(1,length(Temps));
-        currentsEnergy = zeros(1,length(Temps));
-        currentsResult = zeros(1,length(Temps));
-        for k = 1:length(Temps)
-            [entropyResult, particleResult, energyResult, ProductResult] = currentQuick(totalSystemEM, gammaL_EM, gammaR_EM, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), lengthLead);
-            %[entropyResult, particleResult, energyResult] = current(totalSystemEM, gammaL_EM, gammaR_EM, Eigenvals, leftEVs, rightEVs, Temps(k), chemPots(j), lengthLead);
-            currentsEntropy(k) = entropyResult;
-            currentsParticle(k) = particleResult;
-            currentsEnergy(k) = energyResult;
-            currentsResult(k) = ProductResult;
-            disp(['Average: ', num2str(i), ', chemPot: ', num2str(chemPots(j)), ', Temp: ', num2str(Temps(k))])
+    voltages = [0];
+    chemPots = setupPots(voltages);
+    Transmission(i) = TransCalc(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, linearResponse=true);
+    voltages = [2];
+    chemPots = setupPots(voltages);
+    chemPots(1).right = chemPots(1).left;
+    Torque(i) = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, linearResponse=true);
+    if false
+    for j = 1:length(voltages)
+        TransmissionResult = transmission(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, voltages(j));
+        Transmission(i) = TransmissionResult;
+
+        %TorqueResult = torque(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, voltages(idx));
+        %Torque(i) = TorqueResult;
+        
+        disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
+    end
+    end
+end
+
+%% plot
+plotAngle (1, 'Transmission', angles, Transmission);
+plotAngle (2, 'Torque', angles, Torque);
+
+%plotBoth (1, 'Transmission', angles, Transmission);
+%plotBoth (3, 'Torque', angles, Torque);
+
+%% chemPots
+function [chemPots] = setupPots(voltages)
+    chemPots = struct('left', [], 'right', []);
+    for j = 1:length(voltages)
+        chemPotL = voltages(j)/2;
+        chemPotR = -1*voltages(j)/2;
+        chemPots(j) = struct('left', chemPotL, 'right', chemPotR);
+    end
+end
+
+%% plotting functions
+function [] = plotAngle (value, Title, angles, Vals)
+    figure(value);
+    plot(angles, Vals)
+    title(Title);
+end
+
+function [] = plotBoth(value, Title, angles, Vals)
+    plotLin2D (value, Title, angles, Vals)
+    plotLin3D (value, angles, Vals)
+end
+
+function [varargout] = plotLin2D (value, Title, angles, Vals)
+    TransPlot = zeros(1, length(angles)*length(angles));
+    angleDiff = zeros(1, length(angles)*length(angles));
+    indices = zeros(1, length(angles)*length(angles));
+    for i = 1:length(angles)
+        for j = 1:length(angles)
+            idx = (i-1)*length(angles) + j;
+            TransPlot(idx) = Vals(i, j);
+            angleDiff(idx) = angles(i) - angles(j);
+            indices(idx) = idx;
         end
-        PotsEntropy{j} = currentsEntropy;
-        PotsParticle{j} = currentsParticle;
-        PotsEnergy{j} = currentsEnergy;
-        PotsResult{j} = currentsResult;
     end
-    AllEntropy{i} = PotsEntropy;
-    AllParticle{i} = PotsParticle;
-    AllEnergy{i} = PotsEnergy;
-    AllResult{i} = PotsResult;
+    varargout{1} = indices;
+    [angleSort, indices] = sort(angleDiff);
+    TransSort = TransPlot(indices);
+    % plot the data
+    figure(value);
+    plot(angleSort, TransSort)
+    title(Title);
 end
 
-[AvgEntropy, StdEntropy] = Average(AllEntropy, chemPots, Temps, averageTimes);
-[AvgParticle, StdParticle] = Average(AllParticle, chemPots, Temps, averageTimes);
-[AvgEnergy, StdEnergy] = Average(AllEnergy, chemPots, Temps, averageTimes);
-[AvgResult, StdResult] = Average(AllResult, chemPots, Temps, averageTimes);
+function [] = plotLin3D (value, angles, Vals)
+figure(value)
+    surf(angles, angles, Vals)
+end
 
-
-AvgEntropy(1:length(chemPots)) = {zeros(1,length(Temps))};
-AvgParticle(1:length(chemPots)) = {zeros(1,length(Temps))};
-AvgEnergy(1:length(chemPots)) = {zeros(1,length(Temps))};
-AvgResult(1:length(chemPots)) = {zeros(1,length(Temps))};
-
-StdEntropy(1:length(chemPots)) = {zeros(1,length(Temps))};
-StdParticle(1:length(chemPots)) = {zeros(1,length(Temps))};
-StdEnergy(1:length(chemPots)) = {zeros(1,length(Temps))};
-StdResult(1:length(chemPots)) = {zeros(1,length(Temps))};
-for i = 1:length(chemPots)
-    avgEntropy = zeros(1,length(Temps));
-    avgParticle = zeros(1,length(Temps));
-    avgEnergy = zeros(1,length(Temps));
-
-    stdEntropy = zeros(1,length(Temps));
-    stdParticle = zeros(1,length(Temps));
-    stdEnergy = zeros(1,length(Temps));
-    for j = 1:length(Temps)
-        tempsEntropy = zeros(1,length(averageTimes));
-        tempsParticle = zeros(1,length(averageTimes));
-        tempsEnergy = zeros(1,length(averageTimes));
-        for k = 1:length(averageTimes)
-            tempsEntropy(k) = AllEntropy{k}{i}(j);
-            tempsParticle(k) = AllParticle{k}{i}(j);
-            tempsEnergy(k) = AllEnergy{k}{i}(j);
-        end
-        avgEntropy(j) = mean(tempsEntropy);
-        avgParticle(j) = mean(tempsParticle);
-        avgEnergy(j) = mean(tempsEnergy);
-
-        stdEntropy(j) = std(tempsEntropy);
-        stdParticle(j) = std(tempsParticle);
-        stdEnergy(j) = std(tempsEnergy);
+%% helping functions
+function [values] = makeList(maxVal, stepVal, options)
+    arguments
+        maxVal 
+        stepVal 
+        options.full = false
     end
-    AvgEntropy{i} = avgEntropy;
-    AvgParticle{i} = avgParticle;
-    AvgEnergy{i} = avgEnergy;
-    
-    StdEntropy{i} = stdEntropy;
-    StdParticle{i} = stdParticle;
-    StdEnergy{i} = stdEnergy;
-end
-
-labels = strcat('chemPot = ',cellstr(num2str(chemPots.')));
-
-figure(1);
-for i = 1:length(chemPots)
-    errorbar(Temps, AvgEntropy{i}, StdEntropy{i})
-    hold on
-    labels{i} = append('v', num2str(chemPots(i)));
-end
-legend(labels)
-
-figure(2);
-for i = 1:length(chemPots)
-    errorbar(Temps, AvgParticle{i}, StdParticle{i})
-    hold on
-end
-legend(labels)
-
-figure(3);
-for i = 1:length(chemPots)
-    errorbar(Temps, AvgEnergy{i}, StdEnergy{i})
-    hold on
-end
-legend(labels)
-
-%% 
-function [values] = randomNum (magnitude, size)
-    values = zeros(size);
-    for i = 1:size
-        randVal = vpa(rand)*2 - 1;
-        values(i) = randVal*magnitude;
+    if options.full == false
+        minVal = 0;
+    else
+        minVal = -1*maxVal;
     end
+    numVal = (maxVal-minVal)/stepVal+1;
+    values = linspace(minVal, maxVal, numVal);
 end
 
-%%
-function [AvgVals, StdVals] = Average (Data, chemPots, Temps, averageTimes)
-    AvgVals(1:length(chemPots)) = {zeros(1,length(Temps))};
-    StdVals(1:length(chemPots)) = {zeros(1,length(Temps))};
-    for i = 1:length(chemPots)
-        avgVals = zeros(1,length(Temps));
-        stdVals = zeros(1,length(Temps));
-        for j = 1:length(Temps)
-            allVals = zeros(1,length(averageTimes));
-            for k = 1:length(averageTimes)
-                allVals(k) = Data{k}{i}(j);
-            end
-            avgVals(j) = mean(allVals);
-            stdVals(j) = std(allVals);
-        end
-        AvgVals{i} = avgVals;
-        StdVals{i} = stdVals;
+function [leadVals, derivVals] = calcVals(opt)%(maxVal, decay, offset)
+    arguments
+        opt.maxVal = 1
+        opt.decay = 0.3
+        % offset should be at most half the length of the leads
+        opt.offset = 32
+        % normal: 32
     end
+    maxVal = opt.maxVal;
+    decay = opt.decay;
+    offset = opt.offset;
+    leadVals = {maxVal, decay, offset};
+    derivVals = {0, decay, offset};
 end
 
-%%
-function [] = plotTransmission (omegas, sample, totalSystemEM, gammaL_EM, gammaR_EM, hoppingInter, hoppingLead, lengthSample, lengthLead)
-    [TransmissionsEM, TransmissionsSI] = Transmission(omegas, sample, totalSystemEM, gammaL_EM, gammaR_EM, hoppingInter, hoppingLead, lengthSample, lengthLead);
-    plot(omegas, [TransmissionsEM, TransmissionsSI])
-    yscale log
+function [] = saveVar(var, order)
+    filename = append('Indices', int2str(order), '.mat');
+    save(filename, "var")
 end

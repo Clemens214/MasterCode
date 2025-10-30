@@ -1,4 +1,9 @@
-function [Eigenvals, leftEVs, rightEVs, Product, MatchLeft, MatchRight, DiffLeft, DiffRight] = eigenvectors (totalSystem)
+function [Eigenvals, leftEVs, rightEVs, varargout] = eigenvectors (totalSystem, options)
+arguments
+    totalSystem
+    options.check = true
+    options.checkMore = false
+end
     %disp('Starting calculation of the Eigenvectors.')
     [rightEVs, Eigenvals, leftEVs] = eig(totalSystem);
     %disp('Finished calculation of the Eigenvectors.')
@@ -8,33 +13,27 @@ function [Eigenvals, leftEVs, rightEVs, Product, MatchLeft, MatchRight, DiffLeft
     %disp('Finished normalization of the Eigenvectors.')
     
     %disp('Start checking the Eigenvectors.')
-    Product = zeros(length(Eigenvals), length(Eigenvals));
-    for i = 1:length(Eigenvals)
-        leftEV = leftEVs(:,i)';
-        rightEV = rightEVs(:,i);
-        Product = Product + (rightEV * leftEV);
-    end
-    
-    maxOffDiag = 0;
-    minOnDiag = 1;
-    for i = 1:length(Eigenvals)
-        if abs(Product(i,i)) < minOnDiag
-            minOnDiag = abs(Product(i,i));
+    if options.check == true
+        [Product, maxOffDiag, minOnDiag] = TestProduct (Eigenvals, leftEVs, rightEVs);
+        varargout{1} = Product;
+        if options.checkMore == true
+            CorrVal = 2;
+            varargout{2} = maxOffDiag;
+            disp(['maxOffDiag = ', num2str(maxOffDiag)])
+            varargout{3} = minOnDiag;
+            disp(['minOnDiag = ', num2str(minOnDiag)])
+        else
+            CorrVal = 0;
         end
-        for j = 1:length(Eigenvals)
-            if i ~= j && abs(Product(i,j)) > maxOffDiag
-                maxOffDiag = abs(Product(i,j));
-            end
-        end
+        [MatchLeft, MatchRight, DiffLeft, DiffRight] = TestEV(totalSystem, Eigenvals, leftEVs, rightEVs);
+        varargout{2+CorrVal} = MatchLeft;
+        varargout{3+CorrVal} = MatchRight;
+        varargout{4+CorrVal} = DiffLeft;
+        varargout{5+CorrVal} = DiffRight;
     end
-    %disp(['maxOffDiag = ', num2str(maxOffDiag)])
-    %disp(['minOnDiag = ', num2str(minOnDiag)])
-
-    [MatchLeft, MatchRight, DiffLeft, DiffRight] = TestEVquick(totalSystem, Eigenvals, leftEVs, rightEVs);
     %disp('Finished checking the Eigenvectors.')
 end
 
-%% 
 function [leftEVs, rightEVs] = normalize (leftEVs, rightEVs)
     for i = 1:length(leftEVs)
         leftEV = leftEVs(:,i)';
@@ -47,8 +46,28 @@ function [leftEVs, rightEVs] = normalize (leftEVs, rightEVs)
     end
 end
 
-%% 
-function [TestLeft, TestRight, DiffLeft, DiffRight] = TestEVquick (Matrix, Eigenvals, leftEVs, rightEVs)
+%% checking functions
+function [Product, maxOffDiag, minOnDiag] = TestProduct (Eigenvals, leftEVs, rightEVs)
+    Product = zeros(length(Eigenvals), length(Eigenvals));
+    for i = 1:length(Eigenvals)
+        leftEV = leftEVs(:,i)';
+        rightEV = rightEVs(:,i);
+        Product = Product + (rightEV * leftEV);
+    end
+    maxOffDiag = 0;
+    minOnDiag = 1;
+    for i = 1:length(Eigenvals)
+        for j = 1:length(Eigenvals)
+            if i ==j && abs(Product(i,j)) < minOnDiag
+                minOnDiag = abs(Product(i,i));
+            elseif i ~= j && abs(Product(i,j)) > maxOffDiag
+                maxOffDiag = abs(Product(i,j));
+            end
+        end
+    end
+end
+
+function [TestLeft, TestRight, DiffLeft, DiffRight] = TestEV (Matrix, Eigenvals, leftEVs, rightEVs)
     Tolerance = 1e-10;
 
     % check the left Eigenvectors
@@ -66,28 +85,4 @@ function [TestLeft, TestRight, DiffLeft, DiffRight] = TestEVquick (Matrix, Eigen
     EigMultRight = rightEVs * Eigenvals;
     TestRight = isapprox(MatrixMultRight, EigMultRight, AbsoluteTolerance=Tolerance);
     DiffRight = MatrixMultRight-EigMultRight;
-end
-
-%% 
-function [TestLeft, TestRight, DiffLeft, DiffRight] = TestEV (Matrix, Eigenvals, leftEVs, rightEVs)
-    TestLeft = zeros(length(Eigenvals), length(Eigenvals));
-    DiffLeft = zeros(length(Eigenvals), length(Eigenvals));
-    TestRight = zeros(length(Eigenvals), length(Eigenvals));
-    DiffRight = zeros(length(Eigenvals), length(Eigenvals));
-    
-    Tolerance = 1e-15;
-    for i = 1:length(Eigenvals)
-        % check the left Eigenvectors
-        leftEV = leftEVs(i,:);
-        MatrixMultLeft = leftEV * Matrix;
-        EigMultLeft = Eigenvals(i) * leftEV;
-        TestLeft(:,i) = isapprox(MatrixMultLeft, EigMultLeft, AbsoluteTolerance=Tolerance);
-        DiffLeft(:,i) = MatrixMultLeft-EigMultLeft;
-        % check the right Eigenvectors
-        rightEV = rightEVs(:,i);
-        MatrixMultRight = Matrix * rightEV;
-        EigMultRight = Eigenvals(i) * rightEV;
-        TestRight(:,i) = isapprox(MatrixMultRight, EigMultRight, AbsoluteTolerance=Tolerance);
-        DiffRight(:,i) = MatrixMultRight-EigMultRight;
-    end
 end
