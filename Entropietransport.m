@@ -47,7 +47,7 @@ for i = 1:length(angles)
 
     checkMatrix(totalSystem);
     
-    %compute the Eigenvectors and the Eigenvalues of the system
+    % compute the Eigenvectors and the Eigenvalues of the system
     [Eigenvals, leftEVs, rightEVs, Product] = eigenvectors(totalSystem);%, checkMore=true);
     
     Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots);
