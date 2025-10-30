@@ -13,8 +13,10 @@ end
     
     [leftEVs, rightEVs, valuesOld] = normalize(leftEVs, rightEVs);
     [~, ~, valuesNew] = normalize(leftEVs, rightEVs);
-
+    
+    if options.checkMore == true
     checkResult(totalSystem, rightEVs, Eigenvals, leftEVs)
+    end
     
     %disp('Start checking the Eigenvectors.')
     if options.check == true
@@ -52,7 +54,7 @@ end
     if maxOffDiag > 10
         absValuesOld = sort(abs(valuesOld));
         absValuesNew = sort(abs(valuesNew));
-        disp('Test')
+        %disp('Test')
     end
 end
 
