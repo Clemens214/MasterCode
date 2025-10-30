@@ -62,9 +62,10 @@ function [G_NEGF] = sweepEM(EnergiesDot, totalSystem, GammaL, GammaR, Energy, id
     for k = 1:length(EnergiesDot)
         EnergyDot = EnergiesDot(k);
         % Update dot onsite in H and recompute dot GR at EF for NEGF (full)
-        totalSystem(idxSample, idxSample) = totalSystem(idxSample, idxSample) + EnergyDot;
+        H = totalSystem;
+        H(idxSample, idxSample) = H(idxSample, idxSample) + EnergyDot;
         % Full Green's function with both absorbers at EF
-        GreensR = ((Energy+eta)*eye(size(totalSystem)) - totalSystem) \ eye(size(totalSystem));
+        GreensR = ((Energy+eta)*eye(size(H)) - H) \ eye(size(H));
         GreensA = GreensR';
         % NEGF conductance (matrix formula)
         G_NEGF(k) = real(trace(GammaL * GreensR * GammaR * GreensA));
@@ -113,9 +114,10 @@ function [SigmaDot, GammaDot] = sweepBWside(EnergiesDot, totalHamiltonian, Sigma
     for k = 1:length(EnergiesDot)
         EnergyDot = EnergiesDot(k);
         % Update dot onsite in H and recompute dot GR at EF for NEGF (full)
-        totalHamiltonian(idxSample, idxSample) = EnergyDot;
+        H = totalHamiltonian;
+        H(idxSample, idxSample) = H(idxSample, idxSample) + EnergyDot;
         % compute the dot Green's function for one-side-only absorber
-        GreensR = ((Energy+eta)*eye(size(totalHamiltonian)) - totalHamiltonian - Sigma) \ eye(size(totalHamiltonian));
+        GreensR = ((Energy+eta)*eye(size(H)) - H - Sigma) \ eye(size(H));
         GreensDot = GreensR(idxSample, idxSample);
         % effective self-energy due to lead as seen by dot
         SigmaDot(k) = Energy - EnergyDot - 1/GreensDot;
