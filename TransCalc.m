@@ -88,7 +88,7 @@ function [Results] = Transmission(Energies, totalSystem, gammaL, gammaR)
     end
     % calculate the transport matrix and the trace
     Traces = zeros(1, length(Energies));
-    for i = 1:length(Energies)
+    parfor i = 1:length(Energies)
         %Matrix = TransmissionZeroTemp(Energies(i), totalSystem, gammaL, gammaR);
         Matrix = TransmissionAlt(Energies(i), totalSystem, gammaL, gammaR);
         Traces(i) = trace(real(Matrix));

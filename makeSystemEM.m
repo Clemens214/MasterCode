@@ -1,4 +1,4 @@
-function [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals, options)
+function [totalSystem, gammaL, gammaR, varargout] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals, options)
 arguments
     sample
     sizeSample
@@ -22,8 +22,8 @@ end
     end
     
     % generate the pseudo Hamiltonians of the leads
-    [sigmaL, indicesL] = makeLead(fermiFuncLeft, hoppingLead, sizeSample, orderSample, sizeLead, left=true);
-    [sigmaR, indicesR] = makeLead(fermiFuncRight, hoppingLead, sizeSample, orderSample, sizeLead, right=true);
+    [leadL, sigmaL, indicesL] = makeLead(fermiFuncLeft, hoppingLead, sizeSample, orderSample, sizeLead, left=true);
+    [leadR, sigmaR, indicesR] = makeLead(fermiFuncRight, hoppingLead, sizeSample, orderSample, sizeLead, right=true);
     if options.checkMore == true
         checkIndex(indicesL, indicesR, orderSample)
     end
@@ -41,10 +41,13 @@ end
     interR = makeInter(sizeLead, sizeCentral, hoppingsInter, right=true);
     
     % generate the Hamiltonian of the total system
-    totalSystem = combineH(sizeLead, sizeCentral, sample, sigmaL, sigmaR, interL, interR);
+    totalSystem = combineH(sizeLead, sizeCentral, sample, leadL, leadR, interL, interR);
     if options.check == true
         checkHamiltonian(totalSystem)
     end
+
+    varargout{1} = sigmaL;
+    varargout{2} = sigmaR;
 end
 
 %% Fermi functions
@@ -71,7 +74,7 @@ end
 end
 
 %% functions used in generating the pseudo Hamiltonian
-function [lead, varargout] = makeLead(fermiFunc, hopping, sizeSample, orderSample, sizeLead, options)
+function [lead, sigma, varargout] = makeLead(fermiFunc, hopping, sizeSample, orderSample, sizeLead, options)
 % generate the pseudo Hamiltonian of the lead
 arguments
     fermiFunc
@@ -87,13 +90,15 @@ end
     sizeRight = sizeTotal - sizeLead;
     
     lead = zeros(sizeTotal, sizeTotal);
+    sigma = zeros(sizeTotal, sizeTotal);
     rowSample = zeros(1, sizeTotal);
     % make the top-left part
     for row = 1 : sizeLeft
         for column = 1 : sizeLeft
+            rowSample(row) = row;
             if row == column
-                rowSample(row) = row;
                 lead(row, column) = fermiFunc(rowSample(row));
+                sigma(row, column) = fermiFunc(rowSample(row));
             elseif abs(row-column) <= 1 && options.left == true && options.right == false
                 lead(row, column) = hopping;
             end
@@ -102,18 +107,20 @@ end
     % make the central part
     for row = sizeLeft+1 : sizeRight
         for column = sizeLeft+1 : sizeRight
+            rowSample(row) = sizeLeft + ceil((row-sizeLeft)/orderSample);
             if row == column
-                rowSample(row) = sizeLeft + ceil((row-sizeLeft)/orderSample);
                 lead(row, column) = fermiFunc(rowSample(row));
+                sigma(row, column) = fermiFunc(rowSample(row));
             end
         end
     end
     % make the bottom-right part
     for row = sizeRight+1 : sizeTotal
         for column = sizeRight+1 : sizeTotal
+            rowSample(row) = row - (sizeSample*(orderSample-1));
             if row == column
-                rowSample(row) = row - (sizeSample*(orderSample-1));
                 lead(row, column) = fermiFunc(rowSample(row));
+                sigma(row, column) = fermiFunc(rowSample(row));
             elseif abs(row-column) <= 1 && options.left == false && options.right == true
                 lead(row, column) = hopping;
             end
@@ -141,7 +148,6 @@ end
     elseif options.left == false && options.right == true
         inter = zeros(sizeLead, sizeCentral);
         for i = 1:endVal
-            test = sizeCentral-endVal+i;
             inter(1, sizeCentral-endVal+i) = hoppingsInter(2, i);
         end
     end

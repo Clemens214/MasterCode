@@ -149,7 +149,7 @@ function [Results] = Torque(Energies, totalSystem, totalSysDeriv, gammaL, gammaR
     end
     % calculate the transport matrix and the trace
     Traces = zeros(1, length(Energies));
-    for i = 1:length(Energies)
+    parfor i = 1:length(Energies)
         Matrix = choiceLin(Energies(i), totalSystem, totalSysDeriv, gammaL, gammaR, choice);
         Traces(i) = trace(real(Matrix));
     end

@@ -25,7 +25,6 @@ chemPots = setupPots(voltages);
 Energies = getEnergies(chemPots);
 
 %% Calculation
-
 Transmission = cell(1, length(angles));
 Torque = cell(1, length(angles));
 for i = 1:length(angles)
@@ -43,12 +42,12 @@ for i = 1:length(angles)
     sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
     
     % preparing the Extended Molecule Hamiltonian
-    [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals, check=true);
+    [totalSystem, gammaL, gammaR, sigmaL, sigmaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
     totalSysDeriv = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv, derivVals);
 
     checkMatrix(totalSystem);
     
-    %compute the Eigenvectors and the Eigenvalues of the system
+    % compute the Eigenvectors and the Eigenvalues of the system
     [Eigenvals, leftEVs, rightEVs, Product] = eigenvectors(totalSystem);%, checkMore=true);
     
     Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots);
