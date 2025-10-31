@@ -1,0 +1,40 @@
+function [Diag, upperTriag, SchurVec, varargout] = getSchur(totalSystem, options)
+arguments
+    totalSystem
+    options.check = true
+end
+    % calculate the Schur-vectors
+    % calculate the diagonal (Eigenvalues) and upper-triangular matrices
+    [SchurVec, Triag] = schur(totalSystem, "complex");
+    Diag = diag(diag(Triag));
+    upperTriag = Traig - Diag;
+    
+    if options.check== true
+        [TestLeft, DiffLeft, maxDiff] = checkResult(totalSystem, Diag, upperTriag, SchurVec, options);
+        varargout{1} = TestLeft;
+        varargout{2} = DiffLeft;
+        varargout{3} = TestLeft;
+        if 
+    end
+end
+
+%% checking functions
+function [TestLeft, DiffLeft, maxDiff] = checkResult(totalSystem, Diag, upperTriag, SchurVec, options)
+arguments
+    totalSystem 
+    Diag 
+    upperTriag 
+    SchurVec
+    options.returnAbs = true
+    options.Tolerance = 1e-10;
+    %Tolerance = 1e-10;
+end
+    Matrix = SchurVec * (Diag + upperTriag) * SchurVec';
+    
+    TestLeft = isapprox(totalSystem, Matrix, AbsoluteTolerance=options.Tolerance);
+    DiffLeft = MatrixMultLeft-EigMultLeft;
+    if options.returnAbs == true
+        DiffLeft = abs(DiffLeft);
+    end
+    maxDiff = max(max(abs(DiffLeft)));
+end
