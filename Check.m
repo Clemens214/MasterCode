@@ -17,7 +17,7 @@ valInter = 0.2;
 hoppingsInter = [valInter*hopping; valInter*hopping];
 hoppingsDeriv = [0; 0];
 
-%variables for the calculation of the current
+% variables for the calculation of the current
 EnergyMax = 3;
 EnergyStep = 0.005;
 Energies = makeList(EnergyMax, -1*EnergyMax, EnergyStep);
@@ -35,10 +35,13 @@ sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
 %[G_NEGF, G_BW, T_NEGF, T_BW, GammaL_eff, GammaR_eff, Delta]
 [G_NEGF, G_BW] = ResonantCheck(Energies, EnergiesDot, totalSystem, GammaL, GammaR, SigmaL, SigmaR);
 
+%% Fit
+LorentzFunc = fittype("a/pi * g/((x-x0)^2 + g^2)", dependent="y",independent="x", coefficients=["a", "g", "x0"]);
+LorentzFit = fit(EnergiesDot.' ,G_BW.' , LorentzFunc, StartPoint=[1, 1, 0]);
+yFit = LorentzFit(EnergiesDot);
 
-
-%% plot
-plotLoretzian(EnergiesDot, G_NEGF, G_BW)
+%% Plot
+plotLoretzian(EnergiesDot, G_NEGF, G_BW, yFit)
 %plotTransport(Energies, T_NEGF, T_BW, GammaL_eff, GammaR_eff, Delta)
 
 %% plotting functions
@@ -122,20 +125,12 @@ function [leadVals, derivVals] = calcVals(opt)%(maxVal, decay, offset)
     derivVals = {0, decay, offset};
 end
 
-function [] = checkMatrix(totalSystem)
-    % Example matrix (replace with your A)
-    A = totalSystem;
-    % 1) Compute right eigenvectors and eigenvalues
-    [V, ~] = eig(A);      % A * V = V * D
-    % Conditioning of eigenvector matrix
-    condV = cond(V);
-    % Rank of eigenvector matrix
-    rankV = rank(V);
-    % Check if matrix is defective
-    if rankV < size(A,1)
-        disp('Matrix appears defective (not diagonalizable).');
-    else
-        disp('Matrix is diagonalizable but ill-conditioned.');
+function [yData] = Lorentzian(xData, max, gamma, x0)
+    yData = zeros(size(xData));
+    for i = 1:length(xData)
+        % max       -> maximum value of the function
+        % 2*gamma   -> half-width at half-maximum (HWHM)
+        % x0        -> shifts the peak of the distribution
+        yData(i) = max/pi * gamma/((xData-x0)^2 + gamma^2);
     end
-    fprintf('Condition number of V: %g\n', condV);
 end
