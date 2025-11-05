@@ -233,3 +233,14 @@ end
         sgtitle(sprintf('EM size: %d sites each lead', options.lengthLead));
     end
 end
+
+%% -------------------- Obsolete functions -------------------- 
+function [yData] = Lorentzian(xData, max, gamma, x0)
+    yData = zeros(size(xData));
+    for i = 1:length(xData)
+        % max       -> maximum value of the function
+        % 2*gamma   -> half-width at half-maximum (HWHM)
+        % x0        -> shifts the peak of the distribution
+        yData(i) = max/pi * gamma/((xData-x0)^2 + gamma^2);
+    end
+end

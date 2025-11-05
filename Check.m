@@ -74,13 +74,3 @@ function [leadVals, derivVals] = calcVals(opt)%(maxVal, decay, offset)
     leadVals = {maxVal, decay, offset};
     derivVals = {0, decay, offset};
 end
-
-function [yData] = Lorentzian(xData, max, gamma, x0)
-    yData = zeros(size(xData));
-    for i = 1:length(xData)
-        % max       -> maximum value of the function
-        % 2*gamma   -> half-width at half-maximum (HWHM)
-        % x0        -> shifts the peak of the distribution
-        yData(i) = max/pi * gamma/((xData-x0)^2 + gamma^2);
-    end
-end
