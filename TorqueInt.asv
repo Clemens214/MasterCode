@@ -10,7 +10,7 @@ arguments
     choice.nonconservative = false
     choice.left = false
     choice.right = false
-    options.Schur = false
+    options.Schur = true
     options.linearResponse = false
 end
     if options.Schur == false
@@ -44,18 +44,22 @@ end
 end
 
 %% total torque for finite voltages
-function [TotalResult] = TorqueChoice(Val1, Val2, Val3, Val4, gammaL, gammaR, chemPotL, chemPotR, choice, options)
+function [TotalResult] = 
+
+end
+
+function [TotalResult] = TorqueChoice(FunHandle, Eigenvals, leftEVs, rightEVs, totalSysDeriv, gammaL, gammaR, chemPotL, chemPotR, choice)
 arguments
-    Val1
-    Val2
-    Val3
-    Val4
+    FunHandle
+    Eigenvals
+    leftEVs
+    rightEVs
+    totalSysDeriv
     gammaL
     gammaR
     chemPotL
     chemPotR
     choice
-    options.Schur = true
 end
     if choice.conservative == true || choice.nonconservative == true || choice.left == true || choice.right == true
         if choice.conservative == true
@@ -67,23 +71,14 @@ end
         elseif choice.right == true
             midFactor = gammaR;
         end
-        if options.Schur == true
-            TotalResult = TorqueMatrix(Val1, Val2, Val3, Val4, midFactor, chemPotL, chemPotR, choice);
-        else
-            TotalResult = TorqueMatrix(Val1, Val2, Val3, Val4, midFactor, chemPotL, chemPotR, choice);
-        end
+        TotalResult = TorqueMatrix(Eigenvals, leftEVs, rightEVs, totalSysDeriv, midFactor, chemPotL, chemPotR, choice);
     else
         choiceL = choice;
         choiceL.left = true;
+        ResultL = TorqueMatrix(Eigenvals, leftEVs, rightEVs, totalSysDeriv, gammaL, chemPotL, chemPotR, choiceL);
         choiceR = choice;
         choiceR.right = true;
-        if options.Schur == true
-            ResultL = TorqueMatrix(Val1, Val2, Val3, Val4, gammaL, chemPotL, chemPotR, choiceL);
-            ResultR = TorqueMatrix(Val1, Val2, Val3, Val4, gammaR, chemPotL, chemPotR, choiceR);
-        else
-            ResultL = TorqueMatrix(Val1, Val2, Val3, Val4, gammaL, chemPotL, chemPotR, choiceL);
-            ResultR = TorqueMatrix(Val1, Val2, Val3, Val4, gammaR, chemPotL, chemPotR, choiceR);
-        end
+        ResultR = TorqueMatrix(Eigenvals, leftEVs, rightEVs, totalSysDeriv, gammaR, chemPotL, chemPotR, choiceR);
         TotalResult = ResultL + ResultR;
     end
 end

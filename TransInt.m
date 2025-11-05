@@ -1,15 +1,21 @@
-function [Results] = TransInt(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, options)
+function [Results] = TransInt(totalSystem, gammaL, gammaR, chemPots, options)
 % calculate the transmission through a molecule for zero temperature
 arguments
     totalSystem
     gammaL
     gammaR
-    Eigenvals
-    leftEVs
-    rightEVs
     chemPots
+    options.Schur = true
     options.linearResponse = false
 end
+    if options.Schur == false
+        % compute the Eigenvectors and the Eigenvalues of the system
+        [Eigenvals, leftEVs, rightEVs] = eigenvectors(totalSystem);%, checkMore=true);
+    elseif options.Schur == true
+        % compute the Schur decomposition of the System's pseudo Hamiltonian
+        [Diag, upperTriag, SchurVec] = getSchur(totalSystem, options);
+    end
+
     %disp('Starting calculation of the current.')
     if options.linearResponse == false
         Results = zeros(1, length(chemPots));
