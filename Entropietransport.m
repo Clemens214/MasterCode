@@ -57,6 +57,9 @@ for i = 1:length(angles)
     % calculating the values
     %Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, chemPots);
     Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, chemPots);
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
