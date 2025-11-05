@@ -47,11 +47,17 @@ for i = 1:length(angles)
 
     checkMatrix(totalSystem);
     
+<<<<<<< Updated upstream
     % compute the Eigenvectors and the Eigenvalues of the system
     [Eigenvals, leftEVs, rightEVs, Product] = eigenvectors(totalSystem);%, checkMore=true);
     
     Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots);
     Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots);
+=======
+    % calculating the values
+    %Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, chemPots);
+    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, chemPots);
+>>>>>>> Stashed changes
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
