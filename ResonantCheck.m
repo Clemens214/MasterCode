@@ -1,7 +1,6 @@
-function [G_NEGF, G_BW, varargout] = ResonantCheck(Energies, EnergiesDot, totalSystem, GammaL, GammaR, SigmaL, SigmaR, options)
+function [G_NEGF, G_BW, varargout] = ResonantCheck(Energies, totalSystem, GammaL, GammaR, SigmaL, SigmaR, options)
 arguments
     Energies
-    EnergiesDot
     totalSystem
     GammaL
     GammaR
@@ -10,14 +9,23 @@ arguments
     options.fermiEnergy = 0
     options.eigEnergy = 0
     options.idxSample = ceil(length(totalSystem)/2)
+    options.plotMore = false
 end
+    idxSample = options.idxSample;
+
+    % define the Energies
     Energy = options.fermiEnergy;
     EnergyDot = options.eigEnergy;
-    idxSample = options.idxSample;
+    EnergiesDot = Energies + EnergyDot;
+    
+    % calculate the Hamiltonian
     totalHamiltonian = totalSystem - SigmaL - SigmaR;
     
-    % calculate the Extended Molecule Transmission and Conductance
+    %% calculate the Data
+    % calculate the Extended Molecule Transmission
     [T_NEGF] = calcEM(Energies, totalSystem, GammaL, GammaR);
+
+    % calculate the Extended Molecule Conductance
     [G_NEGF] = sweepEM(EnergiesDot, totalSystem, GammaL, GammaR, Energy, idxSample);
     
     % calculate the Breit-Wigner Transmission
@@ -38,6 +46,18 @@ end
     varargout{3} = GammaL_eff;
     varargout{4} = GammaR_eff;
     varargout{5} = Delta;
+    
+    %% plot the Data
+    % fit a Lorentzian to the Data
+    LorentzFunc = fittype("a/pi * g/((x-x0)^2 + g^2)", dependent="y",independent="x", coefficients=["a", "g", "x0"]);
+    LorentzFit = fit(EnergiesDot.' ,G_BW.' , LorentzFunc, StartPoint=[1, 1, 0]);
+    yFit = LorentzFit(EnergiesDot);
+
+    % plot the results
+    plotLoretzian(EnergiesDot, G_NEGF, G_BW, yFit)
+    if options.plotMore == true
+        plotTransport(Energies, T_NEGF, T_BW, GammaL_eff, GammaR_eff, Delta, lengthLead=floor(length(totalSystem)/2))
+    end
 end
 
 %% -------------------- Other functions: EM -------------------- 
@@ -143,4 +163,84 @@ function [G_BW, varargout] = sweepBWboth(EnergiesDot, SigmaL, SigmaR, GammaL, Ga
         G_BW(ii) = (GammaL(ii) * GammaR(ii)) / ((Energy - EnergyDot - Delta(ii))^2 + (Gamma/2)^2);
     end
     varargout{1} = Delta;
+end
+
+%% -------------------- Plotting functions -------------------- 
+function [] = plotLoretzian(Energies, G_NEGF, G_BW, yFit)
+    figure('Name','Gate sweep (zero-T approx)','NumberTitle','off');
+    % plot
+    hold on;
+    plot(Energies, G_NEGF);
+    plot(Energies, G_BW);% '--');
+    plot(Energies, yFit, '--');
+    hold off;
+    % labels
+    xlabel('\epsilon_d');
+    ylabel('G / G_0');
+    legend('G_{NEGF}','G_{BW}','Fit','Location','Best');
+    title('Gate sweep: NEGF (EM) vs Breit–Wigner using EM-extracted \Gamma');
+    grid on;
+end
+
+function [] = plotTransport(Energies, T_NEGF, T_BW, GammaL, GammaR, Delta, options)
+arguments
+    Energies
+    T_NEGF
+    T_BW
+    GammaL
+    GammaR
+    Delta
+    options.lengthLead = NaN
+end
+    % -------------------- Plots --------------------
+    figure('Name','Transmission comparison','NumberTitle','off');%,'Position',[100 100 900 700]);
+    
+    % 1st subplot
+    subplot(3,1,1);
+    hold on;
+    plot(Energies, T_NEGF);
+    plot(Energies, T_BW);% '--');
+    hold off;
+    xlabel('Energy (units of t)');
+    ylabel('T(E)');
+    legend('T_{NEGF}','T_{BW (EM)}','Location','Best');
+    title('Transmission: full NEGF vs Breit–Wigner using EM-extracted \Gamma_{L,R}');
+    grid on;
+    
+    % 2nd subplot
+    subplot(3,1,2);
+    hold on;
+    plot(Energies, GammaL);
+    plot(Energies, GammaR);
+    plot(Energies, GammaL + GammaR, ':k');
+    hold off;
+    xlabel('Energy');
+    ylabel('\Gamma(E)');
+    legend('\Gamma_L','\Gamma_R','\Gamma_{tot}','Location','Best');
+    title('Effective broadenings (projected to dot) computed from EM');
+    grid on;
+    
+    % 3rd subplot
+    subplot(3,1,3);
+    plot(Energies, Delta);
+    xlabel('Energy');
+    ylabel('\Delta(E) = Re[\Sigma^{eff}_L + \Sigma^{eff}_R]');
+    title('Effective level shift');
+    grid on;
+    
+    % Title
+    if ~isnan(options.lengthLead)
+        sgtitle(sprintf('EM size: %d sites each lead', options.lengthLead));
+    end
+end
+
+%% -------------------- Obsolete functions -------------------- 
+function [yData] = Lorentzian(xData, max, gamma, x0)
+    yData = zeros(size(xData));
+    for i = 1:length(xData)
+        % max       -> maximum value of the function
+        % 2*gamma   -> half-width at half-maximum (HWHM)
+        % x0        -> shifts the peak of the distribution
+        yData(i) = max/pi * gamma/((xData-x0)^2 + gamma^2);
+    end
 end
