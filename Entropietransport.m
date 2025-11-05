@@ -14,7 +14,7 @@ hoppingLead = hopping;
 
 % variables for the hopping
 angleMax = 2*pi;
-angleStep = pi/8;
+angleStep = pi/16;
 angles = makeList(angleMax, angleStep);
 
 %variables for the calculation of the current
@@ -48,18 +48,16 @@ for i = 1:length(angles)
     checkMatrix(totalSystem);
     
     % calculating the values
-    Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, chemPots);
-    Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, chemPots);
+    %Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, chemPots);
+    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, chemPots);
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
 %% plot
-Plot(1, angles, voltages, {Transmission, Torque}, twoD=true, Transmission=true, Torque=true)
-
-%plot3D(1, 'Transmission', angles, voltages, Transmission)
+plot3D(1, 'Transmission', angles, voltages, Transmission)
 %plot2D(2, 'Transmission', angles, voltages, Transmission)
 
-%plot3D(2, 'Torque', angles, voltages, Torque)
+plot3D(2, 'Torque', angles, voltages, Torque)
 
 %plotAngle (1, 'Transmission', angles, Transmission);
 %plotAngle (2, 'Torque', angles, Torque);
@@ -81,6 +79,13 @@ function [totalSysDeriv] = makeDeriv(sizeSample, orderSample, sizeLead, hoppings
 end
 
 %% plotting functions
+function [] = plotAngle (value, Title, angles, Vals)
+    plotVals = cell2mat(Vals);
+    figure(value);
+    plot(angles, plotVals)
+    title(Title);
+end
+
 function [] = plot2D (value, Title, angles, voltages, Data)
     TransPlot = cell(1, length(voltages));
     for i = 1:length(voltages)
@@ -111,37 +116,8 @@ function [] = plot3D (value, Title, angles, voltages, Data)
     title(Title);
 end
 
-function [] = plotBoth (value, Title, angles, voltages, Data1, Data2)
-    TransPlot1 = cell(1, length(voltages));
-    TransPlot2 = cell(1, length(voltages));
-    for i = 1:length(voltages)
-        TransPlot1{i} = zeros(1, length(angles));
-        TransPlot2{i} = zeros(1, length(angles));
-        for j = 1:length(angles)
-            TransPlot1{i}(j) = Data1{j}(i);
-            TransPlot2{i}(j) = Data2{j}(i);
-        end
-    end
-    % plot the data
-    figure(value)
-    hold on
-    for i = 1:length(voltages)
-        plot(angles, TransPlot{i});
-    end
-    hold off
-    title(Title);
-    labels = strcat('chemPot = ',cellstr(num2str(angles.')));
-    legend(labels)
-end
 
-function [] = plotAngle (value, Title, angles, Vals)
-    plotVals = cell2mat(Vals);
-    figure(value);
-    plot(angles, plotVals)
-    title(Title);
-end
-
-function [varargout] = plotAngles2D (value, Title, angles, Vals)
+function [varargout] = plotLin2D (value, Title, angles, Vals)
     TransPlot = zeros(1, length(angles)*length(angles));
     angleDiff = zeros(1, length(angles)*length(angles));
     indices = zeros(1, length(angles)*length(angles));
@@ -162,7 +138,7 @@ function [varargout] = plotAngles2D (value, Title, angles, Vals)
     title(Title);
 end
 
-function [] = plotAngles3D (value, Title, angles, Vals)
+function [] = plotLin3D (value, Title, angles, Vals)
     figure(value)
     surf(angles, angles, Vals)
     title(Title);
