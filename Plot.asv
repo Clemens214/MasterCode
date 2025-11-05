@@ -1,0 +1,128 @@
+function [outputArg1,outputArg2] = Plot(options, varargin)
+arguments
+    options.twoD = false
+    options.threeD = false
+    options.Angles = false
+    options.linearResponse = false
+    options.Transmission = false
+    options.Torque = false
+    options.color = false
+end
+    if options.twoD == true && options.threeD == false
+        if options.Angles == false && options.linearResponse == false
+            plot2D(value, Title, angles, voltages, Data)
+        elseif options.linearResponse == true
+
+        elseif options.Angles == true
+            plotAngles2D (value, Title, angles, Vals)
+        end
+    elseif options.twoD == false && options.threeD == true
+        if options.Angles == false && options.linearResponse == false
+
+        elseif options.linearResponse == true
+
+        elseif options.Angles == true
+
+        end
+    end
+end
+
+
+%% plotting functions
+function [] = plot2D (value, Title, angles, voltages, Data)
+    TransPlot = cell(1, length(voltages));
+    for i = 1:length(voltages)
+        TransPlot{i} = zeros(1, length(angles));
+        for j = 1:length(angles)
+            TransPlot{i}(j) = Data{j}(i);
+        end
+    end
+    % plot the data
+    figure(value)
+    hold on
+    for i = 1:length(voltages)
+        plot(angles, TransPlot{i});
+    end
+    hold off
+    title(Title);
+    labels = strcat('chemPot = ',cellstr(num2str(angles.')));
+    legend(labels)
+end
+
+function [] = plot3D (value, Title, angles, voltages, Data)
+    TransPlot = zeros(length(voltages), length(angles));
+    for i = 1:length(Data)
+        TransPlot(:, i) = Data{i}.';
+    end
+    figure(value)
+    surf(angles, voltages, TransPlot)
+    title(Title);
+end
+
+function [] = plotBoth (value, Title, angles, voltages, Data1, Data2)
+    TransPlot1 = cell(1, length(voltages));
+    TransPlot2 = cell(1, length(voltages));
+    for i = 1:length(voltages)
+        TransPlot1{i} = zeros(1, length(angles));
+        TransPlot2{i} = zeros(1, length(angles));
+        for j = 1:length(angles)
+            TransPlot1{i}(j) = Data1{j}(i);
+            TransPlot2{i}(j) = Data2{j}(i);
+        end
+    end
+    % plot the data
+    figure(value)
+    hold on
+    for i = 1:length(voltages)
+        plot(angles, TransPlot{i});
+    end
+    hold off
+    title(Title);
+    labels = strcat('chemPot = ',cellstr(num2str(angles.')));
+    legend(labels)
+end
+
+function [] = plotAngle (value, Title, angles, Vals)
+    plotVals = cell2mat(Vals);
+    figure(value);
+    plot(angles, plotVals)
+    title(Title);
+end
+
+function [varargout] = plotAngles2D (value, Title, angles, Vals)
+    TransPlot = zeros(1, length(angles)*length(angles));
+    angleDiff = zeros(1, length(angles)*length(angles));
+    indices = zeros(1, length(angles)*length(angles));
+    for i = 1:length(angles)
+        for j = 1:length(angles)
+            idx = (i-1)*length(angles) + j;
+            TransPlot(idx) = Vals(i, j);
+            angleDiff(idx) = angles(i) - angles(j);
+            indices(idx) = idx;
+        end
+    end
+    varargout{1} = indices;
+    [angleSort, indices] = sort(angleDiff);
+    TransSort = TransPlot(indices);
+    % plot the data
+    figure(value);
+    plot(angleSort, TransSort)
+    title(Title);
+end
+
+function [] = plotAngles3D (value, Title, angles, Vals)
+    figure(value)
+    surf(angles, angles, Vals)
+    title(Title);
+end
+
+function [] = plotGraph (value, Title, omegas, Vals, chemPots)
+    figure(value);
+    title(Title);
+    for i = 1:length(chemPots)
+        plot(omegas, Vals{i})
+        hold on
+    end
+    labels = strcat('chemPot = ',cellstr(num2str(chemPots.')));
+    legend(labels)
+end

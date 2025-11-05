@@ -1,12 +1,9 @@
-function [Results] = TransCalc(totalSystem, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, options)
+function [Results] = TransCalc(totalSystem, gammaL, gammaR, chemPots, options)
 % calculate the transmission through a molecule for zero temperature
 arguments
     totalSystem
     gammaL
     gammaR
-    Eigenvals
-    leftEVs
-    rightEVs
     chemPots
     options.linearResponse = false
 end

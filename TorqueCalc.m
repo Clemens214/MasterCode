@@ -1,13 +1,10 @@
-function [Results] = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Eigenvals, leftEVs, rightEVs, chemPots, choice, options)
+function [Results] = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, chemPots, choice, options)
 % calculate the torque through a molecule for zero temperature
 arguments
     totalSystem
     totalSysDeriv
     gammaL
     gammaR
-    Eigenvals
-    leftEVs
-    rightEVs
     chemPots
     choice.conservative = false
     choice.nonconservative = false
