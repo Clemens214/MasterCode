@@ -54,10 +54,12 @@ for i = 1:length(angles)
     % calculating the values
     Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, chemPots);
     Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, chemPots);
+    if false
     TorqueC{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, chemPots, conservative=true);
     TorqueNC{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, chemPots, nonconservative=true);
     TorqueL{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, chemPots, left=true);
     TorqueR{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, chemPots, right=true);
+    end
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
