@@ -31,8 +31,8 @@ end
     for i = 2:length(Energies)
         Diffs(i) = Energies(i) - Energies(i-1); 
     end
-    lcd = LowestCommonDenominator(Diffs);
-    stepSize = (1/lcd) / options.stepMult;
+    LCD = lcd(Diffs);
+    stepSize = (1/LCD) / options.stepMult;
 
     % calculate the transmissions
     evalPoints = makeList(max(Energies), min(Energies), stepSize);
