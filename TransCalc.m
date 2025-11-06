@@ -49,7 +49,7 @@ end
         elseif isscalar(evalPoints)
             Results(i) = 0;
         end
-        disp(['Voltage: ', num2str(chemPots(i).left-chemPots(i).right), ', j=', num2str(i)])
+        %disp(['Voltage: ', num2str(chemPots(i).left-chemPots(i).right), ', j=', num2str(i)])
     end
 end
 

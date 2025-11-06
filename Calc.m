@@ -56,6 +56,8 @@ for i = 1:length(angles)
     Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, chemPots);
     TorqueC{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, chemPots, conservative=true);
     TorqueNC{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, chemPots, nonconservative=true);
+    TorqueL{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, chemPots, left=true);
+    TorqueR{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, chemPots, right=true);
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
@@ -67,6 +69,8 @@ Plot(2, angles, voltages, Transmission, threeD=true, Transmission=true)
 Plot(3, angles, voltages, Torque, threeD=true, Torque=true)
 Plot(4, angles, voltages, TorqueC, threeD=true, Torque=true)
 Plot(5, angles, voltages, TorqueNC, threeD=true, Torque=true)
+Plot(6, angles, voltages, TorqueL, threeD=true, Torque=true)
+Plot(7, angles, voltages, TorqueR, threeD=true, Torque=true)
 
 %% chemPots
 function [chemPots] = setupPots(voltages)
