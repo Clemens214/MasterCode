@@ -1,4 +1,5 @@
-function [lcd, varargout] = LowestCommonDenominator(nums, options)
+%function [lcd, varargout] = LowestCommonDenominator(nums, options)
+function [lcd, varargout] = lcd(nums, options)
 arguments
 %   nums - Vector or matrix of non-integer numeric values
     nums
