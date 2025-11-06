@@ -14,7 +14,7 @@ arguments
     options.color = false
 end
     Title = choice.Title;
-    if options.twoD == true && options.threeD == false
+    if options.twoD == true && options.threeD == false && options.color == false
         if options.Angles == false && options.linearResponse == false
             if options.Transmission == true && options.Torque == true
                 Transmission = Data{1};
@@ -26,7 +26,7 @@ end
         elseif options.Angles == true
             plotAngles2D (value, Title, angles, Vals)
         end
-    elseif options.twoD == false && options.threeD == true
+    elseif options.twoD == false && options.threeD == true && options.color == false
         if options.Angles == false && options.linearResponse == false
             plot3D (value, Title, angles, voltages, Data)
         elseif options.linearResponse == true
@@ -34,6 +34,8 @@ end
         elseif options.Angles == true
             plotAngles3D (value, Title, angles, Vals)
         end
+    elseif options.color == true
+        plotColor (value, Title, angles, voltages, Data)
     end
 end
 
@@ -66,6 +68,23 @@ function [] = plot3D (value, Title, angles, voltages, Data)
     end
     figure(value)
     surf(angles, voltages, TransPlot)
+    xlabel('Angle (°)');
+    ylabel('Voltage (a.u.)'); 
+    zlabel([Title, ' (a.u.)']);
+    title(Title);
+end
+
+function [] = plotColor(value, Title, angles, voltages, Data)
+    TransPlot = zeros(length(voltages), length(angles));
+    for i = 1:length(Data)
+        TransPlot(:, i) = Data{i}.';
+    end
+    figure(value)
+    surf(angles, voltages, TransPlot,'EdgeColor', 'None', 'facecolor', 'interp');
+    view(2);
+    xlabel('Angle (°)');
+    ylabel('Voltage (a.u.)'); 
+    zlabel([Title, ' (a.u.)']);
     title(Title);
 end
 

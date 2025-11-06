@@ -62,15 +62,19 @@ for i = 1:length(angles)
 end
 
 %% plot
-Plot(1, angles, voltages, {Transmission, Torque}, twoD=true, Transmission=true, Torque=true)
+Plot(1, angles, voltages, {Transmission, Torque}, twoD=true, Transmission=true, Torque=true, Title='Both')
 
-Plot(2, angles, voltages, Transmission, threeD=true, Transmission=true)
+Plot(2, angles, voltages, Transmission, color=true, Title='Transmission')
+Plot(3, angles, voltages, Torque, color=true, Title='Torque')
 
-Plot(3, angles, voltages, Torque, threeD=true, Torque=true)
-Plot(4, angles, voltages, TorqueC, threeD=true, Torque=true)
-Plot(5, angles, voltages, TorqueNC, threeD=true, Torque=true)
-Plot(6, angles, voltages, TorqueL, threeD=true, Torque=true)
-Plot(7, angles, voltages, TorqueR, threeD=true, Torque=true)
+if false
+Plot(2, angles, voltages, Transmission, threeD=true, Title='Transmission')
+Plot(3, angles, voltages, Torque, threeD=true, Title='Torque')
+Plot(4, angles, voltages, TorqueC, threeD=true, Torque=true, Title='conservative Torque')
+Plot(5, angles, voltages, TorqueNC, threeD=true, Torque=true, Title='nonconservative Torque')
+Plot(6, angles, voltages, TorqueL, threeD=true, Torque=true, Title='left Torque')
+Plot(7, angles, voltages, TorqueR, threeD=true, Torque=true, Title='right Torque')
+end
 
 %% chemPots
 function [chemPots] = setupPots(voltages)
