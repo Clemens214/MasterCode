@@ -82,6 +82,7 @@ function [] = plotColor(value, Title, angles, voltages, Data)
     figure(value)
     surf(angles, voltages, TransPlot,'EdgeColor', 'None', 'facecolor', 'interp');
     view(2);
+    colorbar;
     xlabel('Angle (°)');
     ylabel('Voltage (a.u.)'); 
     zlabel([Title, ' (a.u.)']);
