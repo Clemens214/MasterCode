@@ -1,4 +1,4 @@
-function [Results] = TransCheck(Energies, totalSystem, GammaL, GammaR, options)
+function [varargout] = TransCheck(Energies, totalSystem, GammaL, GammaR, options)
 % calculate the transmission through a molecule for zero temperature
 arguments
     Energies
@@ -19,8 +19,8 @@ end
         Results(i) = trace(real(Matrix));
     end
     %disp('Finished calculation of the current.')
-
     plotConductance(Energies, Results)
+    varargout{1} = Results;
 end
 
 function [Result] = TransmissionLin(Energy, totalSystem, gammaL, gammaR)

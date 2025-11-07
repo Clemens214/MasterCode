@@ -1,4 +1,4 @@
-function [G_NEGF, G_BW, varargout] = ResonantCheck(Energies, totalSystem, GammaL, GammaR, SigmaL, SigmaR, options)
+function [varargout] = ResonantCheck(Energies, totalSystem, GammaL, GammaR, SigmaL, SigmaR, options)
 arguments
     Energies
     totalSystem
@@ -10,180 +10,113 @@ arguments
     options.eigEnergy = 0
     options.idxLead = floor(length(totalSystem)/2)
     options.idxSample = ceil(length(totalSystem)/2)
+    options.Transmission = true
+    options.Conductance = true
+    options.Both = false
     options.plotMore = false
 end
     idxLead = options.idxLead;
     idxSample = options.idxSample;
-    
     % define the Energies
     Energy = options.fermiEnergy;
     EnergyDot = options.eigEnergy;
     EnergiesDot = Energies + EnergyDot;
-    
     % calculate the Hamiltonian
     totalHamiltonian = totalSystem - SigmaL - SigmaR;
     
-    %% calculate the EM Data
+    %% calculate the Transmission
+    if options.Transmission == true
     % calculate the Extended Molecule Transmission
-    [T_NEGF] = calcEM(Energies, totalSystem, GammaL, GammaR);
-    
-    % calculate the Extended Molecule Conductance
-    [G_NEGF] = sweepEM(EnergiesDot, totalSystem, GammaL, GammaR, Energy, idxSample);
-    
-    %% calculate the Breit-Wigner Data
+    [T_NEGF] = calcEM(Energies, EnergyDot, totalSystem, GammaL, GammaR, idxSample);
     % calculate the Breit-Wigner Transmission
-    [SigmaL_eff, GammaL_eff] = calcBWside(Energies, totalHamiltonian, SigmaL, EnergyDot, idxLead, left=true);
-    [SigmaR_eff, GammaR_eff] = calcBWside(Energies, totalHamiltonian, SigmaR, EnergyDot, idxLead, right=true);
-    
-    [T_BW, Delta] = calcBWboth(Energies, SigmaL_eff, SigmaR_eff, GammaL_eff, GammaR_eff, EnergyDot);
-
-    % calculate the Breit-Wigner Conductance
-    [SigmaL_tmp, GammaL_tmp] = sweepBWside(EnergiesDot, totalHamiltonian, SigmaL, Energy, idxSample, idxLead, left=true);
-    [SigmaR_tmp, GammaR_tmp] = sweepBWside(EnergiesDot, totalHamiltonian, SigmaR, Energy, idxSample, idxLead, right=true);
-    
-    [G_BW] = sweepBWboth(EnergiesDot, SigmaL_tmp, SigmaR_tmp, GammaL_tmp, GammaR_tmp, Energy);
-    
-    %% plot the Data
-    % plot the results
-    plotTransmission(Energies, T_NEGF, T_BW)
-    plotConductance(EnergiesDot, G_NEGF, G_BW)
+    [SigmaL_eff, GammaL_eff] = calcBWside(Energies, EnergyDot, totalHamiltonian, SigmaL, idxSample, idxLead, left=true);
+    [SigmaR_eff, GammaR_eff] = calcBWside(Energies, EnergyDot, totalHamiltonian, SigmaR, idxSample, idxLead, right=true);
+    [T_BW, Delta] = calcBWboth(Energies, EnergyDot, SigmaL_eff, SigmaR_eff, GammaL_eff, GammaR_eff);
+    % plot the Transmission
+    plotTransmission(Energies, T_NEGF.', T_BW.')
     if options.plotMore == true
         plotComparison(Energies, T_NEGF, T_BW, GammaL_eff, GammaR_eff, Delta, lengthLead=floor(length(totalSystem)/2))
+    end
+    end
+    
+    %% calculate the Conductance
+    if options.Conductance == true
+    % calculate the Extended Molecule Conductance
+    [G_NEGF] = calcEM(Energy, EnergiesDot, totalSystem, GammaL, GammaR, idxSample);
+    % calculate the Breit-Wigner Conductance
+    [SigmaL_tmp, GammaL_tmp] = calcBWside(Energy, EnergiesDot, totalHamiltonian, SigmaL, idxSample, idxLead, left=true);
+    [SigmaR_tmp, GammaR_tmp] = calcBWside(Energy, EnergiesDot, totalHamiltonian, SigmaR, idxSample, idxLead, right=true);
+    [G_BW] = calcBWboth(Energy, EnergiesDot, SigmaL_tmp, SigmaR_tmp, GammaL_tmp, GammaR_tmp);
+    % plot the Conductance
+    plotConductance(EnergiesDot, G_NEGF, G_BW)
+    end
+    
+    Test = [T_NEGF.'; G_NEGF];
+    %% calculate Both
+    if options.Both == true
+    % calculate Both for the Extended Molecule
+    NEGF = calcEM(Energies, EnergiesDot, totalSystem, GammaL, GammaR, idxSample);
+    % calculate Both for the Breit-Wigner Method
+    [SigmaL_tmp, GammaL_tmp] = calcBWside(Energies, EnergiesDot, totalHamiltonian, SigmaL, idxSample, idxLead, left=true);
+    [SigmaR_tmp, GammaR_tmp] = calcBWside(Energies, EnergiesDot, totalHamiltonian, SigmaR, idxSample, idxLead, right=true);
+    BW = calcBWboth(Energies, EnergiesDot, SigmaL_tmp, SigmaR_tmp, GammaL_tmp, GammaR_tmp);
+    % plot the Conductance
+    plotBoth(Energies, EnergiesDot, NEGF, BW)
     end
     
     %% return the Data
     % other outputs
-    varargout{1} = T_NEGF;
-    varargout{2} = T_BW;
-    varargout{3} = GammaL_eff;
-    varargout{4} = GammaR_eff;
-    varargout{5} = Delta;
+    varargout{1} = G_NEGF;
+    varargout{2} = G_BW;
+    varargout{3} = T_NEGF;
+    varargout{4} = T_BW;
+    varargout{5} = GammaL_eff;
+    varargout{6} = GammaR_eff;
+    varargout{7} = Delta;
 end
 
-%% -------------------- Transmission functions: EM -------------------- 
-function [T_NEGF] = calcEM(Energies, H, GammaL, GammaR, options)
+%% -------------------- Functions: EM -------------------- 
+function [Results] = calcEM(Energies, EnergiesDot, totalSystem, GammaL, GammaR, idxSample, options)
 arguments
     Energies
-    H
-    GammaL
-    GammaR
-    options.useEta = false
-end
-    eta = 1j*1e-12;
-    % Energy loop: compute GR (full) & projections
-    T_NEGF = zeros(size(Energies));    % NEGF full transmission
-    for ii = 1:length(Energies)
-        Energy = Energies(ii);
-        % Full Green's function with both absorbers
-        if options.useEta == false
-            GreensR = (Energy*eye(size(H)) - H) \ eye(size(H));
-        elseif options.useEta == true
-            GreensR = ((Energy+eta)*eye(size(H)) - H) \ eye(size(H));
-        end
-        GreensA = GreensR';
-        % NEGF transmission (matrix formula)
-        T_NEGF(ii) = real(trace(GammaL * GreensR * GammaR * GreensA));
-    end
-end
-
-%% -------------------- Transmission functions: BW -------------------- 
-function [SigmaDot, GammaDot] = calcBWside(Energies, totalHamiltonian, Sigma, EnergyDot, idxLead, options)
-arguments
-    Energies
-    totalHamiltonian
-    Sigma
-    EnergyDot
-    idxLead
-    options.left = false
-    options.right = false
-    options.useEta = false
-end
-    eta = 1j*1e-12;
-    if options.left == true && options.right == false
-        idx = idxLead+1;
-    elseif options.left == false && options.right == true
-        idx = length(totalHamiltonian) - idxLead;
-    else
-        idx = ceil(length(totalHamiltonian)/2);
-    end
-    disp(['calcBWside:',' Left: ',num2str(idxLead+1), ...
-                        ', Right: ',num2str(length(totalHamiltonian) - idxLead), ...
-                        ', Middle: ',num2str(ceil(length(totalHamiltonian)/2))])
-    SigmaDot = zeros(size(Energies));
-    GammaDot = zeros(size(Energies));
-    H = totalHamiltonian + Sigma;
-    for ii = 1:length(Energies)
-        Energy = Energies(ii);
-        %compute the dot Green's function for one-side-only absorber
-        if options.useEta == false
-            GreensR = (Energy*eye(size(H)) - H) \ eye(size(H));
-        elseif options.useEta == true
-            GreensR = ((Energy+eta)*eye(size(H)) - H) \ eye(size(H));
-        end
-        GreensDot = GreensR(idx, idx);
-        % effective self-energy due to lead as seen by dot
-        SigmaDot(ii) = Energy - EnergyDot - 1/GreensDot;
-        % Extract Gammas and shift (energy dependent)
-        GammaDot(ii) = -2 * imag(SigmaDot(ii));
-    end
-end
-
-function [T_BW, Delta] = calcBWboth(Energies, SigmaL, SigmaR, GammaL, GammaR, EnergyDot)
-    T_BW   = zeros(size(Energies));
-    Delta = zeros(size(Energies));
-    for ii = 1:length(Energies)
-        Energy = Energies(ii);
-        % Effective total self-energy from both sides
-        Sigma = SigmaL(ii) + SigmaR(ii);
-        % Extract Gammas (energy dependent)
-        Gamma = GammaL(ii) + GammaR(ii);
-        % Extract shift (energy dependent)
-        Delta(ii) = real(Sigma);  
-        % level shift = Re Sigma_eff_total
-        
-        % Breit-Wigner transmission using extracted Gammas and shift
-        T_BW(ii) = (GammaL(ii) * GammaR(ii)) / ((Energy - EnergyDot - Delta(ii))^2 + (Gamma/2)^2);
-    end
-end
-
-%% -------------------- Conductance functions: EM -------------------- 
-function [G_NEGF] = sweepEM(EnergiesDot, totalSystem, GammaL, GammaR, Energy, idxSample, options)
-arguments
     EnergiesDot
     totalSystem
     GammaL
     GammaR
-    Energy
     idxSample
     options.useEta = false
 end
     eta = 1j*1e-12;
     % We'll compute T(EF) for each gate (shift dot onsite)
-    G_NEGF = zeros(size(EnergiesDot));
-    for k = 1:length(EnergiesDot)
-        EnergyDot = EnergiesDot(k);
-        % Update dot onsite in H and recompute dot GR at EF for NEGF (full)
-        H = totalSystem;
-        H(idxSample, idxSample) = H(idxSample, idxSample) + EnergyDot;
-        % Full Green's function with both absorbers at EF
-        if options.useEta == false
-            GreensR = (Energy*eye(size(H)) - H) \ eye(size(H));
-        elseif options.useEta == true
-            GreensR = ((Energy+eta)*eye(size(H)) - H) \ eye(size(H));
+    % Energy loop: compute GR (full) & projections
+    Results = zeros(length(Energies), length(EnergiesDot));
+    for ii = 1:length(Energies)
+        Energy = Energies(ii);
+        for kk = 1:length(EnergiesDot)
+            EnergyDot = EnergiesDot(kk);
+            % Update dot onsite in H and recompute dot GR for NEGF
+            H = totalSystem;
+            H(idxSample, idxSample) = H(idxSample, idxSample) + EnergyDot;
+            % Full Green's function with both absorbers
+            if options.useEta == false
+                GreensR = (Energy*eye(size(H)) - H) \ eye(size(H));
+            elseif options.useEta == true
+                GreensR = ((Energy+eta)*eye(size(H)) - H) \ eye(size(H));
+            end
+            GreensA = GreensR';
+            % NEGF transmission (matrix formula)
+            Results(ii, kk) = real(trace(GammaL * GreensR * GammaR * GreensA));
         end
-        GreensA = GreensR';
-        % NEGF conductance (matrix formula)
-        G_NEGF(k) = real(trace(GammaL * GreensR * GammaR * GreensA));
     end
 end
 
-%% -------------------- Conductance functions: BW -------------------- 
-function [SigmaDot, GammaDot] = sweepBWside(EnergiesDot, totalHamiltonian, Sigma, Energy, idxSample, idxLead, options)
+%% -------------------- Functions: BW -------------------- 
+function [SigmaDot, GammaDot] = calcBWside(Energies, EnergiesDot, totalHamiltonian, Sigma, idxSample, idxLead, options)
 arguments
+    Energies
     EnergiesDot
     totalHamiltonian
     Sigma
-    Energy
     idxSample
     idxLead
     options.left = false;
@@ -198,46 +131,52 @@ end
     else
         idx = ceil(length(totalHamiltonian)/2);
     end
-    disp(['sweepBWside:',' Left: ',num2str(idxLead+1), ...
+    disp(['calcBWside:',' Left: ',num2str(idxLead+1), ...
                         ', Right: ',num2str(length(totalHamiltonian) - idxLead), ...
                         ', Middle: ',num2str(ceil(length(totalHamiltonian)/2))])
-    SigmaDot = zeros(size(EnergiesDot));
-    GammaDot = zeros(size(EnergiesDot));
+    SigmaDot = zeros(length(Energies), length(EnergiesDot));
+    GammaDot = zeros(length(Energies), length(EnergiesDot));
     totalSystem = totalHamiltonian + Sigma;
-    for k = 1:length(EnergiesDot)
-        EnergyDot = EnergiesDot(k);
-        % Update dot onsite in H and recompute dot GR at EF for NEGF (full)
-        H = totalSystem;
-        H(idxSample, idxSample) = H(idxSample, idxSample) + EnergyDot;
-        % compute the dot Green's function for one-side-only absorber
-        if options.useEta == false
-            GreensR = (Energy*eye(size(H)) - H) \ eye(size(H));
-        elseif options.useEta == true
-            GreensR = ((Energy+eta)*eye(size(H)) - H) \ eye(size(H));
+    for ii = 1:length(Energies)
+        Energy = Energies(ii);
+        for kk = 1:length(EnergiesDot)
+            EnergyDot = EnergiesDot(kk);
+            % Update dot onsite in H and recompute dot GR at EF for NEGF (full)
+            H = totalSystem;
+            H(idxSample, idxSample) = H(idxSample, idxSample) + EnergyDot;
+            %compute the dot Green's function for one-side-only absorber
+            if options.useEta == false
+                GreensR = (Energy*eye(size(H)) - H) \ eye(size(H));
+            elseif options.useEta == true
+                GreensR = ((Energy+eta)*eye(size(H)) - H) \ eye(size(H));
+            end
+            GreensDot = GreensR(idx, idx);
+            % effective self-energy due to lead as seen by dot
+            SigmaDot(ii, kk) = Energy - EnergyDot - 1/GreensDot;
+            % Extract Gammas and shift (energy dependent)
+            GammaDot(ii, kk) = -2 * imag(SigmaDot(ii));
         end
-        GreensDot = GreensR(idx, idx);
-        % effective self-energy due to lead as seen by dot
-        SigmaDot(k) = Energy - EnergyDot - 1/GreensDot;
-        % Extract Gammas and shift (energy dependent)
-        GammaDot(k) = -2 * imag(SigmaDot(k));
     end
 end
 
-function [G_BW, varargout] = sweepBWboth(EnergiesDot, SigmaL, SigmaR, GammaL, GammaR, Energy)
-    G_BW = zeros(size(EnergiesDot));
-    Delta = zeros(size(EnergiesDot));
-    for ii = 1:length(EnergiesDot)
-        EnergyDot = EnergiesDot(ii);
-        % Effective total self-energy from both sides
-        Sigma = SigmaL(ii) + SigmaR(ii);
-        % Extract Gammas (energy dependent)
-        Gamma = GammaL(ii) + GammaR(ii);
-        % Extract shift (energy dependent)
-        Delta(ii) = real(Sigma);
-        % level shift = Re Sigma_eff_total
-    
-        % Breit-Wigner conductance using extracted Gammas and shift
-        G_BW(ii) = (GammaL(ii) * GammaR(ii)) / ((Energy - EnergyDot - Delta(ii))^2 + (Gamma/2)^2);
+function [Results, varargout] = calcBWboth(Energies, EnergiesDot, SigmaL, SigmaR, GammaL, GammaR)
+    Results = zeros(length(Energies), length(EnergiesDot));
+    Delta = zeros(length(Energies), length(EnergiesDot));
+    for ii = 1:length(Energies)
+        Energy = Energies(ii);
+        for kk = 1:length(EnergiesDot)
+            EnergyDot = EnergiesDot(kk);
+            % Effective total self-energy from both sides
+            Sigma = SigmaL(ii, kk) + SigmaR(ii, kk);
+            % Extract Gammas (energy dependent)
+            Gamma = GammaL(ii, kk) + GammaR(ii, kk);
+            % Extract shift (energy dependent)
+            Delta(ii, kk) = real(Sigma);  
+            % level shift = Re Sigma_eff_total
+            
+            % Breit-Wigner transmission using extracted Gammas and shift
+            Results(ii, kk) = (GammaL(ii, kk) * GammaR(ii, kk)) / ((Energy - EnergyDot - Delta(ii, kk))^2 + (Gamma/2)^2);
+        end
     end
     varargout{1} = Delta;
 end
@@ -306,8 +245,70 @@ end
     xlabel('\epsilon_d');
     ylabel('G / G_0');
     legend('Location','Best');
-    title('Gate sweep: NEGF (EM) vs Breit–Wigner using EM-extracted \Gamma');
+    title('Gate sweep: NEGF (EM) vs Breit–Wigner using EM-extracted \Gamma_{L,R}');
     grid on;
+end
+
+function [] = plotBoth(Energies, EnergiesDot, NEGF, BW, options)
+arguments
+    Energies
+    EnergiesDot
+    NEGF
+    BW
+    options.plotNEGF = true;
+    options.plotFit = false;
+    options.plotBW = false;
+end
+    % prepare the data for fitting
+    [xData, yData] = meshgrid(Energies, EnergiesDot);
+    xData = xData(:);
+    yData = yData(:);
+    zData = NEGF(:);
+    % Initial parameter guesses
+    maxVal = 1;
+    gamma = 1;
+    x0 = mean(xData);
+    y0 = mean(yData);
+    initVals = [maxVal, gamma, x0, y0];
+    % Perform the fit
+    xyData = [xData, yData];
+    FitFunc = @(p, xy) LorentzFit(xy(:,1), xy(:,2), p);
+    fitVals = lsqcurvefit(FitFunc, initVals, xyData, zData);
+    zFit = Lorentzian(Energies, EnergiesDot, fitVals);
+    if options.plotNEGF == true
+        % plot the NEGF Data
+        figure('Name','Energy and Gate sweep: NEGF', 'NumberTitle','off');
+        surf(Energies, EnergiesDot, NEGF, DisplayName='T_{NEGF}');
+        xlabel('Energy (units of t)');
+        ylabel('\epsilon_d');
+        zlabel('Transmission (2e/h)');
+        legend('Location','Best');
+        title('Transmission: full NEGF vs Breit–Wigner using EM-extracted \Gamma_{L,R}');
+        grid on;
+    end
+    if options.plotFit == true
+        % plot the Fit
+        figure('Name','Energy and Gate fit', 'NumberTitle','off');
+        surf(Energies, EnergiesDot, zFit, DisplayName='Fit');
+        % labels
+        xlabel('Energy (units of t)');
+        ylabel('\epsilon_d');
+        zlabel('Transmission (2e/h)');
+        legend('Location','Best');
+        title('Transmission: full NEGF vs Breit–Wigner using EM-extracted \Gamma_{L,R}');
+        grid on;
+    end
+    if options.plotBW == true
+        % plot the BW Data
+        figure('Name','Energy and Gate sweep: BW', 'NumberTitle','off');
+        surf(Energies, EnergiesDot, BW, DisplayName='T_{BW}');
+        xlabel('Energy (units of t)');
+        ylabel('\epsilon_d');
+        zlabel('Transmission (2e/h)');
+        legend('Location','Best');
+        title('Transmission: full NEGF vs Breit–Wigner using EM-extracted \Gamma_{L,R}');
+        grid on;
+    end
 end
 
 function [] = plotComparison(Energies, T_NEGF, T_BW, GammaL, GammaR, Delta, options)
@@ -363,12 +364,23 @@ end
 end
 
 %% -------------------- Obsolete functions -------------------- 
-function [yData] = Lorentzian(xData, max, gamma, x0)
-    yData = zeros(size(xData));
+function [zData] = LorentzFit(xData, yData, Vals)
+    zData = zeros(size(xData));
     for i = 1:length(xData)
-        % max       -> maximum value of the function
-        % 2*gamma   -> half-width at half-maximum (HWHM)
-        % x0        -> shifts the peak of the distribution
-        yData(i) = max/pi * gamma/((xData-x0)^2 + gamma^2);
+        zData(i) = Lorentzian(xData(i), yData(i), Vals);
+    end
+end
+
+function [zData] = Lorentzian(xData, yData, Vals)
+    ValCells = num2cell(Vals);
+    [max, gamma, x0, y0] = ValCells{:};
+    zData = zeros(length(xData), length(yData));
+    for i = 1:length(xData)
+        for j = 1:length(yData)
+            % max       -> maximum value of the function
+            % 2*gamma   -> half-width at half-maximum (HWHM)
+            % x0, y0    -> shifts the peak of the distribution
+            zData(i, j) = max/pi * gamma/((xData(i)-x0)^2 + (yData(j)-y0)^2 + gamma^2);
+        end
     end
 end
