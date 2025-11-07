@@ -48,7 +48,7 @@ end
 
 %% plotting function
 function [] = plotConductance(Energies, Vals)
-    figure('Name','Conductance');
+    figure('Name','Conductance', 'NumberTitle','off');
     % plot
     plot(Energies, Vals)
     % labels

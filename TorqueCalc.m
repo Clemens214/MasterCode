@@ -56,26 +56,31 @@ arguments
 end
     % get the bounds
     if choice.conservative == true
+        strDisp = 'Conservative';
         maxPoint = max([[chemPots.left], [chemPots.right]]);
         minPoint = min([[chemPots.left], [chemPots.right], options.minVal]);
     elseif choice.nonconservative == true
+        strDisp = 'Nonconservative';
         maxPoint = max([[chemPots.left], [chemPots.right]]);
         minPoint = min([[chemPots.left], [chemPots.right]]);
     elseif choice.left == true
+        strDisp = 'Left';
         maxPoint = max([chemPots.left]);
         minPoint = min([[chemPots.left], options.minVal]);
     elseif choice.right == true
+        strDisp = 'Right';
         maxPoint = max([chemPots.right]);
         minPoint = min([[chemPots.right], options.minVal]);
     end
+    disp([strDisp, '; Maximum: ',num2str(maxPoint), ', Minimum: ',num2str(minPoint)])
     % get the step size
     Energies = getEnergies(chemPots);
     Diffs = zeros(1, length(Energies)-1);
     for i = 2:length(Energies)
         Diffs(i) = Energies(i) - Energies(i-1); 
     end
-    lcd = LowestCommonDenominator(Diffs);
-    stepSize = (1/lcd) / options.stepMult;
+    LCD = lcd(Diffs);
+    stepSize = (1/LCD) / options.stepMult;
 
     % calculate the transmissions
     evalPoints = makeList(maxPoint, minPoint, stepSize);
@@ -85,6 +90,7 @@ end
     Results = zeros(1, length(chemPots));
     for i = 1:length(chemPots)
         fermiFunc = choiceFermiFunc(evalPoints, chemPots(i).left, chemPots(i).right, choice);
+        %testFermi(evalPoints, fermiFunc, choice);
         % calculate the Result
         yData = fermiFunc .* values;
         if length(evalPoints) > 1
@@ -92,7 +98,7 @@ end
         elseif isscalar(evalPoints)
             Results(i) = 0;
         end
-        disp(['Voltage: ', num2str(chemPots(i).left-chemPots(i).right), ', j=', num2str(i)])
+        %disp(['Voltage: ', num2str(chemPots(i).left-chemPots(i).right), ', j=', num2str(i)])
     end
 end
 
@@ -100,11 +106,11 @@ function [fermiFunc] = choiceFermiFunc(evalPoints, chemPotL, chemPotR, choice)
     if choice.conservative == true
         fermiFuncL = getFermiFunc(evalPoints, chemPotL);
         fermiFuncR = getFermiFunc(evalPoints, chemPotR);
-        fermiFunc = fermiFuncL + fermiFuncR;
+        fermiFunc = 0.5 * (fermiFuncL + fermiFuncR);
     elseif choice.nonconservative == true
         fermiFuncL = getFermiFunc(evalPoints, chemPotL);
         fermiFuncR = getFermiFunc(evalPoints, chemPotR);
-        fermiFunc = fermiFuncL - fermiFuncR;
+        fermiFunc = 0.5 * (fermiFuncL - fermiFuncR);
     elseif choice.left == true
         fermiFunc = getFermiFunc(evalPoints, chemPotL);
     elseif choice.right == true
@@ -124,10 +130,12 @@ end
         if Temp ~= 0
             fermiFunc(i) = 1/(exp((E-chemPot)/Temp)+1);
         elseif Temp == 0
-            if E <= chemPot
+            if E < chemPot
                 fermiFunc(i) = 1;
-            else
+            elseif E > chemPot
                 fermiFunc(i) = 0;
+            elseif E == chemPot
+                fermiFunc(i) = 0.5;
             end
         end
     end
@@ -211,4 +219,20 @@ function [values] = makeList(maxVal, minVal, stepVal)
     end
     numVal = (maxVal-minVal)/stepVal+1;
     values = linspace(minVal, maxVal, numVal);
+end
+
+function [] = testFermi(evalPoints, fermiFunc, choice)
+    evalFunc = evalPoints(fermiFunc~=0);
+    maxPoint = max(evalFunc);
+    minPoint = min(evalFunc);
+    if choice.conservative == true
+        strDisp = 'Conservative';
+    elseif choice.nonconservative == true
+        strDisp = 'Nonconservative';
+    elseif choice.left == true
+        strDisp = 'Left';
+    elseif choice.right == true
+        strDisp = 'Right';
+    end
+    disp(['Fermi: ', strDisp, '; Maximum: ',num2str(maxPoint), ', Minimum: ',num2str(minPoint)])
 end

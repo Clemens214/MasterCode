@@ -167,12 +167,20 @@ end
 
 %% -------------------- Plotting functions -------------------- 
 function [] = plotLoretzian(Energies, G_NEGF, G_BW, yFit)
-    figure('Name','Gate sweep (zero-T approx)','NumberTitle','off');
+    figure('Name','Gate sweep (zero-T approx)', 'NumberTitle','off');
     % plot
-    hold on;
-    plot(Energies, G_NEGF);
-    plot(Energies, G_BW);% '--');
-    plot(Energies, yFit, '--');
+    logPlot = true;
+    if logPlot == true
+        semilogy(Energies, G_NEGF);
+        hold on;
+        semilogy(Energies, G_BW);% '--');
+        semilogy(Energies, yFit, '--');
+    else
+        plot(Energies, G_NEGF);
+        hold on;
+        plot(Energies, G_BW);% '--');
+        plot(Energies, yFit, '--');
+    end
     hold off;
     % labels
     xlabel('\epsilon_d');
@@ -193,7 +201,7 @@ arguments
     options.lengthLead = NaN
 end
     % -------------------- Plots --------------------
-    figure('Name','Transmission comparison','NumberTitle','off');%,'Position',[100 100 900 700]);
+    figure('Name','Transmission comparison', 'NumberTitle','off');%,'Position',[100 100 900 700]);
     
     % 1st subplot
     subplot(3,1,1);

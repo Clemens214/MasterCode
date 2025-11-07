@@ -15,7 +15,7 @@ arguments
 end
     if options.Schur == false
         % compute the Eigenvectors and the Eigenvalues of the system
-        [Eigenvals, leftEVs, rightEVs] = eigenvectors(totalSystem);%, checkMore=true);
+        [Eigenvals, leftEVs, rightEVs] = getEigenvectors(totalSystem);%, checkMore=true);
     elseif options.Schur == true
         % compute the Schur decomposition of the System's pseudo Hamiltonian
         [Diag, upperTriag, SchurVec] = getSchur(totalSystem, options);

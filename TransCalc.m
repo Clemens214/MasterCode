@@ -31,8 +31,8 @@ end
     for i = 2:length(Energies)
         Diffs(i) = Energies(i) - Energies(i-1); 
     end
-    lcd = LowestCommonDenominator(Diffs);
-    stepSize = (1/lcd) / options.stepMult;
+    LCD = lcd(Diffs);
+    stepSize = (1/LCD) / options.stepMult;
 
     % calculate the transmissions
     evalPoints = makeList(max(Energies), min(Energies), stepSize);
@@ -49,7 +49,7 @@ end
         elseif isscalar(evalPoints)
             Results(i) = 0;
         end
-        disp(['Voltage: ', num2str(chemPots(i).left-chemPots(i).right), ', j=', num2str(i)])
+        %disp(['Voltage: ', num2str(chemPots(i).left-chemPots(i).right), ', j=', num2str(i)])
     end
 end
 

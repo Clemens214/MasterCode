@@ -10,7 +10,7 @@ arguments
 end
     if options.Schur == false
         % compute the Eigenvectors and the Eigenvalues of the system
-        [Eigenvals, leftEVs, rightEVs] = eigenvectors(totalSystem);%, checkMore=true);
+        [Eigenvals, leftEVs, rightEVs] = getEigenvectors(totalSystem);%, checkMore=true);
     elseif options.Schur == true
         % compute the Schur decomposition of the System's pseudo Hamiltonian
         [Diag, upperTriag, SchurVec] = getSchur(totalSystem, options);
@@ -22,7 +22,11 @@ end
         for i = 1:length(chemPots)
             chemPotL = chemPots(i).left;
             chemPotR = chemPots(i).right;
-            Matrix = TransmissionMatrix(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR);
+            if options.Schur == false
+                Matrix = TransmissionMatrixEV(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR);
+            elseif options.Schur == true
+                Matrix = TransmissionMatrixEV(Diag, upperTriag, SchurVec, gammaL, gammaR, chemPotL, chemPotR);
+            end
             Results(i) = real(trace(Matrix));
             disp(['Voltage: ', num2str(chemPotL - chemPotR), ', j=', num2str(i)])
         end
@@ -39,7 +43,56 @@ end
 end
 
 %% total transmission for finite voltages
-function [Result] = TransmissionMatrix(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR)
+function [Result] = TransmissionMatrixSchur(Diag, upperTriag, SchurVec, gammaL, gammaR, chemPotL, chemPotR)
+    index = struct('i', [], 'j', [], ...
+                    'Eigenval', [], 'EigenvalD', [], ...
+                    'leftEV', [], 'leftEVD', [], ...
+                    'rightEV', [], 'rightEVD', []);
+    for i = 1:length(Eigenvals)
+        for j = 1:length(Eigenvals)
+            idx = (i-1)*length(Eigenvals) + j;
+            index(idx).i = i;
+            index(idx).j = j;
+            % set the normal variables
+            index(idx).Eigenval = Eigenvals(i,i);
+            index(idx).leftEV = leftEVs(:,i)';
+            index(idx).rightEV = rightEVs(:,i);
+            % set the daggered variables
+            index(idx).EigenvalD = Eigenvals(j,j)';
+            index(idx).leftEVD = leftEVs(:,j);
+            index(idx).rightEVD = rightEVs(:,j)';
+        end
+    end
+
+    %disp('Starting calculation of the transmission element.')
+    Result = 0;
+    parfor idx = 1:length(index)
+        % get the normal left and right Eigenvectors
+        leftEV = index(idx).leftEV;
+        rightEV = index(idx).rightEV;
+        
+        % get the daggered Eigenvectors
+        leftEVdagger = index(idx).leftEVD;
+        rightEVdagger = index(idx).rightEVD;
+            
+        % compute the matrix element for chosen i and j
+        ProductLeft = rightEV;
+        ProductMid = leftEV * gammaR * leftEVdagger;
+        ProductRight = rightEVdagger * gammaL;
+            
+        Product = ProductLeft * ProductMid * ProductRight;
+        
+        % compute the additional matrix element
+        EigVal = index(idx).Eigenval;
+        EigValDagger = index(idx).EigenvalD;
+        factor = FactorElement(EigVal, EigValDagger, chemPotL) - FactorElement(EigVal, EigValDagger, chemPotR);
+        
+        Result = Result + Product*factor;
+    end
+    %disp('Finished calculation of the transmission element.')
+end
+
+function [Result] = TransmissionMatrixEV(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR)
     index = struct('i', [], 'j', [], ...
                     'Eigenval', [], 'EigenvalD', [], ...
                     'leftEV', [], 'leftEVD', [], ...
