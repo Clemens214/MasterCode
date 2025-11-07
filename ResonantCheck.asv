@@ -14,7 +14,7 @@ arguments
 end
     idxLead = options.idxLead;
     idxSample = options.idxSample;
-    
+
     % define the Energies
     Energy = options.fermiEnergy;
     EnergyDot = options.eigEnergy;
@@ -26,7 +26,7 @@ end
     %% calculate the EM Data
     % calculate the Extended Molecule Transmission
     [T_NEGF] = calcEM(Energies, totalSystem, GammaL, GammaR);
-    
+
     % calculate the Extended Molecule Conductance
     [G_NEGF] = sweepEM(EnergiesDot, totalSystem, GammaL, GammaR, Energy, idxSample);
     
@@ -50,7 +50,7 @@ end
     if options.plotMore == true
         plotComparison(Energies, T_NEGF, T_BW, GammaL_eff, GammaR_eff, Delta, lengthLead=floor(length(totalSystem)/2))
     end
-    
+
     %% return the Data
     % other outputs
     varargout{1} = T_NEGF;
@@ -69,7 +69,7 @@ arguments
     GammaR
     options.useEta = false
 end
-    eta = 1j*1e-12;
+    eta = 0;%1j*1e-12;
     % Energy loop: compute GR (full) & projections
     T_NEGF = zeros(size(Energies));    % NEGF full transmission
     for ii = 1:length(Energies)
@@ -98,7 +98,7 @@ arguments
     options.right = false
     options.useEta = false
 end
-    eta = 1j*1e-12;
+    eta = 0;%1j*1e-12;
     if options.left == true && options.right == false
         idx = idxLead+1;
     elseif options.left == false && options.right == true
@@ -106,9 +106,6 @@ end
     else
         idx = ceil(length(totalHamiltonian)/2);
     end
-    disp(['calcBWside:',' Left: ',num2str(idxLead+1), ...
-                        ', Right: ',num2str(length(totalHamiltonian) - idxLead), ...
-                        ', Middle: ',num2str(ceil(length(totalHamiltonian)/2))])
     SigmaDot = zeros(size(Energies));
     GammaDot = zeros(size(Energies));
     H = totalHamiltonian + Sigma;
@@ -157,7 +154,7 @@ arguments
     idxSample
     options.useEta = false
 end
-    eta = 1j*1e-12;
+    eta = 0;%1j*1e-12;
     % We'll compute T(EF) for each gate (shift dot onsite)
     G_NEGF = zeros(size(EnergiesDot));
     for k = 1:length(EnergiesDot)
@@ -190,17 +187,16 @@ arguments
     options.right = false;
     options.useEta = false
 end
-    eta = 1j*1e-12;
+    eta = 0;%1j*1e-12;
     if options.left == true && options.right == false
-        idx = idxLead+1;
+        idxL = idxLead+1;
     elseif options.left == false && options.right == true
-        idx = length(totalHamiltonian) - idxLead;
+        idxR = length(totalHamiltonian) - idxLead;
     else
-        idx = ceil(length(totalHamiltonian)/2);
+        idxM = ceil(length(totalHamiltonian)/2);
     end
     disp(['sweepBWside:',' Left: ',num2str(idxLead+1), ...
-                        ', Right: ',num2str(length(totalHamiltonian) - idxLead), ...
-                        ', Middle: ',num2str(ceil(length(totalHamiltonian)/2))])
+                        ', Right: ',num2str(length(totalHamiltonian) - idxLead),', Middle'])
     SigmaDot = zeros(size(EnergiesDot));
     GammaDot = zeros(size(EnergiesDot));
     totalSystem = totalHamiltonian + Sigma;
@@ -257,22 +253,22 @@ end
     % plot the Data
     figure('Name','Energy sweep', 'NumberTitle','off');
     if options.logPlot == true
-        semilogy(Energies, T_BW, DisplayName='T_{BW}');%, '--');
+        semilogy(Energies, T_BW);% '--');
         hold on;
-        semilogy(Energies, T_NEGF, DisplayName='T_{NEGF}');
-        semilogy(Energies, yFit, '--', DisplayName='Fit');
+        semilogy(Energies, T_NEGF);
+        semilogy(Energies, yFit, '--');
     else
-        plot(Energies, T_BW, DisplayName='T_{BW}');%, '--');
+        plot(Energies, T_BW);% '--');
         hold on;
-        plot(Energies, T_NEGF, DisplayName='T_{NEGF}');
-        plot(Energies, yFit, '--', DisplayName='Fit');
+        plot(Energies, T_NEGF);
+        plot(Energies, yFit, '--');
     end
     hold off;
     % labels
     xlabel('\epsilon_d');
     xlabel('Energy (units of t)');
-    ylabel('Transmission (2e/h)');
-    legend('Location','Best');
+    ylabel('Transmission (\frac{2e}{h})');
+    legend('T_{NEGF}','T_{BW (EM)}','Fit', 'Location','Best');
     title('Transmission: full NEGF vs Breit–Wigner using EM-extracted \Gamma_{L,R}');
     grid on;
 end
@@ -291,21 +287,21 @@ end
     % plot the Data
     figure('Name','Gate sweep', 'NumberTitle','off');
     if options.logPlot == true
-        semilogy(Energies, G_BW, DisplayName='G_{BW}');%, '--');
+        semilogy(Energies, G_BW);% '--');
         hold on;
-        semilogy(Energies, G_NEGF, DisplayName='G_{NEGF}');
-        semilogy(Energies, yFit, '--', DisplayName='Fit');
+        semilogy(Energies, G_NEGF);
+        semilogy(Energies, yFit, '--');
     else
-        plot(Energies, G_BW, DisplayName='G_{BW}');%, '--');
+        plot(Energies, G_BW);% '--');
         hold on;
-        plot(Energies, G_NEGF, DisplayName='G_{NEGF}');
-        plot(Energies, yFit, '--', DisplayName='Fit');
+        plot(Energies, G_NEGF);
+        plot(Energies, yFit, '--');
     end
     hold off;
     % labels
     xlabel('\epsilon_d');
     ylabel('G / G_0');
-    legend('Location','Best');
+    legend('G_{NEGF}','G_{BW}','Fit','Location','Best');
     title('Gate sweep: NEGF (EM) vs Breit–Wigner using EM-extracted \Gamma');
     grid on;
 end

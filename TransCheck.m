@@ -25,7 +25,7 @@ end
 
 function [Result] = TransmissionLin(Energy, totalSystem, gammaL, gammaR)
     % calculate the Greens Function
-    GreensFuncInv = Energy*eye(length(totalSystem)) - totalSystem;
+    GreensFuncInv = Energy*eye(size(totalSystem)) - totalSystem;
     GreensFunc = inv(GreensFuncInv);
     
     % calculate the matrix product
@@ -34,7 +34,7 @@ end
 
 function [Result] = TransmissionAlt(Energy, totalSystem, gammaL, gammaR)
     % GreensFunc * gammaL * GreensFunc' * gammaR
-    GreensInv = Energy*eye(length(totalSystem)) - totalSystem;
+    GreensInv = Energy*eye(size(totalSystem)) - totalSystem;
     F = decomposition(GreensInv,'lu');    % create reusable LU object (works for sparse/dense)
     % GreensFunc^{-1} * gammaL
     Y = F \ gammaL;

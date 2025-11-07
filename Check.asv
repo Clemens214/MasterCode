@@ -2,7 +2,7 @@
 
 % variables for the sample
 orderSample = 1;
-sizeSample = 49;
+sizeSample = 48;
 eigenenergy = 0;
 
 hopping = 1;
@@ -40,10 +40,10 @@ valDot = 0.2;
 hoppingDot = valDot*hopping;
 
 % adjust the Hamiltonian
-totalSystem = makeDot(totalSystem, hoppingDot);
+totalSystem = makeDot(totalSystem, hoppingDot, options)
 
 % compute the resonance curves
-[G_NEGF, G_BW] = ResonantCheck(Energies, totalSystem, GammaL, GammaR, SigmaL, SigmaR, eigEnergy=dotEnergy);%, idxLead=sizeLead);
+[G_NEGF, G_BW] = ResonantCheck(Energies, totalSystem, GammaL, GammaR, SigmaL, SigmaR, eigEnergy=dotEnergy, idxLead=sizeLead);
 %[G_NEGF, G_BW, T_NEGF, T_BW, GammaL_eff, GammaR_eff, Delta]
 
 
