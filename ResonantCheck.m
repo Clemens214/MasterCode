@@ -11,10 +11,14 @@ arguments
     options.idxLead = floor(length(totalSystem)/2)
     options.idxSample = ceil(length(totalSystem)/2)
     options.Transmission = true
-    options.Conductance = true
+    options.Conductance = false
     options.Both = false
+    options.plotNEGF = true
+    options.plotBW = true
+    options.plotFit = true
     options.plotMore = false
 end
+    outVal = 0;
     idxLead = options.idxLead;
     idxSample = options.idxSample;
     % define the Energies
@@ -33,10 +37,13 @@ end
     [SigmaR_eff, GammaR_eff] = calcBWside(Energies, EnergyDot, totalHamiltonian, SigmaR, idxSample, idxLead, right=true);
     [T_BW, Delta] = calcBWboth(Energies, EnergyDot, SigmaL_eff, SigmaR_eff, GammaL_eff, GammaR_eff);
     % plot the Transmission
-    plotTransmission(Energies, T_NEGF.', T_BW.')
+    plotTransmission(Energies, T_NEGF.', T_BW.', plotBW=false)
     if options.plotMore == true
         plotComparison(Energies, T_NEGF, T_BW, GammaL_eff, GammaR_eff, Delta, lengthLead=floor(length(totalSystem)/2))
     end
+    varargout{outVal+1} = T_NEGF;
+    varargout{outVal+2} = T_BW;
+    outVal = outVal + 2;
     end
     
     %% calculate the Conductance
@@ -49,9 +56,11 @@ end
     [G_BW] = calcBWboth(Energy, EnergiesDot, SigmaL_tmp, SigmaR_tmp, GammaL_tmp, GammaR_tmp);
     % plot the Conductance
     plotConductance(EnergiesDot, G_NEGF, G_BW)
+    varargout{outVal+1} = G_NEGF;
+    varargout{outVal+2} = G_BW;
+    outVal = outVal + 2;
     end
     
-    Test = [T_NEGF.'; G_NEGF];
     %% calculate Both
     if options.Both == true
     % calculate Both for the Extended Molecule
@@ -66,13 +75,6 @@ end
     
     %% return the Data
     % other outputs
-    varargout{1} = G_NEGF;
-    varargout{2} = G_BW;
-    varargout{3} = T_NEGF;
-    varargout{4} = T_BW;
-    varargout{5} = GammaL_eff;
-    varargout{6} = GammaR_eff;
-    varargout{7} = Delta;
 end
 
 %% -------------------- Functions: EM -------------------- 
@@ -187,6 +189,9 @@ arguments
     Energies
     T_NEGF
     T_BW
+    options.plotNEGF = true
+    options.plotBW = true
+    options.plotFit = true
     options.logPlot = true;
 end
     % fit a Lorentzian to the Data
@@ -196,17 +201,12 @@ end
     % plot the Data
     figure('Name','Energy sweep', 'NumberTitle','off');
     if options.logPlot == true
-        semilogy(Energies, T_BW, DisplayName='T_{BW}');%, '--');
-        hold on;
-        semilogy(Energies, T_NEGF, DisplayName='T_{NEGF}');
-        semilogy(Energies, yFit, '--', DisplayName='Fit');
+        plotDataLog(Energies, T_NEGF, T_BW, yFit, labelNEGF='T_{NEGF}', labelBW='T_{BW}', ...
+                    plotBW=options.plotBW, plotNEGF=options.plotNEGF, plotFit=options.plotFit);
     else
-        plot(Energies, T_BW, DisplayName='T_{BW}');%, '--');
-        hold on;
-        plot(Energies, T_NEGF, DisplayName='T_{NEGF}');
-        plot(Energies, yFit, '--', DisplayName='Fit');
+        plotDataLin(Energies, T_NEGF, T_BW, yFit, labelNEGF='T_{NEGF}', labelBW='T_{BW}', ...
+                    plotBW=options.plotBW, plotNEGF=options.plotNEGF, plotFit=options.plotFit);
     end
-    hold off;
     % labels
     xlabel('\epsilon_d');
     xlabel('Energy (units of t)');
@@ -221,6 +221,9 @@ arguments
     Energies
     G_NEGF
     G_BW
+    options.plotNEGF = true
+    options.plotBW = true
+    options.plotFit = true
     options.logPlot = true;
 end
     % fit a Lorentzian to the Data
@@ -230,23 +233,72 @@ end
     % plot the Data
     figure('Name','Gate sweep', 'NumberTitle','off');
     if options.logPlot == true
-        semilogy(Energies, G_BW, DisplayName='G_{BW}');%, '--');
-        hold on;
-        semilogy(Energies, G_NEGF, DisplayName='G_{NEGF}');
-        semilogy(Energies, yFit, '--', DisplayName='Fit');
+        plotDataLog(Energies, G_NEGF, G_BW, yFit, labelNEGF='G_{NEGF}', labelBW='G_{BW}', ...
+                    plotBW=options.plotBW, plotNEGF=options.plotNEGF, plotFit=options.plotFit);
     else
-        plot(Energies, G_BW, DisplayName='G_{BW}');%, '--');
-        hold on;
-        plot(Energies, G_NEGF, DisplayName='G_{NEGF}');
-        plot(Energies, yFit, '--', DisplayName='Fit');
+        plotDataLin(Energies, G_NEGF, G_BW, yFit, labelNEGF='G_{NEGF}', labelBW='G_{BW}', ...
+                    plotBW=options.plotBW, plotNEGF=options.plotNEGF, plotFit=options.plotFit);
     end
-    hold off;
     % labels
     xlabel('\epsilon_d');
     ylabel('G / G_0');
     legend('Location','Best');
     title('Gate sweep: NEGF (EM) vs Breit–Wigner using EM-extracted \Gamma_{L,R}');
     grid on;
+end
+
+function [] = plotDataLog (Energies, G_NEGF, G_BW, yFit, options)
+arguments
+    Energies
+    G_NEGF
+    G_BW
+    yFit
+    options.plotNEGF = true
+    options.plotBW = true
+    options.plotFit = true
+    options.labelNEGF = 'NEGF'
+    options.labelBW = 'BW'
+end
+    if options.plotNEGF == true
+        semilogy(Energies, G_NEGF, DisplayName=options.labelNEGF);
+        hold on;
+    end
+    if options.plotBW == true
+        semilogy(Energies, G_BW, DisplayName=options.labelBW);%, '--');
+        hold on;
+    end
+    if options.plotFit == true
+        semilogy(Energies, yFit, '--', DisplayName='Fit');
+        hold on;
+    end
+    hold off;
+end
+
+function [] = plotDataLin (Energies, G_NEGF, G_BW, yFit, options)
+arguments
+    Energies
+    G_NEGF
+    G_BW
+    yFit
+    options.plotNEGF = true
+    options.plotBW = true
+    options.plotFit = true
+    options.labelNEGF = 'NEGF'
+    options.labelBW = 'BW'
+end
+    if options.plotNEGF == true
+        plot(Energies, G_NEGF, DisplayName=options.labelNEGF);
+        hold on;
+    end
+    if options.plotBW == true
+        plot(Energies, G_BW, DisplayName=options.labelBW);%, '--');
+        hold on;
+    end
+    if options.plotFit == true
+        plot(Energies, yFit, '--', DisplayName='Fit');
+        hold on;
+    end
+    hold off;
 end
 
 function [] = plotBoth(Energies, EnergiesDot, NEGF, BW, options)

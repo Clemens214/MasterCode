@@ -20,7 +20,7 @@ hoppingsInter = [hoppingInter; hoppingInter];
 
 % variables for the calculation of the current
 EnergyMax = 3;
-EnergyStep = 0.5;%0.005;
+EnergyStep = 0.005;
 Energies = makeList(EnergyMax, -1*EnergyMax, EnergyStep);
 
 % compute the Hamiltonian of the Sample
