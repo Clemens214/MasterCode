@@ -5,43 +5,128 @@ arguments
     voltages
     Data
     choice.Title = ''
+    % Type of plot
+    options.Spectrum = false
+    options.Value = false
+    options.Color = false
+    options.Angles = false
+    % Dimension of plot
     options.twoD = false
     options.threeD = false
-    options.Angles = false
-    options.linearResponse = false
+    % Data to be plotted
     options.Transmission = false
     options.Torque = false
-    options.color = false
+    options.Both = false
 end
-    Title = choice.Title;
-    if options.twoD == true && options.threeD == false && options.color == false
-        if options.Angles == false && options.linearResponse == false
-            if options.Transmission == true && options.Torque == true
+    if isempty(choice.Title) && options.Transmission == true
+        Title = 'Transmission';
+    elseif isempty(choice.Title) && options.Torque == true
+        Title = 'Torque';
+    else
+        Title = choice.Title;
+    end
+    if options.twoD == true || (options.twoD == false && options.threeD == false)
+    % plot the Energy/voltage dependence
+        if options.Spectrum == true
+            if options.Both ==true || (options.Transmission == true && options.Torque == true)
                 Transmission = Data{1};
                 Torque = Data{2};
-                plotBoth (value, Title, angles, voltages, Transmission, Torque)
+                plotSpectrumBoth(value, Title, angles, voltages, Transmission, Torque)
             else
-                plot2D(value, Title, angles, voltages, Data)
+                plotSpectrum2D(value, Title, angles, voltages, Data)
             end
-        elseif options.Angles == true
-            plotAngles2D (value, Title, angles, Vals)
+    % plot the Angle dependence
+        elseif options.Value == true
+            if options.Both ==true || (options.Transmission == true && options.Torque == true)
+                Transmission = Data{1};
+                Torque = Data{2};
+                plotValueBoth(value, Title, angles, voltages, Transmission, Torque)
+            else
+                plotValue2D(value, Title, angles, voltages, Data)
+            end
         end
-    elseif options.twoD == false && options.threeD == true && options.color == false
-        if options.Angles == false && options.linearResponse == false
-            plot3D (value, Title, angles, voltages, Data)
-        elseif options.linearResponse == true
-
-        elseif options.Angles == true
+    % plot the Data in 3D
+    elseif options.threeD == true
+        plot3D (value, Title, angles, voltages, Data)
+    end
+    % plot the Angles
+    if options.Angles == true
+        if options.twoD == true
+            plotAngles2D (value, Title, angles, Vals)
+        elseif options.threeD == true
             plotAngles3D (value, Title, angles, Vals)
         end
-    elseif options.color == true
-        plotColor (value, Title, angles, voltages, Data)
+    end
+    % plot in Color
+    if options.Color == true
+        plotColor(value, Title, angles, voltages, Data)
     end
 end
 
+%% plotting functions: Energies (+angles)
+function [] = plotSpectrum2D (value, Title, angles, voltages, Data)
+    TransPlot = cell(1, length(angles));
+    for i = 1:length(angles)
+        TransPlot{i} = zeros(1, length(voltages));
+        for j = 1:length(voltages)
+            TransPlot{i}(j) = Data{i}(j);
+        end
+    end
+    % plot the data
+    figure(value)
+    hold on
+    for i = 1:length(angles)
+        plot(voltages, TransPlot{i});
+    end
+    hold off
+    title(Title);
+    labels = strcat('Angle = ',cellstr(num2str(angles.')));
+    legend(labels)
+end
 
-%% plotting functions
-function [] = plot2D (value, Title, angles, voltages, Data)
+function [] = plotSpectrumBoth (value, ~, angles, voltages, Transmission, Torque)
+    TransPlot = cell(1, length(angles));
+    TorquePlot = cell(1, length(angles));
+    for i = 1:length(angles)
+        TransPlot{i} = zeros(1, length(voltages));
+        TorquePlot{i} = zeros(1, length(voltages));
+        for j = 1:length(voltages)
+            TransPlot{i}(j) = Transmission{i}(j);
+            TorquePlot{i}(j) = Torque{i}(j);
+        end
+    end
+    % plot the data
+    figure(value)
+    % plot the Transmission
+    subplot(2,1, 1);
+    xlabel('Energy (a.u.)');
+    ylabel('Transmission (a.u.)');
+    hold on
+    for i = 1:length(angles)
+        plot(voltages, TransPlot{i});
+    end
+    hold off
+    title('Transmission');
+    labels = strcat('Angle = ',cellstr(num2str(angles.')));
+    legend(labels);
+    grid on;
+
+    subplot(2,1, 2);
+    xlabel('Energy (a.u.)');
+    ylabel('Torque (a.u.)');
+    hold on
+    for i = 1:length(angles)
+        plot(voltages, TorquePlot{i});
+    end
+    hold off
+    title('Torque');
+    labels = strcat('Angle = ',cellstr(num2str(angles.')));
+    legend(labels);
+    grid on;
+end
+
+%% plotting functions: Angle (+voltages)
+function [] = plotValue2D (value, Title, angles, voltages, Data)
     TransPlot = cell(1, length(voltages));
     for i = 1:length(voltages)
         TransPlot{i} = zeros(1, length(angles));
@@ -57,39 +142,11 @@ function [] = plot2D (value, Title, angles, voltages, Data)
     end
     hold off
     title(Title);
-    labels = strcat('chemPot = ',cellstr(num2str(angles.')));
+    labels = strcat('Voltage = ',cellstr(num2str(voltages.')));
     legend(labels)
 end
 
-function [] = plot3D (value, Title, angles, voltages, Data)
-    TransPlot = zeros(length(voltages), length(angles));
-    for i = 1:length(Data)
-        TransPlot(:, i) = Data{i}.';
-    end
-    figure(value)
-    surf(angles, voltages, TransPlot)
-    xlabel('Angle (°)');
-    ylabel('Voltage (a.u.)'); 
-    zlabel([Title, ' (a.u.)']);
-    title(Title);
-end
-
-function [] = plotColor(value, Title, angles, voltages, Data)
-    TransPlot = zeros(length(voltages), length(angles));
-    for i = 1:length(Data)
-        TransPlot(:, i) = Data{i}.';
-    end
-    figure(value)
-    surf(angles, voltages, TransPlot,'EdgeColor', 'None', 'facecolor', 'interp');
-    view(2);
-    colorbar;
-    xlabel('Angle (°)');
-    ylabel('Voltage (a.u.)'); 
-    zlabel([Title, ' (a.u.)']);
-    title(Title);
-end
-
-function [] = plotBoth (value, ~, angles, voltages, Transmission, Torque)
+function [] = plotValueBoth (value, ~, angles, voltages, Transmission, Torque)
     TransPlot = cell(1, length(voltages));
     TorquePlot = cell(1, length(voltages));
     for i = 1:length(voltages)
@@ -112,7 +169,7 @@ function [] = plotBoth (value, ~, angles, voltages, Transmission, Torque)
     end
     title('Transmission');
     hold off
-    labels = strcat('voltage = ',cellstr(num2str(voltages.')));
+    labels = strcat('Voltage = ',cellstr(num2str(voltages.')));
     legend(labels);
     grid on;
 
@@ -125,20 +182,41 @@ function [] = plotBoth (value, ~, angles, voltages, Transmission, Torque)
     end
     hold off
     title('Torque');
-    labels = strcat('voltage = ',cellstr(num2str(voltages.')));
+    labels = strcat('Voltage = ',cellstr(num2str(voltages.')));
     legend(labels);
     grid on;
-    
 end
 
-%% plotting functions: Angles
-function [] = plotAngle (value, Title, angles, Vals)
-    plotVals = cell2mat(Vals);
-    figure(value);
-    plot(angles, plotVals)
+%% plotting functions: 3D
+function [] = plot3D (value, Title, angles, voltages, Data)
+    TransPlot = zeros(length(voltages), length(angles));
+    for i = 1:length(Data)
+        TransPlot(:, i) = Data{i}.';
+    end
+    figure(value)
+    surf(angles, voltages, TransPlot)
+    xlabel('Angle (°)');
+    ylabel('Voltage (a.u.)'); 
+    zlabel([Title, ' (a.u.)']);
     title(Title);
 end
 
+function [] = plotColor (value, Title, angles, voltages, Data)
+    DataPlot = zeros(length(voltages), length(angles));
+    for i = 1:length(Data)
+        DataPlot(:, i) = Data{i}.';
+    end
+    figure(value)
+    surf(angles, voltages, DataPlot,'EdgeColor', 'None', 'facecolor', 'interp');
+    view(2);
+    colorbar;
+    xlabel('Angle (°)');
+    ylabel('Voltage (a.u.)'); 
+    zlabel([Title, ' (a.u.)']);
+    title(Title);
+end
+
+%% plotting functions: Angles (Both and Difference)
 function [varargout] = plotAngles2D (value, Title, angles, Vals)
     TransPlot = zeros(1, length(angles)*length(angles));
     angleDiff = zeros(1, length(angles)*length(angles));
@@ -167,6 +245,13 @@ function [] = plotAngles3D (value, Title, angles, Vals)
 end
 
 %% plotting functions: obsolete
+function [] = plotAngle (value, Title, angles, Vals)
+    plotVals = cell2mat(Vals);
+    figure(value);
+    plot(angles, plotVals)
+    title(Title);
+end
+
 function [] = plotGraph (value, Title, omegas, Vals, chemPots)
     figure(value);
     title(Title);

@@ -23,8 +23,8 @@ voltageStep = 0.1;
 voltages = makeList(voltageMax, voltageStep);
 
 %variables for the Energies
-EnergyMax = 2;
-EnergyStep = 0.2;
+EnergyMax = 2.5;
+EnergyStep = 0.1;
 Energies = makeList(EnergyMax, EnergyStep, full=true);
 
 %% Calculation
@@ -52,15 +52,15 @@ for i = 1:length(angles)
     
     % calculating the values
     Transmission{i} = TransInt(totalSystem, gammaL, gammaR, Energies);
-    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, Energies);
+    Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Energies);
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
 %% plot
-Plot(1, angles, Energies, {Transmission, Torque}, Value=true, Both=true, Title='Both')
+Plot(1, angles, voltages, {Transmission, Torque}, twoD=true, Transmission=true, Torque=true, Title='Both')
 
-Plot(2, angles, Energies, Transmission, Value=true, twoD=true, Title='Transmission')
-Plot(3, angles, Energies, Torque, Value=true, twoD=true, Title='Torque')
+Plot(2, angles, voltages, Transmission, color=true, Title='Transmission')
+Plot(3, angles, voltages, Torque, color=true, Title='Torque')
 
 %% chemPots
 function [chemPots] = setupPots(voltages)

@@ -1,43 +1,52 @@
-function [Results] = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, chemPots, choice, options)
+function [Results] = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, voltages, choice, options)
 % calculate the torque through a molecule for zero temperature
 arguments
     totalSystem
     totalSysDeriv
     gammaL
     gammaR
-    chemPots
+    voltages
     choice.conservative = false
     choice.nonconservative = false
     choice.left = false
     choice.right = false
     options.Schur = false
-    options.linearResponse = false
+    options.linearResponse = true
+    options.print = false
 end
-    if options.Schur == false
-        % compute the Eigenvectors and the Eigenvalues of the system
-        [Eigenvals, leftEVs, rightEVs] = getEigenvectors(totalSystem);%, checkMore=true);
-    elseif options.Schur == true
-        % compute the Schur decomposition of the System's pseudo Hamiltonian
-        [Diag, upperTriag, SchurVec] = getSchur(totalSystem, options);
-    end
-
     %disp('Starting calculation of the torque.')
     if options.linearResponse == false
+        if options.Schur == false
+            % compute the Eigenvectors and the Eigenvalues of the system
+            [Eigenvals, leftEVs, rightEVs] = getEigenvectors(totalSystem);%, checkMore=true);
+        elseif options.Schur == true
+            % compute the Schur decomposition of the System's pseudo Hamiltonian
+            [Diag, upperTriag, SchurVec] = getSchur(totalSystem, options);
+        end
+        chemPots = setupPots(voltages);
         Results = zeros(1, length(chemPots));
         for i = 1:length(chemPots)
             chemPotL = chemPots(i).left;
             chemPotR = chemPots(i).right;
-            Matrix = TorqueChoice(Eigenvals, leftEVs, rightEVs, totalSysDeriv, gammaL, gammaR, chemPotL, chemPotR, choice);
+            if options.Schur == true
+                Matrix = TorqueChoice(Diag, upperTriag, SchurVec, totalSysDeriv, gammaL, gammaR, chemPotL, chemPotR, choice);
+            elseif options.Schur == false
+                Matrix = TorqueChoice(Eigenvals, leftEVs, rightEVs, totalSysDeriv, gammaL, gammaR, chemPotL, chemPotR, choice);
+            end
             Results(i) = trace(real(Matrix));
-            disp(['Voltage: ', num2str(chemPotL - chemPotR), ', j=', num2str(i)])
+            if options.print == true
+                disp(['Voltage: ', num2str(chemPotL - chemPotR), ', j=', num2str(i)])
+            end
         end
     elseif options.linearResponse == true
-        Energies = getEnergies(chemPots);
+        Energies = voltages;
         Results = zeros(1, length(Energies));
         for i = 1:length(Energies)
             Matrix = TorqueLin(Energies(i), totalSystem, totalSysDeriv, gammaL, gammaR, choice);
             Results(i) = trace(real(Matrix));
-            disp(['Energy: ', num2str(Energies(i)), ', j=', num2str(i)])
+            if options.print == true
+                disp(['Energy: ', num2str(Energies(i)), ', j=', num2str(i)])
+            end
         end
     end
     %disp('Finished calculation of the torque.')
@@ -68,9 +77,9 @@ end
             midFactor = gammaR;
         end
         if options.Schur == true
-            TotalResult = TorqueMatrix(Val1, Val2, Val3, Val4, midFactor, chemPotL, chemPotR, choice);
+            TotalResult = TorqueMatrixSchur(Val1, Val2, Val3, Val4, midFactor, chemPotL, chemPotR, choice);
         else
-            TotalResult = TorqueMatrix(Val1, Val2, Val3, Val4, midFactor, chemPotL, chemPotR, choice);
+            TotalResult = TorqueMatrixEV(Val1, Val2, Val3, Val4, midFactor, chemPotL, chemPotR, choice);
         end
     else
         choiceL = choice;
@@ -78,17 +87,64 @@ end
         choiceR = choice;
         choiceR.right = true;
         if options.Schur == true
-            ResultL = TorqueMatrix(Val1, Val2, Val3, Val4, gammaL, chemPotL, chemPotR, choiceL);
-            ResultR = TorqueMatrix(Val1, Val2, Val3, Val4, gammaR, chemPotL, chemPotR, choiceR);
+            ResultL = TorqueMatrixSchur(Val1, Val2, Val3, Val4, gammaL, chemPotL, chemPotR, choiceL);
+            ResultR = TorqueMatrixSchur(Val1, Val2, Val3, Val4, gammaR, chemPotL, chemPotR, choiceR);
         else
-            ResultL = TorqueMatrix(Val1, Val2, Val3, Val4, gammaL, chemPotL, chemPotR, choiceL);
-            ResultR = TorqueMatrix(Val1, Val2, Val3, Val4, gammaR, chemPotL, chemPotR, choiceR);
+            ResultL = TorqueMatrixEV(Val1, Val2, Val3, Val4, gammaL, chemPotL, chemPotR, choiceL);
+            ResultR = TorqueMatrixEV(Val1, Val2, Val3, Val4, gammaR, chemPotL, chemPotR, choiceR);
         end
         TotalResult = ResultL + ResultR;
     end
 end
 
-function [Result] = TorqueMatrix(Eigenvals, leftEVs, rightEVs, totalSysDeriv, midFactor, chemPotL, chemPotR, choice)
+function [Result] = TorqueMatrixSchur(Eigenvals, leftEVs, rightEVs, totalSysDeriv, midFactor, chemPotL, chemPotR, choice)
+    index = struct('i', [], 'j', [], ...
+                    'Eigenval', [], 'EigenvalD', [], ...
+                    'leftEV', [], 'leftEVD', [], ...
+                    'rightEV', [], 'rightEVD', []);
+    for i = 1:length(Eigenvals)
+        for j = 1:length(Eigenvals)
+            idx = (i-1)*length(Eigenvals) + j;
+            index(idx).i = i;
+            index(idx).j = j;
+            index(idx).Eigenval = Eigenvals(i,i);
+            index(idx).leftEV = leftEVs(:,i)';
+            index(idx).rightEV = rightEVs(:,i);
+            index(idx).EigenvalD = Eigenvals(j,j)';
+            index(idx).leftEVD = leftEVs(:,j);
+            index(idx).rightEVD = rightEVs(:,j)';
+        end
+    end
+
+    %disp('Starting calculation of the torque element.')
+    Result = 0;
+    parfor idx = 1:length(index)
+        % get the normal left and right Eigenvectors
+        EigVal = index(idx).Eigenval;
+        leftEV = index(idx).leftEV;
+        rightEV = index(idx).rightEV;
+        
+        % get the daggered Eigenvectors
+        EigValDagger = index(idx).EigenvalD;
+        leftEVdagger = index(idx).leftEVD;
+        rightEVdagger = index(idx).rightEVD;
+            
+        % compute the matrix element for chosen i and j
+        ProductLeft = totalSysDeriv * rightEV;
+        ProductMid = leftEV * midFactor * leftEVdagger;
+        ProductRight = rightEVdagger;
+        
+        Product = ProductLeft * ProductMid * ProductRight;
+        
+        % compute the additional matrix element
+        factor = FactorChoice(EigVal, EigValDagger, chemPotL, chemPotR, choice);
+        
+        Result = Result + Product*factor;
+    end
+    %disp('Finished calculation of the torque element.')
+end
+
+function [Result] = TorqueMatrixEV(Eigenvals, leftEVs, rightEVs, totalSysDeriv, midFactor, chemPotL, chemPotR, choice)
     index = struct('i', [], 'j', [], ...
                     'Eigenval', [], 'EigenvalD', [], ...
                     'leftEV', [], 'leftEVD', [], ...
@@ -187,6 +243,15 @@ function [Result] = TorqueZeroTemp(Energy, totalSystem, totalSysDeriv, midFactor
 end
 
 %% helping functions
+function [chemPots] = setupPots(voltages)
+    chemPots = struct('left', [], 'right', []);
+    for j = 1:length(voltages)
+        chemPotL = voltages(j)/2;
+        chemPotR = -1*voltages(j)/2;
+        chemPots(j) = struct('left', chemPotL, 'right', chemPotR);
+    end
+end
+
 function [Filtered] = getEnergies(chemPots)
     Energies = zeros(1, length(chemPots)*2);
     for i = 1:length(chemPots)

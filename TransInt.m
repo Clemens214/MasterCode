@@ -1,23 +1,24 @@
-function [Results] = TransInt(totalSystem, gammaL, gammaR, chemPots, options)
+function [Results] = TransInt(totalSystem, gammaL, gammaR, voltages, options)
 % calculate the transmission through a molecule for zero temperature
 arguments
     totalSystem
     gammaL
     gammaR
-    chemPots
+    voltages
     options.Schur = true
-    options.linearResponse = false
+    options.linearResponse = true
+    options.print = false
 end
-    if options.Schur == false
-        % compute the Eigenvectors and the Eigenvalues of the system
-        [Eigenvals, leftEVs, rightEVs] = getEigenvectors(totalSystem);%, checkMore=true);
-    elseif options.Schur == true
-        % compute the Schur decomposition of the System's pseudo Hamiltonian
-        [Diag, upperTriag, SchurVec] = getSchur(totalSystem, options);
-    end
-
     %disp('Starting calculation of the current.')
     if options.linearResponse == false
+        if options.Schur == false
+            % compute the Eigenvectors and the Eigenvalues of the system
+            [Eigenvals, leftEVs, rightEVs] = getEigenvectors(totalSystem);%, checkMore=true);
+        elseif options.Schur == true
+            % compute the Schur decomposition of the System's pseudo Hamiltonian
+            [Diag, upperTriag, SchurVec] = getSchur(totalSystem);
+        end
+        chemPots = setupPots(voltages);
         Results = zeros(1, length(chemPots));
         for i = 1:length(chemPots)
             chemPotL = chemPots(i).left;
@@ -25,18 +26,22 @@ end
             if options.Schur == false
                 Matrix = TransmissionMatrixEV(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR);
             elseif options.Schur == true
-                Matrix = TransmissionMatrixEV(Diag, upperTriag, SchurVec, gammaL, gammaR, chemPotL, chemPotR);
+                Matrix = TransmissionMatrixSchur(Diag, upperTriag, SchurVec, gammaL, gammaR, chemPotL, chemPotR);
             end
             Results(i) = real(trace(Matrix));
-            disp(['Voltage: ', num2str(chemPotL - chemPotR), ', j=', num2str(i)])
+            if options.print == true
+                disp(['Voltage: ', num2str(chemPotL - chemPotR), ', j=', num2str(i)])
+            end
         end
     elseif options.linearResponse == true
-        Energies = getEnergies(chemPots);
+        Energies = voltages;
         Results = zeros(1, length(Energies));
         for i = 1:length(Energies)
             Matrix = TransmissionLin(Energies(i), totalSystem, gammaL, gammaR);
             Results(i) = trace(real(Matrix));
-            disp(['Energy: ', num2str(Energies(i)), ', j=', num2str(i)])
+            if options.print == true
+                disp(['Energy: ', num2str(Energies(i)), ', j=', num2str(i)])
+            end
         end
     end
     %disp('Finished calculation of the current.')
@@ -164,6 +169,15 @@ function [Result] = TransmissionLin(Energy, totalSystem, gammaL, gammaR)
 end
 
 %% helping functions
+function [chemPots] = setupPots(voltages)
+    chemPots = struct('left', [], 'right', []);
+    for j = 1:length(voltages)
+        chemPotL = voltages(j)/2;
+        chemPotR = -1*voltages(j)/2;
+        chemPots(j) = struct('left', chemPotL, 'right', chemPotR);
+    end
+end
+
 function [Filtered] = getEnergies(chemPots)
     Energies = zeros(1, length(chemPots)*2);
     for i = 1:length(chemPots)
