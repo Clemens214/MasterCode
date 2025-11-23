@@ -13,8 +13,8 @@ sizeLead = 104;
 hoppingLead = hopping;
 
 % variables for the hopping
-angleMax = 2*pi;
-angleStep = pi/16;
+angleMax = pi;
+angleStep = pi/8;
 angles = makeList(angleMax, angleStep);
 
 %variables for the voltages
@@ -23,8 +23,8 @@ voltageStep = 0.1;
 voltages = makeList(voltageMax, voltageStep);
 
 %variables for the Energies
-EnergyMax = 2;
-EnergyStep = 0.2;
+EnergyMax = 2.5;
+EnergyStep = 0.1;
 Energies = makeList(EnergyMax, EnergyStep, full=true);
 
 %% Calculation
@@ -57,10 +57,10 @@ for i = 1:length(angles)
 end
 
 %% plot
-Plot(1, angles, Energies, {Transmission, Torque}, Value=true, Both=true, Title='Both')
+Plot(1, angles, Energies, {Transmission, Torque}, Spectrum=true, Both=true, Title='Both')
 
-Plot(2, angles, Energies, Transmission, Value=true, twoD=true, Title='Transmission')
-Plot(3, angles, Energies, Torque, Value=true, twoD=true, Title='Torque')
+Plot(2, angles, Energies, Transmission, Spectrum=true, twoD=true, Title='Transmission')
+Plot(3, angles, Energies, Torque, Spectrum=true, twoD=true, Title='Torque')
 
 %% chemPots
 function [chemPots] = setupPots(voltages)
