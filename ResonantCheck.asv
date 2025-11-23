@@ -234,10 +234,10 @@ end
     figure('Name','Gate sweep', 'NumberTitle','off');
     if options.logPlot == true
         plotDataLog(Energies, G_NEGF, G_BW, yFit, labelNEGF='G_{NEGF}', labelBW='G_{BW}', ...
-                    plotBW=options.plotBW, plotNEGF=options.plotNEGF, plotFit=options.plotFit);
+                    plotBW=options.plotBW, plotNEGF=options.plotNEGF, plotFit=options.plotFit)
     else
         plotDataLin(Energies, G_NEGF, G_BW, yFit, labelNEGF='G_{NEGF}', labelBW='G_{BW}', ...
-                    plotBW=options.plotBW, plotNEGF=options.plotNEGF, plotFit=options.plotFit);
+                    plotBW=options.plotBW, plotNEGF=options.plotNEGF, plotFit=options.plotFit)
     end
     % labels
     xlabel('\epsilon_d');
@@ -259,12 +259,12 @@ arguments
     options.labelNEGF = 'NEGF'
     options.labelBW = 'BW'
 end
-    if options.plotNEGF == true
-        semilogy(Energies, G_NEGF, DisplayName=options.labelNEGF);
-        hold on;
-    end
     if options.plotBW == true
         semilogy(Energies, G_BW, DisplayName=options.labelBW);%, '--');
+        hold on;
+    end
+    if options.plotNEGF == true
+        semilogy(Energies, G_NEGF, DisplayName=options.labelNEGF);
         hold on;
     end
     if options.plotFit == true
@@ -286,12 +286,12 @@ arguments
     options.labelNEGF = 'NEGF'
     options.labelBW = 'BW'
 end
-    if options.plotNEGF == true
-        plot(Energies, G_NEGF, DisplayName=options.labelNEGF);
-        hold on;
-    end
     if options.plotBW == true
         plot(Energies, G_BW, DisplayName=options.labelBW);%, '--');
+        hold on;
+    end
+    if options.plotNEGF == true
+        plot(Energies, G_NEGF, DisplayName=options.labelNEGF);
         hold on;
     end
     if options.plotFit == true

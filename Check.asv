@@ -2,7 +2,7 @@
 
 % variables for the sample
 orderSample = 1;
-sizeSample = 49;
+sizeSample = 48;
 eigenenergy = 0;
 
 hopping = 1;
@@ -23,15 +23,15 @@ EnergyMax = 3;
 EnergyStep = 0.005;
 Energies = makeList(EnergyMax, -1*EnergyMax, EnergyStep);
 
+%% Check the Conductance
 % compute the Hamiltonian of the Sample
 sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
 
 % preparing the Extended Molecule Hamiltonian
 [totalSystem, GammaL, GammaR, SigmaL, SigmaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
 
-%% Check the Conductance
 % calculate the Transmission
-TransCheck(Energies, totalSystem, GammaL, GammaR);
+Conductance = TransCheck(Energies, totalSystem, GammaL, GammaR);
 
 %% Check the Spectrum
 % variables for the Dot
@@ -40,10 +40,12 @@ valDot = 0.2;
 hoppingDot = valDot*hopping;
 
 % adjust the Hamiltonian
-totalSystem = makeDot(totalSystem, hoppingDot);
+totalSystem = makeDot(totalSystem, hoppingDot, options)
 
 % compute the resonance curves
-ResonantCheck(Energies, totalSystem, GammaL, GammaR, SigmaL, SigmaR, eigEnergy=dotEnergy);%, idxLead=sizeLead);
+[G_NEGF, G_BW] = ResonantCheck(Energies, totalSystem, GammaL, GammaR, SigmaL, SigmaR, eigEnergy=dotEnergy, idxLead=sizeLead);
+%[G_NEGF, G_BW, T_NEGF, T_BW, GammaL_eff, GammaR_eff, Delta]
+
 
 %% helping functions
 function [values] = makeList(maxVal, minVal, stepVal)
