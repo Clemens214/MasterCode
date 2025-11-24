@@ -83,6 +83,12 @@ function [] = plotSpectrum2D (value, Title, angles, voltages, Data)
         plot(voltages, TransPlot{i});
     end
     hold off
+    xlabel('Energy (units of t)');
+    if strcmp(Title, 'Transmission')
+        ylabel('Transmission (2e/h)');
+    elseif strcmp(Title, 'Torque')
+        ylabel('Torque (-1/2\pi)');
+    end
     title(Title);
     labels = strcat('Angle = ',cellstr(num2str(angles.')));
     legend(labels)
@@ -103,8 +109,8 @@ function [] = plotSpectrumBoth (value, ~, angles, voltages, Transmission, Torque
     figure(value)
     % plot the Transmission
     subplot(2,1, 1);
-    xlabel('Energy (a.u.)');
-    ylabel('Transmission (a.u.)');
+    xlabel('Energy (units of t)');
+    ylabel('Transmission (2e/h)');
     hold on
     for i = 1:length(angles)
         plot(voltages, TransPlot{i});
@@ -116,8 +122,8 @@ function [] = plotSpectrumBoth (value, ~, angles, voltages, Transmission, Torque
     grid on;
 
     subplot(2,1, 2);
-    xlabel('Energy (a.u.)');
-    ylabel('Torque (a.u.)');
+    xlabel('Energy (units of t)');
+    ylabel('Torque (-1/2\pi)');
     hold on
     for i = 1:length(angles)
         plot(voltages, TorquePlot{i});
