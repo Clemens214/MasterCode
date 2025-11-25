@@ -51,8 +51,8 @@ for i = 1:length(angles)
     checkMatrix(totalSystem);
     
     % calculating the values
-    Transmission{i} = TransInt(totalSystem, gammaL, gammaR, Energies);
-    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, Energies);
+    Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Energies);
+    Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Energies);
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
@@ -63,15 +63,6 @@ Plot(2, angles, Energies, Transmission, Spectrum=true, twoD=true, Title='Transmi
 Plot(3, angles, Energies, Torque, Spectrum=true, twoD=true, Title='Torque')
 
 %% chemPots
-function [chemPots] = setupPots(voltages)
-    chemPots = struct('left', [], 'right', []);
-    for j = 1:length(voltages)
-        chemPotL = voltages(j)/2;
-        chemPotR = -1*voltages(j)/2;
-        chemPots(j) = struct('left', chemPotL, 'right', chemPotR);
-    end
-end
-
 function [totalSysDeriv] = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv, derivVals)
     sampleDeriv = zeros(sizeSample*orderSample, sizeSample*orderSample);
     hoppingDeriv = 0;

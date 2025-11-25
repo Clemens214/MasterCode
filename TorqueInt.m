@@ -16,6 +16,7 @@ arguments
 end
     %disp('Starting calculation of the torque.')
     if options.linearResponse == false
+        chemPots = setupPots(voltages);
         if options.Schur == false
             % compute the Eigenvectors and the Eigenvalues of the system
             [Eigenvals, leftEVs, rightEVs] = getEigenvectors(totalSystem);%, checkMore=true);
@@ -23,7 +24,6 @@ end
             % compute the Schur decomposition of the System's pseudo Hamiltonian
             [Diag, upperTriag, SchurVec] = getSchur(totalSystem, options);
         end
-        chemPots = setupPots(voltages);
         Results = zeros(1, length(chemPots));
         for i = 1:length(chemPots)
             chemPotL = chemPots(i).left;

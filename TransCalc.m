@@ -1,20 +1,30 @@
-function [Results] = TransCalc(totalSystem, gammaL, gammaR, chemPots, options)
+function [Results] = TransCalc(totalSystem, gammaL, gammaR, voltages, options)
 % calculate the transmission through a molecule for zero temperature
 arguments
     totalSystem
     gammaL
     gammaR
-    chemPots
-    options.linearResponse = false
+    voltages
+    options.linearResponse = true
 end
     %disp('Starting calculation of the current.')
     if options.linearResponse == true
-        Energies = getEnergies(chemPots);
+        Energies = voltages;
         Results = Transmission(Energies, totalSystem, gammaL, gammaR);
     elseif options.linearResponse == false
+        chemPots = setupPots(voltages);
         Results = integrate(chemPots, totalSystem, gammaL, gammaR);
     end
     %disp('Finished calculation of the current.')
+end
+
+function [chemPots] = setupPots(voltages)
+    chemPots = struct('left', [], 'right', []);
+    for j = 1:length(voltages)
+        chemPotL = voltages(j)/2;
+        chemPotR = -1*voltages(j)/2;
+        chemPots(j) = struct('left', chemPotL, 'right', chemPotR);
+    end
 end
 
 %% integrate the transmission
@@ -26,6 +36,7 @@ arguments
     gammaR
     options.stepMult = 10
 end
+    % get the step size
     Energies = getEnergies(chemPots);
     Diffs = zeros(1, length(Energies)-1);
     for i = 2:length(Energies)

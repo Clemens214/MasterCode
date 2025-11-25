@@ -43,15 +43,6 @@ end
     %disp('Finished calculation of the torque.')
 end
 
-function [chemPots] = setupPots(voltages)
-    chemPots = struct('left', [], 'right', []);
-    for j = 1:length(voltages)
-        chemPotL = voltages(j)/2;
-        chemPotR = -1*voltages(j)/2;
-        chemPots(j) = struct('left', chemPotL, 'right', chemPotR);
-    end
-end
-
 %% integrate the torque
 function [Results] = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, choice, options)
 arguments
@@ -66,8 +57,26 @@ arguments
     options.print = false
 end
     % get the bounds
-    [maxPoint, minPoint] = choiceBounds(chemPots, choice);
-
+    if choice.conservative == true
+        strDisp = 'Conservative';
+        maxPoint = max([[chemPots.left], [chemPots.right]]);
+        minPoint = min([[chemPots.left], [chemPots.right], options.minVal]);
+    elseif choice.nonconservative == true
+        strDisp = 'Nonconservative';
+        maxPoint = max([[chemPots.left], [chemPots.right]]);
+        minPoint = min([[chemPots.left], [chemPots.right]]);
+    elseif choice.left == true
+        strDisp = 'Left';
+        maxPoint = max([chemPots.left]);
+        minPoint = min([[chemPots.left], options.minVal]);
+    elseif choice.right == true
+        strDisp = 'Right';
+        maxPoint = max([chemPots.right]);
+        minPoint = min([[chemPots.right], options.minVal]);
+    end
+    if options.print == true
+        disp([strDisp, '; Maximum: ',num2str(maxPoint), ', Minimum: ',num2str(minPoint)])
+    end
     % get the step size
     Energies = getEnergies(chemPots);
     Diffs = zeros(1, length(Energies)-1);
@@ -94,6 +103,46 @@ end
             Results(i) = 0;
         end
         %disp(['Voltage: ', num2str(chemPots(i).left-chemPots(i).right), ', j=', num2str(i)])
+    end
+end
+
+function [fermiFunc] = choiceBounds(evalPoints, chemPotL, chemPotR, choice)
+    % get the bounds
+    if choice.conservative == true
+        strDisp = 'Conservative';
+        maxPoint = max([[chemPots.left], [chemPots.right]]);
+        minPoint = min([[chemPots.left], [chemPots.right], options.minVal]);
+    elseif choice.nonconservative == true
+        strDisp = 'Nonconservative';
+        maxPoint = max([[chemPots.left], [chemPots.right]]);
+        minPoint = min([[chemPots.left], [chemPots.right]]);
+    elseif choice.left == true
+        strDisp = 'Left';
+        maxPoint = max([chemPots.left]);
+        minPoint = min([[chemPots.left], options.minVal]);
+    elseif choice.right == true
+        strDisp = 'Right';
+        maxPoint = max([chemPots.right]);
+        minPoint = min([[chemPots.right], options.minVal]);
+    end
+    if options.print == true
+        disp([strDisp, '; Maximum: ',num2str(maxPoint), ', Minimum: ',num2str(minPoint)])
+    end
+end
+
+function [fermiFunc] = choiceFermiFunc(evalPoints, chemPotL, chemPotR, choice)
+    if choice.conservative == true
+        fermiFuncL = getFermiFunc(evalPoints, chemPotL);
+        fermiFuncR = getFermiFunc(evalPoints, chemPotR);
+        fermiFunc = 0.5 * (fermiFuncL + fermiFuncR);
+    elseif choice.nonconservative == true
+        fermiFuncL = getFermiFunc(evalPoints, chemPotL);
+        fermiFuncR = getFermiFunc(evalPoints, chemPotR);
+        fermiFunc = 0.5 * (fermiFuncL - fermiFuncR);
+    elseif choice.left == true
+        fermiFunc = getFermiFunc(evalPoints, chemPotL);
+    elseif choice.right == true
+        fermiFunc = getFermiFunc(evalPoints, chemPotR);
     end
 end
 
@@ -141,6 +190,25 @@ function [Results] = Torque(Energies, totalSystem, totalSysDeriv, gammaL, gammaR
     Results = Traces;
 end
 
+function [TotalResult] = choiceLin(Energy, totalSystem, totalSysDeriv, gammaL, gammaR, choice)
+    if choice.conservative == true || choice.nonconservative == true || choice.left == true || choice.right == true
+        if choice.conservative == true
+            midFactor = gammaL + gammaR;
+        elseif choice.nonconservative == true
+            midFactor = gammaL - gammaR;
+        elseif choice.left == true
+            midFactor = gammaL;
+        elseif choice.right == true
+            midFactor = gammaR;
+        end
+        TotalResult = TorqueAlt(Energy, totalSystem, totalSysDeriv, midFactor);
+    else
+        ResultL = TorqueAlt(Energy, totalSystem, totalSysDeriv, gammaL);
+        ResultR = TorqueAlt(Energy, totalSystem, totalSysDeriv, gammaR);
+        TotalResult = ResultL + ResultR;
+    end
+end
+
 function [Result] = TorqueAlt(Energy, totalSystem, totalSysDeriv, midFactor)
     % A*G*B*Gt
     % F = decomposition(GreensInv,'lu');
@@ -171,6 +239,15 @@ function [Filtered] = getEnergies(chemPots)
     Filtered = unique(Sorted);
 end
 
+function [chemPots] = setupPots(voltages)
+    chemPots = struct('left', [], 'right', []);
+    for j = 1:length(voltages)
+        chemPotL = voltages(j)/2;
+        chemPotR = -1*voltages(j)/2;
+        chemPots(j) = struct('left', chemPotL, 'right', chemPotR);
+    end
+end
+
 function [values] = makeList(maxVal, minVal, stepVal)
     arguments
         maxVal
@@ -179,71 +256,6 @@ function [values] = makeList(maxVal, minVal, stepVal)
     end
     numVal = (maxVal-minVal)/stepVal+1;
     values = linspace(minVal, maxVal, numVal);
-end
-
-%% choosing functions
-function [maxPoint, minPoint] = choiceBounds(chemPots, choice, options)
-arguments
-    chemPots
-    choice
-    options.print = false
-end
-    % get the bounds
-    if choice.conservative == true
-        strDisp = 'Conservative';
-        maxPoint = max([[chemPots.left], [chemPots.right]]);
-        minPoint = min([[chemPots.left], [chemPots.right], options.minVal]);
-    elseif choice.nonconservative == true
-        strDisp = 'Nonconservative';
-        maxPoint = max([[chemPots.left], [chemPots.right]]);
-        minPoint = min([[chemPots.left], [chemPots.right]]);
-    elseif choice.left == true
-        strDisp = 'Left';
-        maxPoint = max([chemPots.left]);
-        minPoint = min([[chemPots.left], options.minVal]);
-    elseif choice.right == true
-        strDisp = 'Right';
-        maxPoint = max([chemPots.right]);
-        minPoint = min([[chemPots.right], options.minVal]);
-    end
-    if options.print == true
-        disp([strDisp, '; Maximum: ',num2str(maxPoint), ', Minimum: ',num2str(minPoint)])
-    end
-end
-
-function [fermiFunc] = choiceFermiFunc(evalPoints, chemPotL, chemPotR, choice)
-    if choice.conservative == true
-        fermiFuncL = getFermiFunc(evalPoints, chemPotL);
-        fermiFuncR = getFermiFunc(evalPoints, chemPotR);
-        fermiFunc = 0.5 * (fermiFuncL + fermiFuncR);
-    elseif choice.nonconservative == true
-        fermiFuncL = getFermiFunc(evalPoints, chemPotL);
-        fermiFuncR = getFermiFunc(evalPoints, chemPotR);
-        fermiFunc = 0.5 * (fermiFuncL - fermiFuncR);
-    elseif choice.left == true
-        fermiFunc = getFermiFunc(evalPoints, chemPotL);
-    elseif choice.right == true
-        fermiFunc = getFermiFunc(evalPoints, chemPotR);
-    end
-end
-
-function [TotalResult] = choiceLin(Energy, totalSystem, totalSysDeriv, gammaL, gammaR, choice)
-    if choice.conservative == true || choice.nonconservative == true || choice.left == true || choice.right == true
-        if choice.conservative == true
-            midFactor = gammaL + gammaR;
-        elseif choice.nonconservative == true
-            midFactor = gammaL - gammaR;
-        elseif choice.left == true
-            midFactor = gammaL;
-        elseif choice.right == true
-            midFactor = gammaR;
-        end
-        TotalResult = TorqueAlt(Energy, totalSystem, totalSysDeriv, midFactor);
-    else
-        ResultL = TorqueAlt(Energy, totalSystem, totalSysDeriv, gammaL);
-        ResultR = TorqueAlt(Energy, totalSystem, totalSysDeriv, gammaR);
-        TotalResult = ResultL + ResultR;
-    end
 end
 
 function [] = testFermi(evalPoints, fermiFunc, choice)
