@@ -1,3 +1,21 @@
+function [] = makeSystemSI (sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals, options)
+arguments
+    sample
+    hoppingsInter
+    eta = 1E-12;
+    options.check = true
+    options.checkMore = false
+end
+    hoppingsLeft = hoppingsInter(1, :);
+    hoppingsRight = hoppingsInter(2, :);
+
+    sigmaL = zeros(size(sample));
+    sigmaR = zeros(size(sample));
+
+    for 1: length()
+    end
+end
+
 function [G, totalSystem, gammaL, gammaR] = prepareSI (w, Hamiltonian, t_C, t_B, N)
     eta = 0.000000001; %0.000000001
     sigmaL = zeros(N, N);
