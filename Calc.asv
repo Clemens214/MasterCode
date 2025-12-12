@@ -26,6 +26,7 @@ voltages = makeList(voltageMax, voltageStep);
 EnergyMax = 2.5;
 EnergyStep = 0.1;
 Energies = makeList(EnergyMax, EnergyStep, full=true);
+Energies = 1;
 
 %% Calculation
 Transmission = cell(1, length(angles));
@@ -51,7 +52,7 @@ for i = 1:length(angles)
     checkMatrix(totalSystem);
     
     for j = 1:length(Energies)
-        [totalSystem, gammaL, gammaR] = makeSystemSI (Energies, sample, eigenenergy, hoppingLead, hoppingsInter);
+        [totalSystem, gammaL, gammaR] = makeSystemSI (Energy, sample, eigenenergy, hoppingLead, hoppingsInter);
     end
 
     % calculating the values
