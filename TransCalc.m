@@ -7,7 +7,7 @@ arguments
     voltages
     options.linearResponse = true
 end
-    %disp('Starting calculation of the current.')
+    %disp('Starting calculation of the angular momentum.')
     if options.linearResponse == true
         Energies = voltages;
         Results = Transmission(Energies, totalSystem, gammaL, gammaR);
@@ -15,7 +15,7 @@ end
         chemPots = setupPots(voltages);
         Results = integrate(chemPots, totalSystem, gammaL, gammaR);
     end
-    %disp('Finished calculation of the current.')
+    %disp('Starting calculation of the angular momentum.')
 end
 
 function [chemPots] = setupPots(voltages)
