@@ -14,12 +14,12 @@ hoppingLead = hopping;
 
 % variables for the hopping
 angleMax = 2*pi;
-angleStep = pi/4;
+angleStep = pi/8;
 angles = makeList(angleMax, angleStep);
 
 %variables for the voltages
 voltageMax = 4.5;
-voltageStep = 0.5;
+voltageStep = 0.1;
 voltages = makeList(voltageMax, voltageStep);
 
 %variables for the Energies
@@ -53,9 +53,9 @@ for i = 1:length(angles)
     %checkMatrix(totalSystem);
     
     % calculating the values
-    %Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Energies);
-    %Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Energies);
-    %Angular{i} = AngularCalc(totalSystem, gammaL, gammaR, Energies, sizeLead);
+    Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Energies);
+    Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Energies);
+    Angular{i} = AngularCalc(totalSystem, gammaL, gammaR, Energies, sizeLead);
     Helicity{i} = HelicityCalc(totalSystem, gammaL, gammaR, Energies, sizeLead);
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
@@ -63,11 +63,11 @@ end
 %% plot
 %Plot(1, angles, Energies, {Transmission, Torque}, Spectrum=true, Both=true, Title='Both')
 
-%Plot(2, angles, Energies, Transmission, Spectrum=true, twoD=true, Title='Transmission')
-%Plot(3, angles, Energies, Torque, Spectrum=true, twoD=true, Title='Torque')
+Plot(2, angles, Energies, Transmission, Spectrum=true, twoD=true, Title='Transmission')
+Plot(3, angles, Energies, Torque, Spectrum=true, twoD=true, Title='Torque')
 
-%Plot(4, angles, Energies, Angular, threeD=true, Title='Angular Momentum')
-Plot(5, angles, Energies, Helicity, threeD=true, Title='Helicity')
+Plot(4, angles, voltages, Angular, threeD=true, Title='Angular Momentum')
+Plot(5, angles, voltages, Helicity, threeD=true, Title='Helicity')
 
 %% chemPots
 function [totalSysDeriv] = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv, derivVals)
