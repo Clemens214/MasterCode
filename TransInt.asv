@@ -17,7 +17,7 @@ end
         for i = 1:length(chemPots)
             chemPotL = chemPots(i).left;
             chemPotR = chemPots(i).right;
-            Matrix = TransmissionMatrix(Diag, upperTriag, SchurVec, gammaL, gammaR, chemPotL, chemPotR);
+            Matrix = TransmissionMatrixSchur(Diag, upperTriag, SchurVec, gammaL, gammaR, chemPotL, chemPotR);
             Results(i) = real(trace(Matrix));
             if options.print == true
                 disp(['Voltage: ', num2str(chemPotL - chemPotR), ', j=', num2str(i)])
@@ -38,7 +38,7 @@ end
 end
 
 %% total transmission for finite voltages using Schur
-function [Result] = TransmissionMatrix(Diag, upperTriag, SchurVec, gammaL, gammaR, chemPotL, chemPotR)
+function [Result] = TransmissionMatrixSchur(Diag, upperTriag, SchurVec, gammaL, gammaR, chemPotL, chemPotR)
     index = struct('i', [], 'j', [], ...
                     'Eigenval', [], 'EigenvalD', [], ...
                     'leftEV', [], 'leftEVD', [], ...
@@ -101,13 +101,13 @@ end
 
 %% total transmission in the linear transport approximation
 function [Result] = TransmissionLin(Energy, totalSystem, gammaL, gammaR)
-%calculates the transport through a molecule in the linear transport approximation
-arguments
-    Energy
-    totalSystem
-    gammaL
-    gammaR
-end
+    %calculates the transport through a molecule in the linear transport approximation
+    arguments
+        Energy
+        totalSystem
+        gammaL
+        gammaR
+    end
     % G*B*Gt*C
     % GreensFunc * gammaL * GreensFunc' * gammaR
     GreensInv = Energy*eye(length(totalSystem)) - totalSystem;

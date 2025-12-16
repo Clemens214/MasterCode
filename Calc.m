@@ -13,13 +13,13 @@ sizeLead = 104;
 hoppingLead = hopping;
 
 % variables for the hopping
-angleMax = 2*pi;
-angleStep = pi/8;
+angleMax = 0;
+angleStep = pi/4;
 angles = makeList(angleMax, angleStep);
 
 %variables for the voltages
-voltageMax = 4.5;
-voltageStep = 0.1;
+voltageMax = 0.5;
+voltageStep = 0.5;
 voltages = makeList(voltageMax, voltageStep);
 
 %variables for the Energies
@@ -47,16 +47,22 @@ for i = 1:length(angles)
     sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
     
     % preparing the Extended Molecule Hamiltonian
-    [totalSystem, gammaL, gammaR, sigmaL, sigmaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
+    [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
     totalSysDeriv = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv, derivVals);
     
     %checkMatrix(totalSystem);
     
     % calculating the values
-    Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Energies);
-    Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Energies);
-    Angular{i} = AngularCalc(totalSystem, gammaL, gammaR, Energies, sizeLead);
-    Helicity{i} = HelicityCalc(totalSystem, gammaL, gammaR, Energies, sizeLead);
+    Transmission{i} = TransInt(totalSystem, gammaL, gammaR, voltages);
+    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, voltages);
+    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, voltages, conservative=true);
+    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, voltages, nonconservative=true);
+    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, voltages, left=true);
+    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, voltages, right=true);
+    %Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Energies);
+    %Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Energies);
+    %Angular{i} = AngularCalc(totalSystem, gammaL, gammaR, Energies, sizeLead);
+    %Helicity{i} = HelicityCalc(totalSystem, gammaL, gammaR, Energies, sizeLead);
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 

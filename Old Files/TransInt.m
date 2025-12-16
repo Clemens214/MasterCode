@@ -5,19 +5,19 @@ arguments
     gammaL
     gammaR
     voltages
-    options.linearResponse = true
-    options.print = false
+    options.linearResponse = false
+    options.print = true
 end
     %disp('Starting calculation of the current.')
     if options.linearResponse == false
         chemPots = setupPots(voltages);
-        % compute the Schur decomposition of the System's pseudo Hamiltonian
-        [Diag, upperTriag, SchurVec] = getSchur(totalSystem);
+        % compute the Eigenvectors and the Eigenvalues of the system
+        [Eigenvals, leftEVs, rightEVs] = getEigenvectors(totalSystem);%, checkMore=true);
         Results = zeros(1, length(chemPots));
         for i = 1:length(chemPots)
             chemPotL = chemPots(i).left;
             chemPotR = chemPots(i).right;
-            Matrix = TransmissionMatrix(Diag, upperTriag, SchurVec, gammaL, gammaR, chemPotL, chemPotR);
+            Matrix = TransmissionMatrixEV(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR);
             Results(i) = real(trace(Matrix));
             if options.print == true
                 disp(['Voltage: ', num2str(chemPotL - chemPotR), ', j=', num2str(i)])
@@ -37,8 +37,8 @@ end
     %disp('Finished calculation of the current.')
 end
 
-%% total transmission for finite voltages using Schur
-function [Result] = TransmissionMatrix(Diag, upperTriag, SchurVec, gammaL, gammaR, chemPotL, chemPotR)
+%% total transmission for finite voltages
+function [Result] = TransmissionMatrixEV(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR)
     index = struct('i', [], 'j', [], ...
                     'Eigenval', [], 'EigenvalD', [], ...
                     'leftEV', [], 'leftEVD', [], ...
@@ -58,7 +58,6 @@ function [Result] = TransmissionMatrix(Diag, upperTriag, SchurVec, gammaL, gamma
             index(idx).rightEVD = rightEVs(:,j)';
         end
     end
-
     %disp('Starting calculation of the transmission element.')
     Result = 0;
     parfor idx = 1:length(index)
@@ -101,26 +100,12 @@ end
 
 %% total transmission in the linear transport approximation
 function [Result] = TransmissionLin(Energy, totalSystem, gammaL, gammaR)
-%calculates the transport through a molecule in the linear transport approximation
-arguments
-    Energy
-    totalSystem
-    gammaL
-    gammaR
-end
-    % G*B*Gt*C
-    % GreensFunc * gammaL * GreensFunc' * gammaR
-    GreensInv = Energy*eye(length(totalSystem)) - totalSystem;
-    % F = decomposition(GreensInv,'lu');
-    F = decomposition(GreensInv,'lu');    % create reusable LU object (works for sparse/dense)
-    % Y = F \ B;
-    Y = F \ gammaL;
-    % W = C * Y;
-    W = gammaR * Y;
-    % Z = F' \ W;
-    Z = F' \ W;                   % uses transpose of factorization
-    % t = trace(Z);
-    Result = Z;
+    % calculate the Greens Function
+    GreensFuncInv = Energy*eye(length(totalSystem)) - totalSystem;
+    GreensFunc = inv(GreensFuncInv);
+    
+    % calculate the matrix product
+    Result = GreensFunc * gammaL * GreensFunc' * gammaR;
 end
 
 %% helping functions
