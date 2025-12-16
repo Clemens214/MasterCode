@@ -13,7 +13,7 @@ sizeLead = 104;
 hoppingLead = hopping;
 
 % variables for the hopping
-angleMax = pi;
+angleMax = 2*pi;
 angleStep = pi/8;
 angles = makeList(angleMax, angleStep);
 
@@ -30,6 +30,8 @@ Energies = makeList(EnergyMax, EnergyStep, full=true);
 %% Calculation
 Transmission = cell(1, length(angles));
 Torque = cell(1, length(angles));
+Angular = cell(1, length(angles));
+Helicity = cell(1, length(angles));
 for i = 1:length(angles)
     if orderSample == 1
         hoppingsInter = [hopping; hopping];
@@ -47,24 +49,25 @@ for i = 1:length(angles)
     % preparing the Extended Molecule Hamiltonian
     [totalSystem, gammaL, gammaR, sigmaL, sigmaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
     totalSysDeriv = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv, derivVals);
-
-    checkMatrix(totalSystem);
     
-    for j = 1:length(Energies)
-        [totalSystem, gammaL, gammaR] = makeSystemSI (Energies, sample, eigenenergy, hoppingLead, hoppingsInter);
-    end
-
+    %checkMatrix(totalSystem);
+    
     % calculating the values
     Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Energies);
     Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Energies);
+    Angular{i} = AngularCalc(totalSystem, gammaL, gammaR, Energies, sizeLead);
+    Helicity{i} = HelicityCalc(totalSystem, gammaL, gammaR, Energies, sizeLead);
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
 %% plot
-Plot(1, angles, Energies, {Transmission, Torque}, Spectrum=true, Both=true, Title='Both')
+%Plot(1, angles, Energies, {Transmission, Torque}, Spectrum=true, Both=true, Title='Both')
 
 Plot(2, angles, Energies, Transmission, Spectrum=true, twoD=true, Title='Transmission')
 Plot(3, angles, Energies, Torque, Spectrum=true, twoD=true, Title='Torque')
+
+Plot(4, angles, voltages, Angular, threeD=true, Title='Angular Momentum')
+Plot(5, angles, voltages, Helicity, threeD=true, Title='Helicity')
 
 %% chemPots
 function [totalSysDeriv] = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv, derivVals)
