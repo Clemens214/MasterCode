@@ -181,13 +181,13 @@ function [Result] = TorqueAlt(Energy, totalSystem, totalSysDeriv, midFactor)
     % totalSysDeriv * GreensFunc * midFactor * GreensFunc'
     GreensInv = Energy*eye(length(totalSystem)) - totalSystem;
     % F = decomposition(GreensInv,'lu');
-    F = decomposition(GreensInv,'lu');    % create reusable factorization object
+    F = decomposition(GreensInv,'lu');  % create reusable factorization object
     % Y = F \ B;
-    Y = F \ midFactor;                     % solves Aw * Y = B
+    Y = F \ midFactor;                  % solves Aw * Y = B
     % T = A * Y;
     T = totalSysDeriv * Y;
     % Z = F' \ T;
-    Z = F' \ T;                    % solves Aw' * Z = T
+    Z = F' \ T;                         % solves Aw' * Z = T
     % t = trace(Z);
     Result = Z;
 end

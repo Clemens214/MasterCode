@@ -39,24 +39,33 @@ end
 
 %% total transmission for finite voltages using Schur
 function [Result] = TransmissionMatrix(Diag, upperTriag, SchurVec, gammaL, gammaR, chemPotL, chemPotR)
-    index = struct('i', [], 'j', [], ...
+    index = struct('index1', [], 'index2', [], ...
                     'Eigenval', [], 'EigenvalD', [], ...
                     'leftEV', [], 'leftEVD', [], ...
                     'rightEV', [], 'rightEVD', []);
-    for i = 1:length(Eigenvals)
-        for j = 1:length(Eigenvals)
-            idx = (i-1)*length(Eigenvals) + j;
-            index(idx).i = i;
-            index(idx).j = j;
+    idx = 0;
+    for i = 1:length(Diag)
+    for j = i:length(Diag)
+        for k = 1:length(Diag)
+        for l = k:length(Diag)
+            idx = idx + 1;
+            index(idx).index1 = [i, j];
+            index(idx).index1 = [k, l];
             % set the normal variables
-            index(idx).Eigenval = Eigenvals(i,i);
-            index(idx).leftEV = leftEVs(:,i)';
-            index(idx).rightEV = rightEVs(:,i);
+            for m = 1:length(Diag)-1
+                index(idx).Eigenval = Eigenvals(i,i);
+                index(idx).leftEV = leftEVs(:,i)';
+                index(idx).rightEV = rightEVs(:,i);
+            end
             % set the daggered variables
-            index(idx).EigenvalD = Eigenvals(j,j)';
-            index(idx).leftEVD = leftEVs(:,j);
-            index(idx).rightEVD = rightEVs(:,j)';
+            for m = 1:length(Diag)-1
+                index(idx).EigenvalD = Eigenvals(j,j)';
+                index(idx).leftEVD = leftEVs(:,j);
+                index(idx).rightEVD = rightEVs(:,j)';
+            end
         end
+        end
+    end
     end
 
     %disp('Starting calculation of the transmission element.')
@@ -87,6 +96,41 @@ function [Result] = TransmissionMatrix(Diag, upperTriag, SchurVec, gammaL, gamma
     %disp('Finished calculation of the transmission element.')
 end
 
+function [] = getElement(Diag, upperTriag, SchurVec)
+arguments
+    Diag
+    upperTriag
+    SchurVec
+end
+    index = struct('row', [], 'column', [], 'power', [], ...
+                    'Eigenval', [], 'EigenvalD', [], ...
+                    'leftEV', [], 'leftEVD', [], ...
+                    'rightEV', [], 'rightEVD', []);
+    idx = 0;
+    for row = 1:length(Diag)
+        for column = row:length(Diag)
+            for power = 0:length(Diag)-1
+                idx = idx + 1;
+                % set the indices
+                index(idx).row = row;
+                index(idx).column = column;
+                index(idx).power = power;
+                % set the variables
+                index(idx).path = [];
+                index(idx).leftEV = leftEVs(:,i)';
+                index(idx).rightEV = rightEVs(:,i);
+            end
+        end
+    end
+end
+
+function [] = getPath(row, column, power)
+    for row = 1:length(size)
+            
+        end
+    end
+end
+
 %% calculate the factor
 function [result] = FactorElement(eig1, eig2, chemPot)
     if eig1 ~= eig2
@@ -112,13 +156,13 @@ end
     % GreensFunc * gammaL * GreensFunc' * gammaR
     GreensInv = Energy*eye(length(totalSystem)) - totalSystem;
     % F = decomposition(GreensInv,'lu');
-    F = decomposition(GreensInv,'lu');    % create reusable LU object (works for sparse/dense)
+    F = decomposition(GreensInv,'lu');  % create reusable LU object (works for sparse/dense)
     % Y = F \ B;
     Y = F \ gammaL;
     % W = C * Y;
     W = gammaR * Y;
     % Z = F' \ W;
-    Z = F' \ W;                   % uses transpose of factorization
+    Z = F' \ W;                         % uses transpose of factorization
     % t = trace(Z);
     Result = Z;
 end
