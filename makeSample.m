@@ -22,7 +22,7 @@ end
     end
 end
 
-function [sample] = makeSampleNew(eigenenergy, hoppings, size,  order)
+function [sample] = makeSampleNew(eigenenergy, hoppings, size, order)
 % generate the sample's Hamiltonian
 arguments
     eigenenergy
@@ -44,8 +44,8 @@ end
     % generate the sample's Hamiltonian
     sizeCenter = size*order;
     sample = zeros(sizeCenter, sizeCenter);
-    for row = 1:sizeCenter
-        for column = 1:sizeCenter
+    for row = 1:size
+        for column = 1:size
             if smallEnergy(row, column) ~= 0
                 range = order*(row-1)+1 : order*row;
                 sample(range, range) = eye(order, order)*eigenenergy;
