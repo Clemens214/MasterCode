@@ -13,81 +13,92 @@ end
     
     [Test, ~, maxDiff] = checkResult(GreensFunc, GreensCheck);
     if all(Test)
-        disp("The Green's functions DO match! Maximum Difference: ", num2str(maxDiff))
+        disp(['The Greens functions DO match! Maximum Difference: ', num2str(maxDiff)])
     else
-        disp("The Green's functions do NOT match! Maximum Difference: ", num2str(maxDiff))
+        disp(['The Greens functions do NOT match! Maximum Difference: ', num2str(maxDiff)])
     end
 end
 
-function [Result] = GreensCalc(omega, Diag, upperTriag, SchurVec)
-    index = struct('row', [], 'column', [], 'power', [], 'paths', []);
+function [Result] = GreensCalc(omega, Diag, upperTriag, SchurVec, options)
+arguments
+    omega
+    Diag
+    upperTriag
+    SchurVec
+    options.check = true
+end
+    index = struct('row', [], 'column', []);
     idx = 0;
     for row = 1:length(Diag)
         for column = row:length(Diag)
+            idx = idx+1;
+            index(idx).row = row;
+            index(idx).column = column;
+            % set the variables
+            matrix = zeros(length(Diag), length(Diag));
+            matrix(row, column) = 1;
+            index(idx).matrix = matrix;
+            factor = struct('power', [], 'paths', []);
             for power = 0:abs(row-column)
-                idx = idx + 1;
-                % set the indices
-                index(idx).row = row;
-                index(idx).column = column;
-                index(idx).power = power;
-                % set the variables
-                matrix = zeros(length(Diag), length(Diag));
-                matrix(row, column) = 1;
-                index(idx).matrix = matrix;
-                index(idx).paths = getPaths(row, column, power);
+                jdx = power+1;
+                factor(jdx).power = power;
+                factor(jdx).paths = getPaths(row, column, power);
             end
+            index(idx).factor = factor;
         end
     end
+    %disp('Starting calculation of the Green's Function.')
     Matrix = zeros(size(Diag));
     Matrices = cell(1, length(Diag));
     for i = 1:numel(Matrices)
         Matrices{i} = zeros(length(Diag), length(Diag));
     end
-    for i = 1:numel(index)
-        row = index(i).row;
-        column = index(i).column;
-        power = index(i).power;
-        paths = index(i).paths;
-
-        Factor = 0;
-        for j = 1:height(paths)
-            path = paths(j,:);
-            Element = 1;
-            for k = 1:length(path)-1
-                if power == 0
-                    I = eye(path(k), path(k+1));
-                    val =  I(path(k), path(k+1));
-                else
-                    fac = omega - Diag(path(k), path(k));
-                    val = 1/fac * upperTriag(path(k), path(k+1));
+    for idx = 1:numel(index)
+        factor = index(idx).factor;
+        values = zeros(1, numel(factor));
+        for i = 1:numel(factor)
+            power = factor(i).power;
+            paths = factor(i).paths;
+            elements = zeros(1, height(paths));
+            for j = 1:height(paths)
+                path = paths(j,:);
+                factors = zeros(1, length(path)-1);
+                for k = 1:length(path)-1
+                    if power == 0
+                        I = eye(path(k), path(k+1));
+                        val =  I(path(k), path(k+1));
+                    else
+                        fac = omega - Diag(path(k), path(k));
+                        val = 1/fac * upperTriag(path(k), path(k+1));
+                    end
+                    factors(k) = val;
                 end
-                Element = Element * val;
+                elements(j) = prod(factors);
             end
-            Factor = Factor + Element;
+            values(i) = sum(elements);
         end
-        Matrix(row, column) = Matrix(row, column) + Factor;
-        MatricesMatrix = Matrices{power+1};
-        MatricesMatrix(row, column) = Factor;
-        Matrices{power+1} = MatricesMatrix;
-
-        Test = ((omega*eye(length(Diag)) - Diag) \ upperTriag)^power;
-        if Factor ~= Test(row, column)
-            disp(['The factors do NOT match!', ' row: ', num2str(row), ', column: ', num2str(column), ', power: ', num2str(power)])
-        end
-    end
-    for i = 1:numel(Matrices)
-        Test = ((omega*eye(length(Diag)) - Diag) \ upperTriag)^(i-1);
-        if Matrices{i} ~= Test
-            disp(['The matrices do NOT match!', ' power: ', num2str(power)])
+        row = index(idx).row;
+        column = index(idx).column;
+        Matrix(row, column) = sum(values);
+        for i = 1:numel(values)
+            Matrices{i}(row, column) = values(i);
         end
     end
     invDiag = (omega*eye(length(Diag)) - Diag);
     ResultSchur = invDiag \ Matrix;
     Result = SchurVec * ResultSchur * SchurVec';
+    %disp('Finished calculation of the Green's Function.')
+    if options.check == true
+        for i = 1:numel(Matrices)
+            Test = ((omega*eye(length(Diag)) - Diag) \ upperTriag)^(idx-1);
+            if Matrices{i} ~= Test
+                disp(['The matrices do NOT match!', ' power: ', num2str(power)])
+            end
+        end
+    end
 end
 
 function [paths] = getPaths(row, column, power)
-    disp(['row: ', num2str(row), ', column: ', num2str(column), ', power: ', num2str(power)])
     range = row+1 : column-1;
     if power > 0
         if length(range) == 1
@@ -102,6 +113,7 @@ function [paths] = getPaths(row, column, power)
     else
         paths = [row, column];
     end
+    %disp(['row: ', num2str(row), ', column: ', num2str(column), ', power: ', num2str(power)])
 end
 
 %% checking functions
