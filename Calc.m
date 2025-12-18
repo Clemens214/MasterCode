@@ -1,8 +1,8 @@
 %% Variables
 
 % variables for the sample
-sizeSample = 48;
-orderSample = 2;
+sizeSample = 24;
+orderSample = 1;
 eigenenergy = 0;
 hopping = 1;
 hoppingsSample = hopping*eye(orderSample);
@@ -26,6 +26,9 @@ voltages = makeList(voltageMax, voltageStep);
 EnergyMax = 2.5;
 EnergyStep = 0.1;
 Energies = makeList(EnergyMax, EnergyStep, full=true);
+
+sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
+testSchur(sample, 0)
 
 %% Calculation
 Transmission = cell(1, length(angles));

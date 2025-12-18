@@ -1,4 +1,4 @@
-function [Eigenvals, leftEVs, rightEVs, varargout] = eigenvectors (totalSystem, options)
+function [Eigenvals, leftEVs, rightEVs, varargout] = getEigenvectors(totalSystem, options)
 arguments
     totalSystem
     options.check = true
@@ -11,35 +11,41 @@ end
     % also returns full matrix W whose columns are the corresponding left eigenvectors, so that W'*A = D*W'.
     [rightEVs, Eigenvals, leftEVs] = eig(totalSystem);
     
-    [leftEVs, rightEVs, valuesOld] = normalize(leftEVs, rightEVs);
-    [~, ~, valuesNew] = normalize(leftEVs, rightEVs);
-    
-    if options.checkMore == true
-    checkResult(totalSystem, rightEVs, Eigenvals, leftEVs)
-    end
+    [leftEVs, rightEVs, valuesOld, valuesNew] = normalize(leftEVs, rightEVs);
     
     %disp('Start checking the Eigenvectors.')
     if options.check == true
+        % check the product
         [Product, maxOffDiag, minOnDiag] = TestProduct(Eigenvals, leftEVs, rightEVs);
+        if options.checkMore == true
+            disp(['maxOffDiag = ', num2str(maxOffDiag)])
+            disp(['minOnDiag = ', num2str(minOnDiag)])
+            absValuesOld = sort(abs(valuesOld));
+            absValuesNew = sort(abs(valuesNew));
+            if maxOffDiag > 10
+                disp(['The values before normalization: \n', absValuesOld])
+                disp(['The values after normalization: \n', absValuesNew])
+            end
+        end
+        % return the values
         if options.returnAbs == true
             varargout{1} = abs(Product);
         else
             varargout{1} = Product;
         end
         if options.checkMore == true
-            CorrVal = 2;
             varargout{2} = maxOffDiag;
-            disp(['maxOffDiag = ', num2str(maxOffDiag)])
             varargout{3} = minOnDiag;
-            disp(['minOnDiag = ', num2str(minOnDiag)])
-        else
-            CorrVal = 0;
         end
+    end
+    if options.checkMore == true
+        CorrVal = 2;
+    else
+        CorrVal = 0;
+    end
+    if options.check == true
+        % check the eigenvectors
         [MatchLeft, MatchRight, DiffLeft, DiffRight] = TestEV(totalSystem, Eigenvals, leftEVs, rightEVs);
-        varargout{2+CorrVal} = MatchLeft;
-        varargout{3+CorrVal} = MatchRight;
-        varargout{4+CorrVal} = DiffLeft;
-        varargout{5+CorrVal} = DiffRight;
         if options.checkMore == true
             if all(MatchLeft) == true
                 disp(['All the left eigenvectors match! Maximum Difference: ', num2str(max(max(DiffLeft)))]);
@@ -48,34 +54,92 @@ end
                 disp(['All the right eigenvectors match! Maximum Difference: ', num2str(max(max(DiffRight)))]);
             end
         end
+        % return the values
+        varargout{2+CorrVal} = MatchLeft;
+        varargout{3+CorrVal} = MatchRight;
+        varargout{4+CorrVal} = DiffLeft;
+        varargout{5+CorrVal} = DiffRight;
+    end
+    if options.checkMore == true
+        checkResult(totalSystem)
     end
     %disp('Finished checking the Eigenvectors.')
-    [ProductOld, ProductNew, ValsOld, ValsNew] = Products (Eigenvals, leftEVs, rightEVs);
-    if maxOffDiag > 10
-        absValuesOld = sort(abs(valuesOld));
-        absValuesNew = sort(abs(valuesNew));
-        %disp('Test')
-    end
 end
 
 function [leftEVs, rightEVs, varargout] = normalize (leftEVs, rightEVs)
-    values = zeros(1, length(leftEVs));
+    valuesOld = zeros(1, length(leftEVs));
+    valuesNew = zeros(1, length(leftEVs));
     for i = 1:length(leftEVs)
         leftEV = leftEVs(:,i)';
         rightEV = rightEVs(:,i);
-        value = leftEV * rightEV;
+        valueOld = leftEV * rightEV;
         
-        squareRoot = sqrt(value);
+        squareRoot = sqrt(valueOld);
         leftEVs(:,i) = leftEVs(:,i)/squareRoot';
         rightEVs(:,i) = rightEVs(:,i)/squareRoot;
+        valueNew = leftEV * rightEV;
 
-        values(i) = value;
+        valuesOld(i) = valueOld;
+        valuesNew(i) = valueNew;
     end
-    varargout{1} = values;
+    varargout{1} = valuesOld;
+    varargout{2} = valuesNew;
 end
 
 %% checking functions
-function [] = checkResult(totalSystem, rightEVs, Eigenvals, leftEVs)
+function [Product, maxOffDiag, minOnDiag] = TestProduct (Eigenvals, leftEVs, rightEVs)
+    Product = zeros(length(Eigenvals), length(Eigenvals));
+    for i = 1:length(Eigenvals)
+        leftEV = leftEVs(:,i)';
+        rightEV = rightEVs(:,i);
+        Product = Product + (rightEV * leftEV);
+    end
+    maxOffDiag = 0;
+    minOnDiag = 1;
+    for i = 1:length(Eigenvals)
+        for j = 1:length(Eigenvals)
+            if i ==j && abs(Product(i,j)) < minOnDiag
+                minOnDiag = abs(Product(i,i));
+            elseif i ~= j && abs(Product(i,j)) > maxOffDiag
+                maxOffDiag = abs(Product(i,j));
+            end
+        end
+    end
+end
+
+function [TestLeft, TestRight, DiffLeft, DiffRight] = TestEV (Matrix, Eigenvals, leftEVs, rightEVs, options)
+arguments
+    Matrix 
+    Eigenvals 
+    leftEVs 
+    rightEVs 
+    options.returnAbs = true
+    options.Tolerance = 1e-10;
+end
+    % check the left Eigenvectors
+    % W = full matrix W whose columns are the corresponding left eigenvectors
+    % W'*A = D*W'
+    MatrixMultLeft = leftEVs' * Matrix;
+    EigMultLeft = Eigenvals * leftEVs';
+    TestLeft = isapprox(MatrixMultLeft, EigMultLeft, AbsoluteTolerance=options.Tolerance);
+    DiffLeft = MatrixMultLeft-EigMultLeft;
+
+    % check the right Eigenvectors
+    % V = matrix V whose columns are the corresponding right eigenvectors
+    % A*V = V*D
+    MatrixMultRight = Matrix * rightEVs;
+    EigMultRight = rightEVs * Eigenvals;
+    TestRight = isapprox(MatrixMultRight, EigMultRight, AbsoluteTolerance=options.Tolerance);
+    DiffRight = MatrixMultRight-EigMultRight;
+
+    if options.returnAbs == true
+        DiffLeft = abs(DiffLeft);
+        DiffRight = abs(DiffRight);
+    end
+end
+
+%% more checking functions
+function [] = checkResult(totalSystem)
     % Example matrix (replace with your A)
     A = totalSystem;
 
@@ -115,94 +179,4 @@ function [] = checkResult(totalSystem, rightEVs, Eigenvals, leftEVs)
         disp('Matrix is diagonalizable but ill-conditioned.');
     end
     fprintf('Condition number of V: %g\n', condV);
-end
-
-function [ProductOld, ProductNew, ValsOld, ValsNew] = Products (Eigenvals, leftEVs, rightEVs)
-    ProductOld = zeros(length(Eigenvals), length(Eigenvals));
-    for i = 1:length(Eigenvals)
-        leftEV = leftEVs(:,i)';
-        rightEV = rightEVs(:,i);
-        ProductOld = ProductOld + (rightEV * leftEV);
-    end
-    maxOffDiag = 0;
-    minOnDiag = 1;
-    for i = 1:length(Eigenvals)
-        for j = 1:length(Eigenvals)
-            if i ==j && abs(ProductOld(i,j)) < minOnDiag
-                minOnDiag = abs(ProductOld(i,i));
-            elseif i ~= j && abs(ProductOld(i,j)) > maxOffDiag
-                maxOffDiag = abs(ProductOld(i,j));
-            end
-        end
-    end
-    ValsOld = struct('OnDiag', minOnDiag, 'OffDiag', maxOffDiag);
-
-    ProductNew = zeros(length(Eigenvals), length(Eigenvals));
-    ValsNew = struct('OnDiag', 1, 'OffDiag', 0);
-    for i = 1:length(Eigenvals)
-        for j = 1:length(Eigenvals)
-            leftEV = leftEVs(:,i)';
-            rightEV = rightEVs(:,j);
-            ProductNew(i, j) = leftEV * rightEV;
-            
-            if i ==j && abs(ProductNew(i,j)) < ValsNew.OnDiag
-                ValsNew.OnDiag = abs(ProductNew(i,i));
-            elseif i ~= j && abs(ProductNew(i,j)) > ValsNew.OffDiag
-                ValsNew.OffDiag = abs(ProductNew(i,j));
-            end
-        end
-    end
-end
-
-function [Product, maxOffDiag, minOnDiag] = TestProduct (Eigenvals, leftEVs, rightEVs)
-    Product = zeros(length(Eigenvals), length(Eigenvals));
-    for i = 1:length(Eigenvals)
-        leftEV = leftEVs(:,i)';
-        rightEV = rightEVs(:,i);
-        Product = Product + (rightEV * leftEV);
-    end
-    maxOffDiag = 0;
-    minOnDiag = 1;
-    for i = 1:length(Eigenvals)
-        for j = 1:length(Eigenvals)
-            if i ==j && abs(Product(i,j)) < minOnDiag
-                minOnDiag = abs(Product(i,i));
-            elseif i ~= j && abs(Product(i,j)) > maxOffDiag
-                maxOffDiag = abs(Product(i,j));
-            end
-        end
-    end
-end
-
-function [TestLeft, TestRight, DiffLeft, DiffRight] = TestEV (Matrix, Eigenvals, leftEVs, rightEVs, options)
-arguments
-    Matrix 
-    Eigenvals 
-    leftEVs 
-    rightEVs 
-    options.returnAbs = true
-    options.Tolerance = 1e-10;
-    %Tolerance = 1e-10;
-end
-
-    % check the left Eigenvectors
-    % W = full matrix W whose columns are the corresponding left eigenvectors
-    % W'*A = D*W'
-    MatrixMultLeft = leftEVs' * Matrix;
-    EigMultLeft = Eigenvals * leftEVs';
-    TestLeft = isapprox(MatrixMultLeft, EigMultLeft, AbsoluteTolerance=options.Tolerance);
-    DiffLeft = MatrixMultLeft-EigMultLeft;
-
-    % check the right Eigenvectors
-    % V = matrix V whose columns are the corresponding right eigenvectors
-    % A*V = V*D
-    MatrixMultRight = Matrix * rightEVs;
-    EigMultRight = rightEVs * Eigenvals;
-    TestRight = isapprox(MatrixMultRight, EigMultRight, AbsoluteTolerance=options.Tolerance);
-    DiffRight = MatrixMultRight-EigMultRight;
-
-    if options.returnAbs == true
-        DiffLeft = abs(DiffLeft);
-        DiffRight = abs(DiffRight);
-    end
 end

@@ -27,6 +27,18 @@ EnergyMax = 2.5;
 EnergyStep = 0.1;
 Energies = makeList(EnergyMax, EnergyStep, full=true);
 
+getPath
+
+function [] = getPath(row, column, power)
+    num = nchoosek(column-row-1, power-1);
+    paths = cell(1, num);
+    nums = row+1 : column-1;
+    test = nchoosek(nums, power-1);
+    for idx = 1:num
+        paths{idx} = [row, , column];
+    end
+end
+
 %% Calculation
 Transmission = cell(1, length(angles));
 Torque = cell(1, length(angles));
@@ -58,7 +70,7 @@ for i = 1:length(angles)
     Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, voltages, conservative=true);
     Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, voltages, nonconservative=true);
     Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, voltages, left=true);
-    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, voltages, right=t);
+    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, voltages, right=true);
     %Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Energies);
     %Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Energies);
     %Angular{i} = AngularCalc(totalSystem, gammaL, gammaR, Energies, sizeLead);
