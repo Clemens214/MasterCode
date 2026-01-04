@@ -10,6 +10,8 @@ end
     GreensFunc = inv(GreensInv);
     
     GreensCheck = GreensCalc(omega, Diag, upperTriag, SchurVec);
+
+
     
     [Test, ~, maxDiff] = checkResult(GreensFunc, GreensCheck);
     if all(Test)
@@ -101,7 +103,7 @@ end
 function [paths] = getPaths(row, column, power)
     range = row+1 : column-1;
     if power > 0
-        if length(range) == 1
+        if isscalar(range)
             centers = range;
         else
             centers = nchoosek(range, power-1);
@@ -131,4 +133,77 @@ end
         Diff = abs(Diff);
     end
     maxDiff = max(max(abs(Diff)));
+end
+
+function [Result] = MatrixCalc(omega, Diag, upperTriag, SchurVec, options)
+arguments
+    omega
+    Diag
+    upperTriag
+    SchurVec
+    options.check = true
+end
+    index = struct('row', [], 'column', []);
+    idx = 0;
+    for row = 1:length(Diag)
+        for column = row:length(Diag)
+            for power = 0:abs(row-column)
+                idx = idx+1;
+                index(idx).row = row;
+                index(idx).column = column;
+                % set the variables
+                index(idx).power = power;
+                index(idx).paths = getPaths(row, column, power);
+            end
+        end
+    end
+    %disp('Starting calculation of the Green's Function.')
+    Matrix = zeros(size(Diag));
+    Matrices = cell(1, length(Diag));
+    for i = 1:numel(Matrices)
+        Matrices{i} = zeros(length(Diag), length(Diag));
+    end
+    for idx = 1:numel(index)
+        factor = index(idx).factor;
+        values = zeros(1, numel(factor));
+        for i = 1:numel(factor)
+            power = factor(i).power;
+            paths = factor(i).paths;
+            elements = zeros(1, height(paths));
+            for j = 1:height(paths)
+                path = paths(j,:);
+                factors = zeros(1, length(path)-1);
+                for k = 1:length(path)-1
+                    if power == 0
+                        I = eye(path(k), path(k+1));
+                        val =  I(path(k), path(k+1));
+                    else
+                        fac = omega - Diag(path(k), path(k));
+                        val = 1/fac * upperTriag(path(k), path(k+1));
+                    end
+                    factors(k) = val;
+                end
+                elements(j) = prod(factors);
+            end
+            values(i) = sum(elements);
+        end
+        row = index(idx).row;
+        column = index(idx).column;
+        Matrix(row, column) = sum(values);
+        for i = 1:numel(values)
+            Matrices{i}(row, column) = values(i);
+        end
+    end
+    invDiag = (omega*eye(length(Diag)) - Diag);
+    ResultSchur = invDiag \ Matrix;
+    Result = SchurVec * ResultSchur * SchurVec';
+    %disp('Finished calculation of the Green's Function.')
+    if options.check == true
+        for i = 1:numel(Matrices)
+            Test = ((omega*eye(length(Diag)) - Diag) \ upperTriag)^(idx-1);
+            if Matrices{i} ~= Test
+                disp(['The matrices do NOT match!', ' power: ', num2str(power)])
+            end
+        end
+    end
 end

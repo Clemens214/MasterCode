@@ -14,9 +14,8 @@ end
     [Test, ~, maxDiff] = checkResult(GreensFunc, GreensCheck);
     if all(Test)
         disp(['The Greens functions DO match! Maximum Difference: ', num2str(maxDiff)])
-        disp(['The Schur decomposition DOES reproduce the Hamiltonian. Maximum Difference: ', num2str(maxDiff)])
     else
-        disp(["The Green's functions do NOT match! Maximum Difference: ", num2str(maxDiff)])
+        disp(['The Greens functions do NOT match! Maximum Difference: ', num2str(maxDiff)])
     end
 end
 
@@ -102,7 +101,7 @@ end
 function [paths] = getPaths(row, column, power)
     range = row+1 : column-1;
     if power > 0
-        if length(range) == 1
+        if isscalar(range)
             centers = range;
         else
             centers = nchoosek(range, power-1);
