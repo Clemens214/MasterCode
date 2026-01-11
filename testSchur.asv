@@ -148,17 +148,20 @@ arguments
     factors2
     options.check = true
 end
+    paths1 = 
     combis = combinations(factors1, factors2);
     combis1 = combis(:, 1);
     combis2 = combis(:, 2);
-    for i = 1:height(combis)
-        vals1 = combis1(:).paths;
-        combis = combinations(combis1)
-        factor = index(idx).factor;
-        values = zeros(1, numel(factor));
-        for i = 1:numel(factor)
-            power = factor(i).power;
-            paths = factor(i).paths;
+    parfor idx = 1:height(combis)
+        power1 = combis1(idx).power;
+        power2 = combis1(idx).power;
+        % get the combinations of the paths
+        paths = combinations(combis1(idx).paths, combis2(idx).paths);
+        paths1 = paths(:, 1);
+        paths2 = paths(:, 2);
+        for idx = 1:numel(factor)
+            power = factor(idx).power;
+            paths = factor(idx).paths;
             elements = zeros(1, height(paths));
             for j = 1:height(paths)
                 path = paths(j,:);
@@ -175,25 +178,7 @@ end
                 end
                 elements(j) = prod(factors);
             end
-            values(i) = sum(elements);
-        end
-        row = index(idx).row;
-        column = index(idx).column;
-        Matrix(row, column) = sum(values);
-        for i = 1:numel(values)
-            Matrices{i}(row, column) = values(i);
-        end
-    end
-    invDiag = (omega*eye(length(Diag)) - Diag);
-    ResultSchur = invDiag \ Matrix;
-    Result = SchurVec * ResultSchur * SchurVec';
-    %disp('Finished calculation of the Green's Function.')
-    if options.check == true
-        for i = 1:numel(Matrices)
-            Test = ((omega*eye(length(Diag)) - Diag) \ upperTriag)^(idx-1);
-            if Matrices{i} ~= Test
-                disp(['The matrices do NOT match!', ' power: ', num2str(power)])
-            end
+            values(idx) = sum(elements);
         end
     end
 end
