@@ -1,14 +1,14 @@
 %% Variables
 
 % variables for the sample
-sizeSample = 24;
+sizeSample = 12;
 orderSample = 1;
 eigenenergy = 0;
 hopping = 1;
 hoppingsSample = hopping*eye(orderSample);
 
 % variables for the leads
-sizeLead = 104;
+sizeLead = 10;
 [leadVals, derivVals] = calcVals(maxVal = 1, decay = 0.2, offset = 32);
 hoppingLead = hopping;
 

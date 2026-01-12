@@ -9,7 +9,9 @@ end
     GreensInv = omega*eye(length(totalSystem)) - totalSystem;
     GreensFunc = inv(GreensInv);
     
-    Result = MatrixCalc(omega, Diag, upperTriag, SchurVec);
+    gammaL = eye(size(Diag));
+    gammaR = eye(size(Diag));
+    Result = MatrixCalc(omega, Diag, upperTriag, SchurVec, gammaL, gammaR);
 
     GreensCheck = GreensCalc(omega, Diag, upperTriag, SchurVec);
     
@@ -110,12 +112,13 @@ arguments
     gammaR
     options.check = true
 end
-    index = getIndices(length(Diag));
-    combis = combinations(index, index);
-    combis1 = combis(:, 1);
-    combis2 = combis(:, 2);
+    indices = getIndices(length(Diag));
+    combis = combinations(indices, indices);
+    combis1 = combis{:, 1};
+    combis2 = combis{:, 2};
     Matrix = zeros(size(Diag));
-    parfor idx = 1:height(combis)
+    for idx = 1:height(combis)
+    %parfor idx = 1:height(combis)
         % get the normal matrix
         index1 = combis1(idx);
         matrix1 = zeros(size(Diag));
@@ -130,35 +133,38 @@ end
         Product = gammaL * matrix1 * gammaR * matrix2';
         
         % compute the factor for the chosen matrices
-        factors1 = index1.factor;
-        factors2 = index2.factor;
-        Factor = FactorElement(EigVal, EigValDagger, chemPotL) - FactorElement(EigVal, EigValDagger, chemPotR);
+        Factors = FactorCalc(omega, Diag, upperTriag, SchurVec, index1, index2);
         
         Result = Result + Product*factor;
     end
 end
 
-function [Result] = FactorCalc(omega, Diag, upperTriag, SchurVec, factors1, factors2, options)
+function [Result] = FactorCalc(omega, Diag, upperTriag, SchurVec, index1, index2, options)
 arguments
     omega
     Diag
     upperTriag
     SchurVec
-    factors1
-    factors2
+    index1
+    index2
     options.check = true
 end
-    combis = combinations(factors1, factors2);
-    combis1 = combis(:, 1);
-    combis2 = combis(:, 2);
+    % get the combinations of the paths
+    combis = combinations(index1.factor, index2.factor);
+    combis1 = combis{:, 1};
+    combis2 = combis{:, 2};
     parfor idx = 1:height(combis)
-        power1 = combis1(idx).power;
-        power2 = combis1(idx).power;
-        % get the combinations of the paths
-        paths = combinations(combis1(idx).paths, combis2(idx).paths);
+        [factors1, vals1] = getVals(combis1(idx).power, combis1(idx).paths, Diag, upperTriag);
+        [factors2, vals2] = getVals(combis2(idx).power, combis2(idx).paths, Diag, upperTriag);
+        factors = [factors1, factors2];
+        vals = [vals1, vals2];
+        for i = 1:length(vals)
+            
+        end
+        paths = struct();
         paths1 = paths(:, 1);
         paths2 = paths(:, 2);
-        for idx = 1:numel(factor)
+        for i = 1:height(factor)
             power = factor(idx).power;
             paths = factor(idx).paths;
             elements = zeros(1, height(paths));
@@ -178,6 +184,25 @@ end
                 elements(j) = prod(factors);
             end
             values(idx) = sum(elements);
+        end
+    end
+end
+
+function [factors, vals] = getVals(power, path, Diag, upperTriag)
+    % define the values from the diagonal matrix
+    vals = zeros(1, length(path));
+    vals(1) = Diag(path(1), path(1));
+    % define the factors from the upper triangular matrix
+    factors = zeros(1, length(path));
+    factors(1) = 1;
+    % populate the lists
+    for i = 2:length(path)
+        vals(i) = Diag(path(i-1), path(i-1));
+        if power == 0
+            I = eye(path(k), path(k+1));
+            factors(i) =  I(path(i-1), path(i));
+        else
+            factors(i) = upperTriag(path(i-1), path(i));
         end
     end
 end
@@ -215,9 +240,14 @@ function [values] = getIndices(size)
         values(idx).row = row;
         values(idx).column = column;
         factor = struct('power', [], 'paths', []);
+        jdx = 0;
         for j = 1:length(filt)
-            factor(j).power = filt(j).power;
-            factor(j).paths = filt(j).paths;
+            paths = filt(j).paths;
+            for k = 1:height(filt(j).paths)
+                jdx = jdx+1;
+                factor(jdx).power = filt(j).power;
+                factor(jdx).paths = paths(k, :);
+            end
         end
         values(idx).factor = factor;
     end

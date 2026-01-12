@@ -1,14 +1,14 @@
 %% Variables
 
 % variables for the sample
-sizeSample = 48;
-orderSample = 2;
+sizeSample = 24;
+orderSample = 1;
 eigenenergy = 0;
 hopping = 1;
 hoppingsSample = hopping*eye(orderSample);
 
 % variables for the leads
-sizeLead = 104;
+sizeLead = 10;
 [leadVals, derivVals] = calcVals(maxVal = 1, decay = 0.2, offset = 32);
 hoppingLead = hopping;
 
@@ -27,17 +27,8 @@ EnergyMax = 2.5;
 EnergyStep = 0.1;
 Energies = makeList(EnergyMax, EnergyStep, full=true);
 
-getPath
-
-function [] = getPath(row, column, power)
-    num = nchoosek(column-row-1, power-1);
-    paths = cell(1, num);
-    nums = row+1 : column-1;
-    test = nchoosek(nums, power-1);
-    for idx = 1:num
-        paths{idx} = [row, , column];
-    end
-end
+sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
+testSchur(sample, 0)
 
 %% Calculation
 Transmission = cell(1, length(angles));
