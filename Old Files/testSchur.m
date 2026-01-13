@@ -1,0 +1,134 @@
+function [] = testSchur(totalSystem, omega)
+%UNTITLED Summary of this function goes here
+arguments
+    totalSystem
+    omega
+end 
+    [Diag, upperTriag, SchurVec] = getSchur(totalSystem);
+    
+    GreensInv = omega*eye(length(totalSystem)) - totalSystem;
+    GreensFunc = inv(GreensInv);
+    
+    GreensCheck = GreensCalc(omega, Diag, upperTriag, SchurVec);
+    
+    [Test, ~, maxDiff] = checkResult(GreensFunc, GreensCheck);
+    if all(Test)
+        disp(['The Greens functions DO match! Maximum Difference: ', num2str(maxDiff)])
+    else
+        disp(['The Greens functions do NOT match! Maximum Difference: ', num2str(maxDiff)])
+    end
+end
+
+function [Result] = GreensCalc(omega, Diag, upperTriag, SchurVec, options)
+arguments
+    omega
+    Diag
+    upperTriag
+    SchurVec
+    options.check = true
+end
+    index = struct('row', [], 'column', []);
+    idx = 0;
+    for row = 1:length(Diag)
+        for column = row:length(Diag)
+            idx = idx+1;
+            index(idx).row = row;
+            index(idx).column = column;
+            % set the variables
+            matrix = zeros(length(Diag), length(Diag));
+            matrix(row, column) = 1;
+            index(idx).matrix = matrix;
+            factor = struct('power', [], 'paths', []);
+            for power = 0:abs(row-column)
+                jdx = power+1;
+                factor(jdx).power = power;
+                factor(jdx).paths = getPaths(row, column, power);
+            end
+            index(idx).factor = factor;
+        end
+    end
+    %disp('Starting calculation of the Green's Function.')
+    Matrix = zeros(size(Diag));
+    Matrices = cell(1, length(Diag));
+    for i = 1:numel(Matrices)
+        Matrices{i} = zeros(length(Diag), length(Diag));
+    end
+    for idx = 1:numel(index)
+        factor = index(idx).factor;
+        values = zeros(1, numel(factor));
+        for i = 1:numel(factor)
+            power = factor(i).power;
+            paths = factor(i).paths;
+            elements = zeros(1, height(paths));
+            for j = 1:height(paths)
+                path = paths(j,:);
+                factors = zeros(1, length(path)-1);
+                for k = 1:length(path)-1
+                    if power == 0
+                        I = eye(path(k), path(k+1));
+                        val =  I(path(k), path(k+1));
+                    else
+                        fac = omega - Diag(path(k), path(k));
+                        val = 1/fac * upperTriag(path(k), path(k+1));
+                    end
+                    factors(k) = val;
+                end
+                elements(j) = prod(factors);
+            end
+            values(i) = sum(elements);
+        end
+        row = index(idx).row;
+        column = index(idx).column;
+        Matrix(row, column) = sum(values);
+        for i = 1:numel(values)
+            Matrices{i}(row, column) = values(i);
+        end
+    end
+    invDiag = (omega*eye(length(Diag)) - Diag);
+    ResultSchur = invDiag \ Matrix;
+    Result = SchurVec * ResultSchur * SchurVec';
+    %disp('Finished calculation of the Green's Function.')
+    if options.check == true
+        for i = 1:numel(Matrices)
+            Test = ((omega*eye(length(Diag)) - Diag) \ upperTriag)^(idx-1);
+            if Matrices{i} ~= Test
+                disp(['The matrices do NOT match!', ' power: ', num2str(power)])
+            end
+        end
+    end
+end
+
+function [paths] = getPaths(row, column, power)
+    range = row+1 : column-1;
+    if power > 0
+        if isscalar(range)
+            centers = range;
+        else
+            centers = nchoosek(range, power-1);
+        end
+        paths = zeros(size(centers, 1), size(centers, 2)+2);
+        for idx = 1:size(centers, 1)
+            paths(idx, :) = [row, centers(idx, :), column];
+        end
+    else
+        paths = [row, column];
+    end
+    %disp(['row: ', num2str(row), ', column: ', num2str(column), ', power: ', num2str(power)])
+end
+
+%% checking functions
+function [Test, Diff, maxDiff] = checkResult(GreensFunc, GreensCheck, options)
+arguments
+    GreensFunc
+    GreensCheck
+    options.returnAbs = true
+    options.Tolerance = 1e-10;
+    %Tolerance = 1e-10;
+end
+    Test = isapprox(GreensFunc, GreensCheck, AbsoluteTolerance=options.Tolerance);
+    Diff = GreensFunc - GreensCheck;
+    if options.returnAbs == true
+        Diff = abs(Diff);
+    end
+    maxDiff = max(max(abs(Diff)));
+end
