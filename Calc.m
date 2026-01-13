@@ -28,7 +28,9 @@ EnergyStep = 0.1;
 Energies = makeList(EnergyMax, EnergyStep, full=true);
 
 sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
-testSchur(sample, 0)
+sample = eye(size(sample));
+%testSchur(sample, 0)
+checkDecomposition(sample, 0)
 
 %% Calculation
 Transmission = cell(1, length(angles));

@@ -1,30 +1,37 @@
-function [] = testSchur(totalSystem, omega)
+function [] = checkDecomposition(totalSystem, omega)
 %UNTITLED Summary of this function goes here
 arguments
     totalSystem
     omega
-end 
-    [Diag, upperTriag, SchurVec] = getSchur(totalSystem);
-    
+end
     GreensInv = omega*eye(length(totalSystem)) - totalSystem;
     GreensFunc = inv(GreensInv);
+    TestFunc = GreensFunc * GreensFunc;
+    gammaL = eye(size(totalSystem));
+    gammaR = eye(size(totalSystem));
     
-    GreensCheck = GreensCalc(omega, Diag, upperTriag, SchurVec);
-    
-    [Test, ~, maxDiff] = checkResult(GreensFunc, GreensCheck);
-    if all(Test)
-        disp(['The Greens functions DO match! Maximum Difference: ', num2str(maxDiff)])
+    % compute the Eigenvectors and the Eigenvalues of the system
+    [Eigenvals, leftEVs, rightEVs] = getEigenvectors(totalSystem);
+    EigFunc = EigCalc(omega, Eigenvals, leftEVs, rightEVs, gammaL, gammaR);
+    [TestEig, ~, maxDiffEig] = checkResult(TestFunc, EigFunc);
+    if all(TestEig)
+        disp(['The Eigenvalue decomposition DOES match the Greens function! Maximum Difference: ', num2str(maxDiffEig)])
     else
-        disp(['The Greens functions do NOT match! Maximum Difference: ', num2str(maxDiff)])
+        disp(['The Eigenvalue decomposition does NOT match the Greens function! Maximum Difference: ', num2str(maxDiffEig)])
     end
     
-    MultFunc = GreensFunc * GreensFunc;
+    % compute the Schur decomposition of the system
+    [Diag, upperTriag, SchurVec] = getSchur(totalSystem);
+    SchurFunc = SchurCalc(omega, Diag, upperTriag, SchurVec, gammaL, gammaR);
+    [TestSchur, ~, maxDiffSchur] = checkResult(TestFunc, SchurFunc);
+    if all(TestSchur)
+        disp(['The Schur decomposition DOES match the Greens function! Maximum Difference: ', num2str(maxDiffSchur)])
+    else
+        disp(['The Schur decomposition does NOT match the Greens function! Maximum Difference: ', num2str(maxDiffSchur)])
+    end
     
-    gammaL = eye(size(Diag));
-    gammaR = eye(size(Diag));
-    MultCheck = MatrixCalc(omega, Diag, upperTriag, SchurVec, gammaL, gammaR);
-    
-    [Test, ~, maxDiff] = checkResult(MultFunc, MultCheck);
+    % check the results
+    [Test, ~, maxDiff] = checkResult(EigFunc, SchurFunc);
     if all(Test)
         disp(['The multiplied Greens functions DO match! Maximum Difference: ', num2str(maxDiff)])
     else
@@ -32,64 +39,66 @@ end
     end
 end
 
-function [Result, varargout] = GreensCalc(omega, Diag, upperTriag, SchurVec, options)
+%% calculate the Eigenvalue decomposition
+function [Result] = EigCalc(omega, Eigenvals, leftEVs, rightEVs, gammaL, gammaR, options)
 arguments
     omega
-    Diag
-    upperTriag
-    SchurVec
-    options.check = false
+    Eigenvals
+    leftEVs
+    rightEVs
+    gammaL
+    gammaR
+    options.check = true
 end
-    indices = getIndices(length(Diag));
-    Matrix = zeros(size(Diag));
-    Matrices = cell(1, length(Diag));
-    for i = 1:length(Matrices)
-        Matrices{i} = zeros(length(Diag), length(Diag));
-    end
-    %disp('Starting calculation of the Green's Function.')
-    for idx = 1:length(indices)
-        row = indices(idx).row;
-        column = indices(idx).column;
-        factor = indices(idx).factor;
-        % calculate the value
-        values = zeros(1, height(factor));
-        for i = 1:length(factor)
-            [factors, vals] = getVals(factor(i).power, factor(i).paths, Diag, upperTriag);
-            % calculate the result
-            denominators = omega - vals;
-            if factor(i).power == 0
-                denominators(2) = 1;
-            end
-            elements = factors ./ denominators;
-            element = prod(elements);
-            % save the result
-            values(i) = element;
-            power = factor(i).power;
-            Matrices{power+1}(row, column) = Matrices{power+1}(row, column) + element;
-        end
-        value = sum(values);
-        Matrix(row, column) = value;
-    end
-    Result = SchurVec * Matrix * SchurVec';
-    %disp('Finished calculation of the Green's Function.')
-    varargout{1} = Matrices;
-    if options.check == true
-        AddMatrix = zeros(size(Diag));
-        for i = 1:numel(Matrices)
-            power = i-1;
-            denominator = omega*eye(length(Diag)) - Diag;
-            Test = denominator \ ( denominator \ upperTriag)^(power);
-            if all(Matrices{i} == Test)
-                disp(['The matrices DO match!', ' power: ', num2str(power)])
-            else
-                disp(['The matrices do NOT match!', ' power: ', num2str(power)])
-            end
-            AddMatrix = AddMatrix + Matrices{i};
+    index = struct('i', [], 'j', [], ...
+                    'Eigenval', [], 'EigenvalD', [], ...
+                    'leftEV', [], 'leftEVD', [], ...
+                    'rightEV', [], 'rightEVD', []);
+    for i = 1:length(Eigenvals)
+        for j = 1:length(Eigenvals)
+            idx = (i-1)*length(Eigenvals) + j;
+            index(idx).i = i;
+            index(idx).j = j;
+            % set the normal variables
+            index(idx).Eigenval = Eigenvals(i,i);
+            index(idx).leftEV = leftEVs(:,i)';
+            index(idx).rightEV = rightEVs(:,i);
+            % set the daggered variables
+            index(idx).EigenvalD = Eigenvals(j,j)';
+            index(idx).leftEVD = leftEVs(:,j);
+            index(idx).rightEVD = rightEVs(:,j)';
         end
     end
+    %disp('Starting calculation of the transmission element.')
+    Result = 0;
+    parfor idx = 1:length(index)
+        % get the normal left and right Eigenvectors
+        leftEV = index(idx).leftEV;
+        rightEV = index(idx).rightEV;
+        
+        % get the daggered Eigenvectors
+        leftEVdagger = index(idx).leftEVD;
+        rightEVdagger = index(idx).rightEVD;
+            
+        % compute the matrix element for chosen i and j
+        ProductLeft = rightEV;
+        ProductMid = leftEV * gammaR * leftEVdagger;
+        ProductRight = rightEVdagger * gammaL;
+            
+        Product = ProductLeft * ProductMid * ProductRight;
+        
+        % compute the additional matrix element
+        EigVal = index(idx).Eigenval;
+        EigValDagger = index(idx).EigenvalD;
+        Factor = (omega - EigVal) * (omega - EigValDagger);
+        
+        Result = Result + Product*Factor;
+    end
+    %disp('Finished calculation of the transmission element.')
 end
 
-function [Result] = MatrixCalc(omega, Diag, upperTriag, SchurVec, gammaL, gammaR, options)
+%% calculate the Schur decomposition
+function [Result] = SchurCalc(omega, Diag, upperTriag, SchurVec, gammaL, gammaR, options)
 arguments
     omega
     Diag
@@ -104,7 +113,7 @@ end
     combis1 = combis{:, 1};
     combis2 = combis{:, 2};
     Result = zeros(size(Diag));
-    for idx = 1:height(combis)
+    parfor idx = 1:height(combis)
     %parfor idx = 1:height(combis)
         % get the normal matrix
         index1 = combis1(idx);
@@ -117,8 +126,7 @@ end
         matrix2(index2.row, index2.column) = 1;
             
         % compute the matrix element for chosen matrices
-        Product = matrix1 * matrix2';
-        %Product = gammaL * matrix1 * gammaR * matrix2';
+        Product = gammaL * matrix1 * gammaR * matrix2';
         
         % compute the factor for the chosen matrices
         Factor = FactorCalc(omega, Diag, upperTriag, index1, index2);
@@ -142,7 +150,7 @@ end
     combis1 = combis{:, 1};
     combis2 = combis{:, 2};
     values = zeros(1, height(combis));
-    for idx = 1:height(combis)
+    parfor idx = 1:height(combis)
         [factors1, vals1] = getVals(combis1(idx).power, combis1(idx).paths, Diag, upperTriag);
         denominators1 = omega - vals1;
         if combis1(idx).power == 0
@@ -246,6 +254,17 @@ function [factors, vals] = getVals(power, path, Diag, upperTriag)
             vals(i) = Diag(path(i-1), path(i-1));
             factors(i) = upperTriag(path(i-1), path(i));
         end
+    end
+end
+
+function [Result] = FactorElement(eig1, eig2, chemPot)
+    if eig1 ~= eig2
+        Factor = 1/(eig1 - eig2);
+        Element1 = log(chemPot - eig1);
+        Element2 = log(chemPot - eig2);
+        Result = Factor*(Element1 - Element2);
+    else
+        Result = -1/(chemPot - eig1);
     end
 end
 
