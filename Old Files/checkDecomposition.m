@@ -9,13 +9,10 @@ end
     TestFunc = GreensFunc * GreensFunc;
     gammaL = eye(size(totalSystem));
     gammaR = eye(size(totalSystem));
-
-    chemPotL = 1;
-    chemPotR = -1;
     
     % compute the Eigenvectors and the Eigenvalues of the system
     [Eigenvals, leftEVs, rightEVs] = getEigenvectors(totalSystem);
-    EigFunc = EigCalc(omega, Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR);
+    EigFunc = EigCalc(omega, Eigenvals, leftEVs, rightEVs, gammaL, gammaR);
     [TestEig, ~, maxDiffEig] = checkResult(TestFunc, EigFunc);
     if all(TestEig)
         disp(['The Eigenvalue decomposition DOES match the Greens function! Maximum Difference: ', num2str(maxDiffEig)])
@@ -25,7 +22,7 @@ end
     
     % compute the Schur decomposition of the system
     [Diag, upperTriag, SchurVec] = getSchur(totalSystem);
-    SchurFunc = SchurCalc(omega, Diag, upperTriag, SchurVec, gammaL, gammaR, chemPotL, chemPotR);
+    SchurFunc = SchurCalc(omega, Diag, upperTriag, SchurVec, gammaL, gammaR);
     [TestSchur, ~, maxDiffSchur] = checkResult(TestFunc, SchurFunc);
     if all(TestSchur)
         disp(['The Schur decomposition DOES match the Greens function! Maximum Difference: ', num2str(maxDiffSchur)])
@@ -43,7 +40,7 @@ end
 end
 
 %% calculate the Eigenvalue decomposition
-function [Result] = EigCalc(omega, Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR, options)
+function [Result] = EigCalc(omega, Eigenvals, leftEVs, rightEVs, gammaL, gammaR, options)
 arguments
     omega
     Eigenvals
@@ -51,8 +48,6 @@ arguments
     rightEVs
     gammaL
     gammaR
-    chemPotL
-    chemPotR
     options.check = true
 end
     index = struct('i', [], 'j', [], ...
@@ -89,14 +84,13 @@ end
         ProductLeft = rightEV;
         ProductMid = leftEV * gammaR * leftEVdagger;
         ProductRight = rightEVdagger * gammaL;
-        
+            
         Product = ProductLeft * ProductMid * ProductRight;
         
         % compute the additional matrix element
         EigVal = index(idx).Eigenval;
         EigValDagger = index(idx).EigenvalD;
         Factor = (omega - EigVal) * (omega - EigValDagger);
-        %Factor = FactorElement(EigVal, EigValDagger, chemPotL) - FactorElement(EigVal, EigValDagger, chemPotR);
         
         Result = Result + Product*Factor;
     end
@@ -104,7 +98,7 @@ end
 end
 
 %% calculate the Schur decomposition
-function [Result] = SchurCalc(omega, Diag, upperTriag, SchurVec, gammaL, gammaR, chemPotL, chemPotR, options)
+function [Result] = SchurCalc(omega, Diag, upperTriag, SchurVec, gammaL, gammaR, options)
 arguments
     omega
     Diag
@@ -112,8 +106,6 @@ arguments
     SchurVec
     gammaL
     gammaR
-    chemPotL
-    chemPotR
     options.check = true
 end
     indices = getIndices(length(Diag));
@@ -137,22 +129,20 @@ end
         Product = gammaL * matrix1 * gammaR * matrix2';
         
         % compute the factor for the chosen matrices
-        Factor = FactorCalc(omega, Diag, upperTriag, index1, index2, chemPotL, chemPotR);
+        Factor = FactorCalc(omega, Diag, upperTriag, index1, index2);
         
         Result = Result + Product*Factor;
     end
     Result = SchurVec * Result * SchurVec';
 end
 
-function [Result] = FactorCalc(omega, Diag, upperTriag, index1, index2, chemPotL, chemPotR, options)
+function [Result] = FactorCalc(omega, Diag, upperTriag, index1, index2, options)
 arguments
     omega
     Diag
     upperTriag
     index1
     index2
-    chemPotL
-    chemPotR
     options.check = true
 end
     % get the combinations of the paths
@@ -161,7 +151,6 @@ end
     combis2 = combis{:, 2};
     values = zeros(1, height(combis));
     parfor idx = 1:height(combis)
-        if combis1(idx.power)
         [factors1, vals1] = getVals(combis1(idx).power, combis1(idx).paths, Diag, upperTriag);
         denominators1 = omega - vals1;
         if combis1(idx).power == 0
@@ -181,21 +170,6 @@ end
         values(idx) = element;
     end
     Result = sum(values);
-end
-
-function [constants] = partialFraction(factors, vals)
-arguments
-    factors
-    vals
-end
-    constants = zeros(1, length(factors));
-    for i = 1:length(constants)
-        Denoms = vals(i) - vals; 
-        Denoms(i) = [];
-        Denominator = prod(Denoms);
-        Factor = prod(factors);
-        constants(i) = Factor / Denominator;
-    end
 end
 
 %% helping functions
@@ -264,18 +238,19 @@ function [paths] = getPaths(row, column, power)
 end
 
 function [factors, vals] = getVals(power, path, Diag, upperTriag)
-    if power == 0
-        vals = Diag(path(1), path(1));
-        factors = 1;
-    else
-        % define the values from the diagonal matrix
-        vals = zeros(1, length(path)-1);
-        vals(1) = Diag(path(1), path(1));
-        % define the factors from the upper triangular matrix
-        factors = zeros(1, length(path)-1);
-        factors(1) = 1;
-        % populate the lists
-        for i = 2:length(path)
+    % define the values from the diagonal matrix
+    vals = zeros(1, length(path));
+    vals(1) = Diag(path(1), path(1));
+    % define the factors from the upper triangular matrix
+    factors = zeros(1, length(path));
+    factors(1) = 1;
+    % populate the lists
+    for i = 2:length(path)
+        if power == 0
+            I = eye(path(i-1), path(i));
+            vals(i) = I(path(i-1), path(i-1));
+            factors(i) =  I(path(i-1), path(i));
+        else
             vals(i) = Diag(path(i-1), path(i-1));
             factors(i) = upperTriag(path(i-1), path(i));
         end
