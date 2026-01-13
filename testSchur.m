@@ -161,30 +161,6 @@ end
         for i = 1:length(vals)
             
         end
-        paths = struct();
-        paths1 = paths(:, 1);
-        paths2 = paths(:, 2);
-        for i = 1:height(factor)
-            power = factor(idx).power;
-            paths = factor(idx).paths;
-            elements = zeros(1, height(paths));
-            for j = 1:height(paths)
-                path = paths(j,:);
-                factors = zeros(1, length(path)-1);
-                for k = 1:length(path)-1
-                    if power == 0
-                        I = eye(path(k), path(k+1));
-                        val =  I(path(k), path(k+1));
-                    else
-                        fac = omega - Diag(path(k), path(k));
-                        val = 1/fac * upperTriag(path(k), path(k+1));
-                    end
-                    factors(k) = val;
-                end
-                elements(j) = prod(factors);
-            end
-            values(idx) = sum(elements);
-        end
     end
 end
 

@@ -1,7 +1,7 @@
 %% Variables
 
 % variables for the sample
-sizeSample = 24;
+sizeSample = 12;
 orderSample = 1;
 eigenenergy = 0;
 hopping = 1;
@@ -16,6 +16,7 @@ hoppingLead = hopping;
 angleMax = 0;
 angleStep = pi/4;
 angles = makeList(angleMax, angleStep);
+angles = pi/4;
 
 %variables for the voltages
 voltageMax = 0.5;
@@ -56,16 +57,10 @@ for i = 1:length(angles)
     %checkMatrix(totalSystem);
     
     % calculating the values
-    Transmission{i} = TransInt(totalSystem, gammaL, gammaR, voltages);
-    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, voltages);
-    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, voltages, conservative=true);
-    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, voltages, nonconservative=true);
-    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, voltages, left=true);
-    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, voltages, right=true);
     %Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Energies);
     %Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Energies);
-    %Angular{i} = AngularCalc(totalSystem, gammaL, gammaR, Energies, sizeLead);
-    %Helicity{i} = HelicityCalc(totalSystem, gammaL, gammaR, Energies, sizeLead);
+    Angular{i} = AngularCalc(totalSystem, gammaL, gammaR, Energies, sizeLead, nonconservative=true);
+    Helicity{i} = HelicityCalc(totalSystem, gammaL, gammaR, Energies, sizeLead, nonconservative=true);
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 

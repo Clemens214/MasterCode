@@ -16,11 +16,12 @@ hoppingLead = hopping;
 angleMax = 0;
 angleStep = pi/4;
 angles = makeList(angleMax, angleStep);
+angles = pi/4;
 
 %variables for the voltages
 voltageMax = 0.5;
 voltageStep = 0.5;
-voltages = makeList(voltageMax, voltageStep);
+voltages = makeList(voltageMax, voltageStep, full=true);
 
 %variables for the Energies
 EnergyMax = 2.5;
@@ -28,7 +29,7 @@ EnergyStep = 0.1;
 Energies = makeList(EnergyMax, EnergyStep, full=true);
 
 sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
-testSchur(sample, 0)
+%testSchur(sample, 0)
 
 %% Calculation
 Transmission = cell(1, length(angles));
@@ -56,27 +57,46 @@ for i = 1:length(angles)
     %checkMatrix(totalSystem);
     
     % calculating the values
-    Transmission{i} = TransInt(totalSystem, gammaL, gammaR, voltages);
-    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, voltages);
-    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, voltages, conservative=true);
-    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, voltages, nonconservative=true);
-    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, voltages, left=true);
-    Torque{i} = TorqueInt(totalSystem, totalSysDeriv, gammaL, gammaR, voltages, right=true);
     %Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Energies);
     %Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Energies);
-    %Angular{i} = AngularCalc(totalSystem, gammaL, gammaR, Energies, sizeLead);
-    %Helicity{i} = HelicityCalc(totalSystem, gammaL, gammaR, Energies, sizeLead);
+    Angular{i} = AngularCalc(totalSystem, gammaL, gammaR, voltages, sizeLead, nonconservative=true);
+    Helicity{i} = HelicityCalc(totalSystem, gammaL, gammaR, voltages, sizeLead, nonconservative=true);
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
 %% plot
 %Plot(1, angles, Energies, {Transmission, Torque}, Spectrum=true, Both=true, Title='Both')
 
-Plot(2, angles, Energies, Transmission, Spectrum=true, twoD=true, Title='Transmission')
-Plot(3, angles, Energies, Torque, Spectrum=true, twoD=true, Title='Torque')
+%Plot(2, angles, Energies, Transmission, Spectrum=true, twoD=true, Title='Transmission')
+%Plot(3, angles, Energies, Torque, Spectrum=true, twoD=true, Title='Torque')
 
-Plot(4, angles, voltages, Angular, threeD=true, Title='Angular Momentum')
-Plot(5, angles, voltages, Helicity, threeD=true, Title='Helicity')
+%Plot(4, angles, voltages, Angular, threeD=true, Title='Angular Momentum')
+%Plot(5, angles, voltages, Helicity, threeD=true, Title='Helicity')
+
+Data = {Angular{1}, Helicity{1}, Angular{1}-Helicity{1}};
+plotSpectrum2D(1, 'Angular Momentum vs Helicity', angles, voltages, Data)
+
+function [] = plotSpectrum2D (value, Title, angles, voltages, Data)
+    TransPlot = cell(1, length(angles));
+    for i = 1:length(Data)
+        TransPlot{i} = zeros(1, length(voltages));
+        for j = 1:length(voltages)
+            TransPlot{i}(j) = Data{i}(j);
+        end
+    end
+    % plot the data
+    figure(value)
+    hold on
+    for i = 1:length(Data)
+        plot(voltages, TransPlot{i});
+    end
+    hold off
+    xlabel('Energy (units of t)');
+    title(Title);
+    %labels = strcat('Angle = ',cellstr(num2str(angles.')));
+    labels = {'Angular Momentum'; 'Helicity'; 'Difference'};
+    legend(labels)
+end
 
 %% chemPots
 function [totalSysDeriv] = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv, derivVals)
