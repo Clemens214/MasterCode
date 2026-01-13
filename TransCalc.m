@@ -1,12 +1,19 @@
-function [Results] = TransCalc(totalSystem, gammaL, gammaR, voltages, options)
+function [Results] = TransCalc(totalSystem, gammaL, gammaR, voltages, mode, options)
 % calculate the transmission through a molecule for zero temperature
 arguments
     totalSystem
     gammaL
     gammaR
     voltages
+    mode.EM = false
+    mode.SI = false
     options.linearResponse = true
 end
+    if mode.EM == true
+        disp('Using the extended molecule formalism.')
+    else
+        disp('Using semi-infinite leads.')
+    end
     %disp('Starting calculation of the angular momentum.')
     if options.linearResponse == true
         Energies = voltages;
@@ -97,6 +104,7 @@ function [Results] = Transmission(Energies, totalSystem, gammaL, gammaR)
     % calculate the transport matrix and the trace
     Traces = zeros(1, length(Energies));
     parfor i = 1:length(Energies)
+        [totalSystem, gammaL, gammaR] = makeSystemSI(Energy, sample, eigenenergy, hoppingLead, hoppingsInter)
         %Matrix = TransmissionZeroTemp(Energies(i), totalSystem, gammaL, gammaR);
         Matrix = TransmissionAlt(Energies(i), totalSystem, gammaL, gammaR);
         Traces(i) = trace(real(Matrix));

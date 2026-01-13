@@ -1,31 +1,35 @@
 %% Variables
 
 % variables for the sample
-sizeSample = 48;
-orderSample = 2;
+sizeSample = 12;
+orderSample = 1;
 eigenenergy = 0;
 hopping = 1;
 hoppingsSample = hopping*eye(orderSample);
 
 % variables for the leads
-sizeLead = 104;
+sizeLead = 10;
 [leadVals, derivVals] = calcVals(maxVal = 1, decay = 0.2, offset = 32);
 hoppingLead = hopping;
 
 % variables for the hopping
-angleMax = 2*pi;
-angleStep = pi/8;
+angleMax = 0;
+angleStep = pi/4;
 angles = makeList(angleMax, angleStep);
+angles = pi/4;
 
 %variables for the voltages
-voltageMax = 4.5;
-voltageStep = 0.1;
-voltages = makeList(voltageMax, voltageStep);
+voltageMax = 0.5;
+voltageStep = 0.5;
+voltages = makeList(voltageMax, voltageStep, full=true);
 
 %variables for the Energies
 EnergyMax = 2.5;
 EnergyStep = 0.1;
 Energies = makeList(EnergyMax, EnergyStep, full=true);
+
+sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
+%testSchur(sample, 0)
 
 %% Calculation
 Transmission = cell(1, length(angles));
@@ -47,27 +51,52 @@ for i = 1:length(angles)
     sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
     
     % preparing the Extended Molecule Hamiltonian
-    [totalSystem, gammaL, gammaR, sigmaL, sigmaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
+    [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
     totalSysDeriv = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv, derivVals);
     
     %checkMatrix(totalSystem);
     
     % calculating the values
-    Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Energies);
-    Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Energies);
-    Angular{i} = AngularCalc(totalSystem, gammaL, gammaR, Energies, sizeLead);
-    Helicity{i} = HelicityCalc(totalSystem, gammaL, gammaR, Energies, sizeLead);
+    %Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Energies);
+    %Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Energies);
+    Angular{i} = AngularCalc(totalSystem, gammaL, gammaR, voltages, sizeLead, nonconservative=true);
+    Helicity{i} = HelicityCalc(totalSystem, gammaL, gammaR, voltages, sizeLead, nonconservative=true);
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
 %% plot
 %Plot(1, angles, Energies, {Transmission, Torque}, Spectrum=true, Both=true, Title='Both')
 
-Plot(2, angles, Energies, Transmission, Spectrum=true, twoD=true, Title='Transmission')
-Plot(3, angles, Energies, Torque, Spectrum=true, twoD=true, Title='Torque')
+%Plot(2, angles, Energies, Transmission, Spectrum=true, twoD=true, Title='Transmission')
+%Plot(3, angles, Energies, Torque, Spectrum=true, twoD=true, Title='Torque')
 
-Plot(4, angles, voltages, Angular, threeD=true, Title='Angular Momentum')
-Plot(5, angles, voltages, Helicity, threeD=true, Title='Helicity')
+%Plot(4, angles, voltages, Angular, threeD=true, Title='Angular Momentum')
+%Plot(5, angles, voltages, Helicity, threeD=true, Title='Helicity')
+
+Data = {Angular{1}, Helicity{1}, Angular{1}-Helicity{1}};
+plotSpectrum2D(1, 'Angular Momentum vs Helicity', angles, voltages, Data)
+
+function [] = plotSpectrum2D (value, Title, angles, voltages, Data)
+    TransPlot = cell(1, length(angles));
+    for i = 1:length(Data)
+        TransPlot{i} = zeros(1, length(voltages));
+        for j = 1:length(voltages)
+            TransPlot{i}(j) = Data{i}(j);
+        end
+    end
+    % plot the data
+    figure(value)
+    hold on
+    for i = 1:length(Data)
+        plot(voltages, TransPlot{i});
+    end
+    hold off
+    xlabel('Energy (units of t)');
+    title(Title);
+    %labels = strcat('Angle = ',cellstr(num2str(angles.')));
+    labels = {'Angular Momentum'; 'Helicity'; 'Difference'};
+    legend(labels)
+end
 
 %% chemPots
 function [totalSysDeriv] = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv, derivVals)

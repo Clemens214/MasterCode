@@ -1,4 +1,4 @@
-function [Results] = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, voltages, choice, options)
+function [Results] = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, voltages, choice, mode, options)
 % calculate the torque through a molecule for zero temperature
 arguments
     totalSystem
@@ -10,8 +10,15 @@ arguments
     choice.nonconservative = false
     choice.left = false
     choice.right = false
+    mode.EM = false
+    mode.SI = false
     options.linearResponse = true
 end
+    if mode.EM == true
+        disp('Using the extended molecule formalism.')
+    else
+        disp('Using semi-infinite leads.')
+    end
     %disp('Starting calculation of the torque.')
     if options.linearResponse == true
         Energies = voltages;

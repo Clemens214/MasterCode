@@ -1,4 +1,4 @@
-function [Results] = AngularCalc(totalSystem, gammaL, gammaR, voltages, sizeLead, choice, options)
+function [Results] = AngularCalc(totalSystem, gammaL, gammaR, voltages, sizeLead, choice, mode, options)
 % calculate the angular momentum experienced by a molecule for zero temperature
 arguments
     totalSystem
@@ -10,8 +10,15 @@ arguments
     choice.nonconservative = false
     choice.left = false
     choice.right = false
+    mode.EM = false
+    mode.SI = false
     options.linearResponse = true
 end
+    if mode.EM == true
+        disp('Using the extended molecule formalism.')
+    else
+        disp('Using semi-infinite leads.')
+    end
     operator = AngularOperator(length(totalSystem), sizeLead);
     %disp('Starting calculation of the angular momentum.')
     if options.linearResponse == true
