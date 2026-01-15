@@ -28,7 +28,7 @@ EnergyStep = 0.1;
 Energies = makeList(EnergyMax, EnergyStep, full=true);
 
 sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
-sample = eye(size(sample));
+%sample = eye(size(sample));
 %testSchur(sample, 0)
 checkDecomposition(sample, 0)
 

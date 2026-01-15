@@ -121,7 +121,7 @@ end
     combis1 = combis{:, 1};
     combis2 = combis{:, 2};
     Result = zeros(size(Diag));
-    parfor idx = 1:height(combis)
+    for idx = 1:height(combis)
     %parfor idx = 1:height(combis)
         % get the normal matrix
         index1 = combis1(idx);
@@ -160,22 +160,15 @@ end
     combis1 = combis{:, 1};
     combis2 = combis{:, 2};
     values = zeros(1, height(combis));
-    parfor idx = 1:height(combis)
-        if combis1(idx.power)
+    for idx = 1:height(combis)
         [factors1, vals1] = getVals(combis1(idx).power, combis1(idx).paths, Diag, upperTriag);
-        denominators1 = omega - vals1;
-        if combis1(idx).power == 0
-            denominators1(2) = 1;
-        end
         [factors2, vals2] = getVals(combis2(idx).power, combis2(idx).paths, Diag, upperTriag);
-        denominators2 = omega - vals2;
-        if combis2(idx).power == 0
-            denominators2(2) = 1;
-        end
+        vals = [vals1, conj(vals2)];
         factors = [factors1, conj(factors2)];
-        denominators = [denominators1, conj(denominators2)];
+        % perform the partial fraction decomposition
+        constants = partialFraction(factors, vals);
         % calculate the result
-        elements = factors ./ denominators;
+        elements = 1 ./ (omega - constants);
         element = prod(elements);
         % save the result
         values(idx) = element;
@@ -195,6 +188,9 @@ end
         Denominator = prod(Denoms);
         Factor = prod(factors);
         constants(i) = Factor / Denominator;
+        if isnan(constants(i))
+            disp(['Constant in NaN! i=', num2str(i)])
+        end
     end
 end
 
