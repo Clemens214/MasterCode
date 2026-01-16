@@ -181,6 +181,25 @@ arguments
     factors
     vals
 end
+    values = struct('value', [], 'power', [], 'indices', []);
+    idx = 0;
+    for i = 1:length(vals)
+        bools = ismember(vals(i), values.value);
+        if any(bools)
+            for j  =1:length(bools)
+                if bools(j) == true
+                    values(j).value = vals(i);
+                    values(j).power = values(j).power + 1;
+                    values(j).indices(end+1) = i;
+                end
+            end
+        else
+            idx = idx+1;
+            values(idx).value = vals(i);
+            values(idx).power = 1;
+            values(idx).indices(1) = i;
+        end
+    end
     constants = zeros(1, length(factors));
     for i = 1:length(constants)
         Denoms = vals(i) - vals; 
