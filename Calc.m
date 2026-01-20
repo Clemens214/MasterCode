@@ -1,8 +1,8 @@
 %% Variables
 
 % variables for the sample
-sizeSample = 12;
-orderSample = 1;
+sizeSample = 48;
+orderSample = 2;
 eigenenergy = 0;
 hopping = 1;
 hoppingsSample = hopping*eye(orderSample);
@@ -16,10 +16,11 @@ hoppingLead = hopping;
 angleMax = 0;
 angleStep = pi/4;
 angles = makeList(angleMax, angleStep);
+angles = pi/4;
 
 %variables for the voltages
-voltageMax = 0.5;
-voltageStep = 0.5;
+voltageMax = 2.5;
+voltageStep = 0.1;
 voltages = makeList(voltageMax, voltageStep);
 
 %variables for the Energies
@@ -30,7 +31,7 @@ Energies = makeList(EnergyMax, EnergyStep, full=true);
 sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
 %sample = eye(size(sample));
 %testSchur(sample, 0)
-checkDecomposition(sample, 0)
+%checkDecomposition(sample, 0)
 
 %% Calculation
 Transmission = cell(1, length(angles));
