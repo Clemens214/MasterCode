@@ -16,7 +16,9 @@ arguments
 end
     if mode.EM == true
         disp('Using the extended molecule formalism.')
-    else
+        [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
+        totalSysDeriv = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv, derivVals);
+    elseif mode.SI == true
         disp('Using semi-infinite leads.')
     end
     %disp('Starting calculation of the torque.')

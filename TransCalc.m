@@ -1,7 +1,7 @@
-function [Results] = TransCalc(totalSystem, gammaL, gammaR, voltages, mode, options)
+function [Results] = TransCalc(sample, gammaL, gammaR, voltages, mode, options)
 % calculate the transmission through a molecule for zero temperature
 arguments
-    totalSystem
+    sample
     gammaL
     gammaR
     voltages
@@ -11,16 +11,20 @@ arguments
 end
     if mode.EM == true
         disp('Using the extended molecule formalism.')
-    else
+        [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
+        mode.gammaL = gammaL;
+        mode.gammaR = gammaR;
+    elseif mode.SI == true
         disp('Using semi-infinite leads.')
+        totalSystem = sample;
     end
     %disp('Starting calculation of the angular momentum.')
     if options.linearResponse == true
         Energies = voltages;
-        Results = Transmission(Energies, totalSystem, gammaL, gammaR);
+        Results = Transmission(Energies, totalSystem, mode);
     elseif options.linearResponse == false
         chemPots = setupPots(voltages);
-        Results = integrate(chemPots, totalSystem, gammaL, gammaR);
+        Results = integrate(chemPots, totalSystem, mode);
     end
     %disp('Starting calculation of the angular momentum.')
 end
@@ -35,12 +39,11 @@ function [chemPots] = setupPots(voltages)
 end
 
 %% integrate the transmission
-function [Results] = integrate(chemPots, totalSystem, gammaL, gammaR, options)
+function [Results] = integrate(chemPots, totalSystem, mode, options)
 arguments
     chemPots
     totalSystem
-    gammaL
-    gammaR
+    mode
     options.stepMult = 10
 end
     % get the step size
@@ -54,7 +57,7 @@ end
 
     % calculate the transmissions
     evalPoints = makeList(max(Energies), min(Energies), stepSize);
-    values = Transmission(evalPoints, totalSystem, gammaL, gammaR);
+    values = Transmission(evalPoints, totalSystem, mode);
 
     % calculate the integrals
     Results = zeros(1, length(chemPots));
@@ -93,19 +96,23 @@ end
 end
 
 %% total transmission in the linear transport approximation
-function [Results] = Transmission(Energies, totalSystem, gammaL, gammaR)
+function [Results] = Transmission(Energies, sample, mode)
     %calculates the transport through a molecule in the linear transport approximation
     arguments
         Energies
-        totalSystem
-        gammaL
-        gammaR
+        sample
+        mode
     end
     % calculate the transport matrix and the trace
     Traces = zeros(1, length(Energies));
     parfor i = 1:length(Energies)
-        [totalSystem, gammaL, gammaR] = makeSystemSI(Energy, sample, eigenenergy, hoppingLead, hoppingsInter)
-        %Matrix = TransmissionZeroTemp(Energies(i), totalSystem, gammaL, gammaR);
+        if mode.SI == true
+            [totalSystem, gammaL, gammaR] = makeSystemSI(Energies(i), sample, eigenenergy, hoppingLead, hoppingsInter)
+        elseif mode.EM == true
+            totalSystem = sample;
+            gammaL = mode.gammaL;
+            gammaR = mode.gammaR;
+        end
         Matrix = TransmissionAlt(Energies(i), totalSystem, gammaL, gammaR);
         Traces(i) = trace(real(Matrix));
     end

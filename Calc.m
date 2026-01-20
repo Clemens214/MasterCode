@@ -6,11 +6,13 @@ orderSample = 1;
 eigenenergy = 0;
 hopping = 1;
 hoppingsSample = hopping*eye(orderSample);
+sampleVals = struct('size', sizeSample, 'order', orderSample, 'energy', eigenenergy, 'hopping', hoppingsSample);
 
 % variables for the leads
 sizeLead = 104;
-[leadVals, derivVals] = calcVals(maxVal = 1, decay = 0.2, offset = 32);
+[leadConsts, derivConsts] = calcVals(maxVal = 1, decay = 0.2, offset = 32);
 hoppingLead = hopping;
+leadVals = struct('size', sizeLead, 'hopping', hoppingLead, 'constants', leadConsts);
 
 % variables for the hopping
 angleMax = 0;
@@ -50,8 +52,8 @@ for i = 1:length(angles)
     sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
     
     % preparing the Extended Molecule Hamiltonian
-    [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
-    totalSysDeriv = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv, derivVals);
+    [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadConsts);
+    totalSysDeriv = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv, derivConsts);
     
     %checkMatrix(totalSystem);
     
