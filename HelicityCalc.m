@@ -16,7 +16,8 @@ arguments
 end
     if mode.EM == true
         disp('Using the extended molecule formalism.')
-    else
+        [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
+    elseif mode.SI == true
         disp('Using semi-infinite leads.')
     end
     operator = HelicityOperator(length(totalSystem), sizeLead);
