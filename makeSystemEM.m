@@ -6,7 +6,9 @@ arguments
     sizeLead
     hoppingLead
     hoppingsInter
-    leadVals
+    leadVals.maxVal = 1
+    leadVals.decay = 0.2
+    leadVals.offset= 32
     options.check = true
     options.checkMore = false
 end
@@ -59,7 +61,9 @@ arguments
     options.left = false
     options.right = false
 end
-    [maxVal, decay, offset] = leadVals{:};
+    maxVal = leadVals.maxVal;
+    decay = leadVals.decay;
+    offset = leadVals.offset;
     values = zeros(1, sizeSystem);
     for i = 1:sizeSystem
         if options.left == true && options.right == false
@@ -235,4 +239,20 @@ function [] = checkHamiltonian(totalSystem)
     else
         disp('No part of the Hamiltonian is hermitian.')
     end
+end
+
+%% helping functions
+function [leadVals, derivVals] = calcVals(opt)%(maxVal, decay, offset)
+    arguments
+        opt.maxVal = 1
+        opt.decay = 0.3
+        % offset should be at most half the length of the leads
+        opt.offset = 32
+        % normal: 32
+    end
+    maxVal = opt.maxVal;
+    decay = opt.decay;
+    offset = opt.offset;
+    leadVals = {maxVal, decay, offset};
+    derivVals = {0, decay, offset};
 end

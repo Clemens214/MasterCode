@@ -1,11 +1,11 @@
-function [Results] = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, voltages, choice, mode, options)
+function [Results] = TorqueCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, choice, mode, options)
 % calculate the torque through a molecule for zero temperature
 arguments
-    totalSystem
-    totalSysDeriv
-    gammaL
-    gammaR
+    sample
     voltages
+    sampleVals
+    leadVals
+    hoppingsInter
     choice.conservative = false
     choice.nonconservative = false
     choice.left = false
@@ -16,10 +16,19 @@ arguments
 end
     if mode.EM == true
         disp('Using the extended molecule formalism.')
-        [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
+        sizeSample = sampleVals.size;
+        orderSample = sampleVals.order;
+        sizeLead = leadVals.size;
+        hoppingLead = leadVals.hopping;
+        [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter);
         totalSysDeriv = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv, derivVals);
+        mode.gammaL = gammaL;
+        mode.gammaR = gammaR;
     elseif mode.SI == true
         disp('Using semi-infinite leads.')
+        totalSystem = sample;
+        mode.energy = sampleVals.energy;
+        mode.hopping = leadVals.hopping;
     end
     %disp('Starting calculation of the torque.')
     if options.linearResponse == true
@@ -62,14 +71,14 @@ function [chemPots] = setupPots(voltages)
 end
 
 %% integrate the torque
-function [Results] = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, choice, options)
+function [Results] = integrate(chemPots, totalSystem, totalSysDeriv, hoppingsInter, choice, mode, options)
 arguments
     chemPots
     totalSystem
     totalSysDeriv
-    gammaL
-    gammaR
+    hoppingsInter
     choice
+    mode
     options.stepMult = 10
     options.minVal = -3
     options.print = false
@@ -130,19 +139,28 @@ end
 end
 
 %% total torque in the linear transport approximation
-function [Results] = Torque(Energies, totalSystem, totalSysDeriv, gammaL, gammaR, choice)
+function [Results] = Torque(Energies, totalSystem, totalSysDeriv, hoppingsInter, choice, mode)
     %calculates the torque experienced by the molecule in the linear transport approximation
     arguments
         Energies
         totalSystem
         totalSysDeriv
-        gammaL
-        gammaR
+        hoppingsInter
         choice
+        mode
     end
     % calculate the torque matrix and the trace
     Traces = zeros(1, length(Energies));
     parfor i = 1:length(Energies)
+        if mode.SI == true
+            eigenenergy = mode.energy;
+            hoppingLead = mode.hopping;
+            [totalSystem, gammaL, gammaR] = makeSystemSI(Energies(i), sample, eigenenergy, hoppingLead, hoppingsInter)
+        elseif mode.EM == true
+            totalSystem = sample;
+            gammaL = mode.gammaL;
+            gammaR = mode.gammaR;
+        end
         Matrix = choiceLin(Energies(i), totalSystem, totalSysDeriv, gammaL, gammaR, choice);
         Traces(i) = trace(real(Matrix));
     end
@@ -188,6 +206,12 @@ function [values] = makeList(maxVal, minVal, stepVal)
     end
     numVal = (maxVal-minVal)/stepVal+1;
     values = linspace(minVal, maxVal, numVal);
+end
+
+function [totalSysDeriv] = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv)
+    sampleDeriv = zeros(sizeSample*orderSample, sizeSample*orderSample);
+    hoppingDeriv = 0;
+    [totalSysDeriv, ~, ~] = makeSystemEM(sampleDeriv, sizeSample, orderSample, sizeLead, hoppingDeriv, hoppingsDeriv, maxVal=0, check=false);
 end
 
 %% choosing functions
