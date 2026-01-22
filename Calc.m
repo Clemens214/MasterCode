@@ -57,23 +57,24 @@ for i = 1:length(angles)
     
     % calculating the values
     %Transmission{i} = TransCalc(totalSystem, gammaL, gammaR, Energies);
-    %Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Energies);
-    Angular{i} = AngularCalc(totalSystem, gammaL, gammaR, Energies, sizeLead, nonconservative=true);
-    Helicity{i} = HelicityCalc(totalSystem, gammaL, gammaR, Energies, sizeLead, nonconservative=true);
+    %Torque{i} = TorqueCalc(totalSystem, totalSysDeriv, gammaL, gammaR, Energies, conservative=true);
+    %Angular{i} = AngularCalc(totalSystem, gammaL, gammaR, Energies, sizeLead, nonconservative=true);
+    %Helicity{i} = HelicityCalc(totalSystem, gammaL, gammaR, Energies, sizeLead, nonconservative=true);
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
 %% plot
 %Plot(1, angles, Energies, {Transmission, Torque}, Spectrum=true, Both=true, Title='Both')
 
-%Plot(2, angles, Energies, Transmission, Spectrum=true, twoD=true, Title='Transmission')
+Plot(2, angles, Energies, Transmission, Spectrum=true, twoD=true, Title='Transmission')
 %Plot(3, angles, Energies, Torque, Spectrum=true, twoD=true, Title='Torque')
 
 %Plot(4, angles, voltages, Angular, threeD=true, Title='Angular Momentum')
 %Plot(5, angles, voltages, Helicity, threeD=true, Title='Helicity')
 
-Data = {Angular{1}, Helicity{1}, Angular{1}-Helicity{1}};
-plotSpectrum2D(1, 'Angular Momentum vs Helicity', angles, Energies, Data)
+%Data = {Angular{1}, Helicity{1}, Torque{1}};
+Data = {Angular{1}, Helicity{1}};
+%plotSpectrum2D(1, 'Angular Momentum vs Helicity vs Torquance', angles, Energies, Data)
 
 function [] = plotSpectrum2D (value, Title, angles, voltages, Data)
     TransPlot = cell(1, length(angles));
@@ -86,14 +87,21 @@ function [] = plotSpectrum2D (value, Title, angles, voltages, Data)
     % plot the data
     figure(value)
     hold on
-    for i = 1:length(Data)
+    %yyaxis left
+    for i = 1:length(Data)-1
         plot(voltages, TransPlot{i});
+    end
+    %ylabel('Nonconservative')
+    if false
+        yyaxis right
+        plot(voltages, TransPlot{end});
+        ylabel('Conservative')
     end
     hold off
     xlabel('Energy (units of t)');
     title(Title);
     %labels = strcat('Angle = ',cellstr(num2str(angles.')));
-    labels = {'Angular Momentum'; 'Helicity'; 'Difference'};
+    labels = {'Angular Momentum'; 'Helicity'; 'Torquance'};
     legend(labels)
 end
 
