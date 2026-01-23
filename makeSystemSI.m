@@ -1,12 +1,13 @@
-function [totalSystem, gammaL, gammaR, varargout] = makeSystemSI (Energy, sample, eigenenergy, hoppingLead, hoppingsInter, options)
+function [totalSystem, gammaL, gammaR, varargout] = makeSystemSI (Energy, sample, eigenenergy, hoppingLead, hoppingsInter, hoppingsDeriv, options)
 arguments
     Energy
     sample
     eigenenergy
     hoppingLead
     hoppingsInter
+    hoppingsDeriv = zeros(size(hoppingsInter))
     options.size = 1
-    options.check = true
+    options.check = false
     options.checkMore = false
 end
     sizeSample = length(sample);
@@ -31,8 +32,14 @@ end
         checkHamiltonian(totalSystem)
     end
     
-    varargout{1} = sigmaL;
-    varargout{2} = sigmaR;
+    % generate the derivative of the Hamiltonian
+    sampleDeriv = zeros(size(sample));
+    totalSysDeriv = makeSystem(sampleDeriv, sizeExtra, 0, hoppingsDeriv, 0);
+
+    % return the results
+    varargout{1} = totalSysDeriv;
+    varargout{2} = sigmaL;
+    varargout{3} = sigmaR;
 end
 
 %% functions used in generating the total Hamiltonian
@@ -169,7 +176,7 @@ end
     varargout{1} = GreensFunc;
 end
 
-function [G_plus] = CalcGreens (w, t, eig, options)
+function [G_plus, varargout] = CalcGreens (w, t, eig, options)
 arguments
     w
     t
@@ -184,6 +191,8 @@ end
     % calculate the final Greens function elements
     G_plus = factor*(1 + root);
     G_minus = factor*(1 - root);
+
+    varargout{1} = G_minus;
 end
 
 %% checking functions

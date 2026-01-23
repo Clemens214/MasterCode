@@ -1,4 +1,4 @@
-function [Results] = TorqueCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, choice, mode, options)
+function [Results] = TorqueCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, choice, mode, options)
 % calculate the torque through a molecule for zero temperature
 arguments
     sample
@@ -6,11 +6,12 @@ arguments
     sampleVals
     leadVals
     hoppingsInter
+    hoppingsDeriv
     choice.conservative = false
     choice.nonconservative = false
     choice.left = false
     choice.right = false
-    mode.EM = false
+    mode.EM = true
     mode.SI = false
     options.linearResponse = true
 end
@@ -20,13 +21,13 @@ end
         orderSample = sampleVals.order;
         sizeLead = leadVals.size;
         hoppingLead = leadVals.hopping;
-        [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter);
-        totalSysDeriv = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv, derivVals);
-        mode.gammaL = gammaL;
-        mode.gammaR = gammaR;
+        [totalSystem, gammaL, gammaR, totalSysDeriv] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, hoppingsDeriv);
     elseif mode.SI == true
         disp('Using semi-infinite leads.')
         totalSystem = sample;
+        totalSysDeriv = zeros(size(sample));
+        gammaL = zeros(size(sample));
+        gammaR = zeros(size(sample));
         mode.energy = sampleVals.energy;
         mode.hopping = leadVals.hopping;
     end
@@ -34,27 +35,27 @@ end
     if options.linearResponse == true
         Energies = voltages;
         if choice.conservative == true || choice.nonconservative == true || choice.left == true || choice.right == true
-            Results = Torque(Energies, totalSystem, totalSysDeriv, gammaL, gammaR, choice);
+            Results = Torque(Energies, totalSystem, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choice, mode);
         else
             choiceL = choice;
             choiceL.left = true;
-            ResultsL = Torque(Energies, totalSystem, totalSysDeriv, gammaL, gammaR, choiceL);
+            ResultsL = Torque(Energies, totalSystem, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choiceL, mode);
             choiceR = choice;
             choiceR.right = true;
-            ResultsR = Torque(Energies, totalSystem, totalSysDeriv, gammaL, gammaR, choiceR);
+            ResultsR = Torque(Energies, totalSystem, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choiceR, mode);
             Results = ResultsL + ResultsR;
         end
     elseif options.linearResponse == false
         chemPots = setupPots(voltages);
         if choice.conservative == true || choice.nonconservative == true || choice.left == true || choice.right == true
-            Results = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, choice);
+            Results = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choice, mode);
         else
             choiceL = choice;
             choiceL.left = true;
-            ResultsL = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, choiceL);
+            ResultsL = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choiceL, mode);
             choiceR = choice;
             choiceR.right = true;
-            ResultsR = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, choiceR);
+            ResultsR = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choiceR, mode);
             Results = ResultsL + ResultsR;
         end
     end
@@ -71,12 +72,15 @@ function [chemPots] = setupPots(voltages)
 end
 
 %% integrate the torque
-function [Results] = integrate(chemPots, totalSystem, totalSysDeriv, hoppingsInter, choice, mode, options)
+function [Results] = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choice, mode, options)
 arguments
     chemPots
     totalSystem
     totalSysDeriv
+    gammaL
+    gammaR
     hoppingsInter
+    hoppingsDeriv
     choice
     mode
     options.stepMult = 10
@@ -97,13 +101,15 @@ end
 
     % calculate the transmissions
     evalPoints = makeList(maxPoint, minPoint, stepSize);
-    values = Torque(evalPoints, totalSystem, totalSysDeriv, gammaL, gammaR, choice);
+    values = Torque(evalPoints, totalSystem, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choice, mode);
     
     % calculate the integrals
     Results = zeros(1, length(chemPots));
     for i = 1:length(chemPots)
         fermiFunc = choiceFermiFunc(evalPoints, chemPots(i).left, chemPots(i).right, choice);
-        %testFermi(evalPoints, fermiFunc, choice);
+        if options.check == true
+            testFermi(evalPoints, fermiFunc, choice);
+        end
         % calculate the Result
         yData = fermiFunc .* values;
         if length(evalPoints) > 1
@@ -139,27 +145,28 @@ end
 end
 
 %% total torque in the linear transport approximation
-function [Results] = Torque(Energies, totalSystem, totalSysDeriv, hoppingsInter, choice, mode)
+function [Results] = Torque(Energies, sample, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choice, mode)
     %calculates the torque experienced by the molecule in the linear transport approximation
     arguments
         Energies
-        totalSystem
+        sample
         totalSysDeriv
+        gammaL
+        gammaR
         hoppingsInter
+        hoppingsDeriv
         choice
         mode
     end
     % calculate the torque matrix and the trace
     Traces = zeros(1, length(Energies));
-    parfor i = 1:length(Energies)
+    for i = 1:length(Energies)
         if mode.SI == true
             eigenenergy = mode.energy;
             hoppingLead = mode.hopping;
-            [totalSystem, gammaL, gammaR] = makeSystemSI(Energies(i), sample, eigenenergy, hoppingLead, hoppingsInter)
+            [totalSystem, gammaL, gammaR, totalSysDeriv] = makeSystemSI(Energies(i), sample, eigenenergy, hoppingLead, hoppingsInter, hoppingsDeriv);
         elseif mode.EM == true
             totalSystem = sample;
-            gammaL = mode.gammaL;
-            gammaR = mode.gammaR;
         end
         Matrix = choiceLin(Energies(i), totalSystem, totalSysDeriv, gammaL, gammaR, choice);
         Traces(i) = trace(real(Matrix));
