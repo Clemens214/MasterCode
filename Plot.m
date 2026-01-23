@@ -63,8 +63,8 @@ end
         plotColor(value, Title, angles, voltages, Data)
     end
     % change plot colors
-    colororder("gem12")
-    %colororder({'b', 'r', 'g', 'm', 'c', 'y', 'k'});
+    %colororder("gem12")
+    colororder({'b', 'r', 'g', 'm', 'c', 'y', 'k'});
 end
 
 %% plotting functions: Energies (+angles)

@@ -6,7 +6,7 @@ arguments
     sampleVals
     leadVals
     hoppingsInter
-    mode.EM = false
+    mode.EM = true
     mode.SI = false
     options.linearResponse = true
 end
@@ -17,21 +17,21 @@ end
         sizeLead = leadVals.size;
         hoppingLead = leadVals.hopping;
         [totalSystem, gammaL, gammaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter);
-        mode.gammaL = gammaL;
-        mode.gammaR = gammaR;
     elseif mode.SI == true
         disp('Using semi-infinite leads.')
         totalSystem = sample;
+        gammaL = zeros(size(sample));
+        gammaR = zeros(size(sample));
         mode.energy = sampleVals.energy;
         mode.hopping = leadVals.hopping;
     end
     %disp('Starting calculation of the angular momentum.')
     if options.linearResponse == true
         Energies = voltages;
-        Results = Transmission(Energies, totalSystem, hoppingsInter, mode);
+        Results = Transmission(Energies, totalSystem, gammaL, gammaR, hoppingsInter, mode);
     elseif options.linearResponse == false
         chemPots = setupPots(voltages);
-        Results = integrate(chemPots, totalSystem, mode);
+        Results = integrate(chemPots, totalSystem, gammaL, gammaR, hoppingsInter, mode);
     end
     %disp('Starting calculation of the angular momentum.')
 end
@@ -46,10 +46,12 @@ function [chemPots] = setupPots(voltages)
 end
 
 %% integrate the transmission
-function [Results] = integrate(chemPots, totalSystem, hoppingsInter, mode, options)
+function [Results] = integrate(chemPots, totalSystem, gammaL, gammaR, hoppingsInter, mode, options)
 arguments
     chemPots
     totalSystem
+    gammaL
+    gammaR
     hoppingsInter
     mode
     options.stepMult = 10
@@ -65,7 +67,7 @@ end
 
     % calculate the transmissions
     evalPoints = makeList(max(Energies), min(Energies), stepSize);
-    values = Transmission(evalPoints, totalSystem, hoppingsInter, mode);
+    values = Transmission(evalPoints, totalSystem, gammaL, gammaR, hoppingsInter, mode);
 
     % calculate the integrals
     Results = zeros(1, length(chemPots));
@@ -104,25 +106,25 @@ end
 end
 
 %% total transmission in the linear transport approximation
-function [Results] = Transmission(Energies, sample, hoppingsInter, mode)
+function [Results] = Transmission(Energies, sample, gammaL, gammaR, hoppingsInter, mode)
     %calculates the transport through a molecule in the linear transport approximation
     arguments
         Energies
         sample
+        gammaL
+        gammaR
         hoppingsInter
         mode
     end
     % calculate the transport matrix and the trace
     Traces = zeros(1, length(Energies));
-    parfor i = 1:length(Energies)
+    for i = 1:length(Energies)
         if mode.SI == true
             eigenenergy = mode.energy;
             hoppingLead = mode.hopping;
-            [totalSystem, gammaL, gammaR] = makeSystemSI(Energies(i), sample, eigenenergy, hoppingLead, hoppingsInter)
+            [totalSystem, gammaL, gammaR] = makeSystemSI(Energies(i), sample, eigenenergy, hoppingLead, hoppingsInter);
         elseif mode.EM == true
             totalSystem = sample;
-            gammaL = mode.gammaL;
-            gammaR = mode.gammaR;
         end
         Matrix = TransmissionAlt(Energies(i), totalSystem, gammaL, gammaR);
         Traces(i) = trace(real(Matrix));
