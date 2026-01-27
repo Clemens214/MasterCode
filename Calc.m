@@ -18,7 +18,7 @@ leadVals = struct('size', sizeLead, 'energy', energyLead, 'hopping', hoppingLead
 angleMax = 0;
 angleStep = pi/4;
 angles = makeList(angleMax, angleStep);
-angles = 0;%pi/4;
+angles = pi/4;
 
 %variables for the voltages
 voltageMax = 2.5;
@@ -74,16 +74,16 @@ end
 
 %% plot
 Transmission = {TransmissionEM{1}, TransmissionSI{1}, TransmissionSI{1}-TransmissionEM{1}};
-plotSpectrum2D(1, 'Transmission', angles, Energies, {TransmissionSI{1}-TransmissionEM{1}})
+plotSpectrum2D(1, 'Transmission', angles, Energies, Transmission)
 
 Torque = {TorqueEM{1}, TorqueSI{1}, TorqueSI{1}-TorqueEM{1}};
-plotSpectrum2D(2, 'Torque', angles, Energies, {TorqueSI{1}-TorqueEM{1}})
+plotSpectrum2D(2, 'Torque', angles, Energies, Torque)
 
 Angular = {AngularEM{1}, AngularSI{1}, AngularSI{1}-AngularEM{1}};
-plotSpectrum2D(3, 'Angular Momentum', angles, Energies, {AngularSI{1}-AngularEM{1}})
+plotSpectrum2D(3, 'Angular Momentum', angles, Energies, Angular)
 
 Helicity = {HelicityEM{1}, HelicitySI{1}, HelicitySI{1}-HelicityEM{1}};
-plotSpectrum2D(4, 'Helicity', angles, Energies, {HelicitySI{1}-HelicityEM{1}})
+plotSpectrum2D(4, 'Helicity', angles, Energies, Helicity)
 
 %Plot(1, angles, Energies, {Transmission, Torque}, Spectrum=true, Both=true, Title='Both')
 
