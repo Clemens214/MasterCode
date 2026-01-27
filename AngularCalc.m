@@ -10,7 +10,7 @@ arguments
     choice.nonconservative = false
     choice.left = false
     choice.right = false
-    mode.EM = true
+    mode.EM = false
     mode.SI = false
     options.linearResponse = true
 end

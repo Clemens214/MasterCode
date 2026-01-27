@@ -6,7 +6,7 @@ arguments
     sampleVals
     leadVals
     hoppingsInter
-    mode.EM = true
+    mode.EM = false
     mode.SI = false
     options.linearResponse = true
 end
