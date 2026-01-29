@@ -35,27 +35,27 @@ end
     if options.linearResponse == true
         Energies = voltages;
         if choice.conservative == true || choice.nonconservative == true || choice.left == true || choice.right == true
-            Results = Helicity(Energies, operator, totalSystem, gammaL, gammaR, hoppingsInter, choice, mode);
+            Results = Helicity(Energies, totalSystem, operator, gammaL, gammaR, hoppingsInter, choice, mode);
         else
             choiceL = choice;
             choiceL.left = true;
-            ResultsL =  Helicity(Energies, operator, totalSystem, gammaL, gammaR, hoppingsInter, choiceL, mode);
+            ResultsL =  Helicity(Energies, totalSystem, operator, gammaL, gammaR, hoppingsInter, choiceL, mode);
             choiceR = choice;
             choiceR.right = true;
-            ResultsR =  Helicity(Energies, operator, totalSystem, gammaL, gammaR, hoppingsInter, choiceR, mode);
+            ResultsR =  Helicity(Energies, totalSystem, operator, gammaL, gammaR, hoppingsInter, choiceR, mode);
             Results = ResultsL + ResultsR;
         end
     elseif options.linearResponse == false
         chemPots = setupPots(voltages);
         if choice.conservative == true || choice.nonconservative == true || choice.left == true || choice.right == true
-            Results = integrate(chemPots, operator, totalSystem, gammaL, gammaR, hoppingsInter, choice, mode);
+            Results = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choice, mode);
         else
             choiceL = choice;
             choiceL.left = true;
-            ResultsL = integrate(chemPots, operator, totalSystem, gammaL, gammaR, hoppingsInter, choiceL, mode);
+            ResultsL = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choiceL, mode);
             choiceR = choice;
             choiceR.right = true;
-            ResultsR = integrate(chemPots, operator, totalSystem, gammaL, gammaR, hoppingsInter, choiceR, mode);
+            ResultsR = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choiceR, mode);
             Results = ResultsL + ResultsR;
         end
     end
@@ -103,11 +103,11 @@ end
 end
 
 %% integrate the helicity
-function [Results] = integrate(chemPots, operator, totalSystem, gammaL, gammaR, hoppingsInter, choice, mode, options)
+function [Results] = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choice, mode, options)
 arguments
     chemPots
-    operator
     totalSystem
+    operator
     gammaL
     gammaR
     hoppingsInter
@@ -131,7 +131,7 @@ end
 
     % calculate the transmissions
     evalPoints = makeList(maxPoint, minPoint, stepSize);
-    values = Helicity(evalPoints, operator, totalSystem, gammaL, gammaR, hoppingsInter, choice, mode);
+    values = Helicity(evalPoints, totalSystem, operator, gammaL, gammaR, hoppingsInter, choice, mode);
     
     % calculate the integrals
     Results = zeros(1, length(chemPots));
@@ -175,20 +175,20 @@ end
 end
 
 %% total helicity in the linear transport approximation
-function [Results] = Helicity(Energies, operator, sample, gammaL, gammaR, hoppingsInter, choice, mode)
+function [Results] = Helicity(Energies, sample, operator_EM, gammaL_EM, gammaR_EM, hoppingsInter, choice, mode)
 arguments
     Energies
-    operator
     sample
-    gammaL
-    gammaR
+    operator_EM
+    gammaL_EM
+    gammaR_EM
     hoppingsInter
     choice
     mode
 end
     % calculate the transport matrix and the trace
     Traces = zeros(1, length(Energies));
-    for i = 1:length(Energies)
+    parfor i = 1:length(Energies)
         if mode.SI == true
             eigenenergy = mode.energy;
             hoppingLead = mode.hopping;
@@ -197,6 +197,9 @@ end
             operator = HelicityOperator(length(totalSystem), sizeExtra(1));
         elseif mode.EM == true
             totalSystem = sample;
+            operator = operator_EM;
+            gammaL = gammaL_EM;
+            gammaR = gammaR_EM;
         end
         Matrix = choiceLin(Energies(i), operator, totalSystem, gammaL, gammaR, choice);
         Traces(i) = trace(real(Matrix));

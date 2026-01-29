@@ -191,7 +191,7 @@ end
     % calculate the final Greens function elements
     G_plus = factor*(1 + root);
     G_minus = factor*(1 - root);
-
+    % return the results
     varargout{1} = G_minus;
 end
 

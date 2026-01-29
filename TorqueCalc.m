@@ -85,7 +85,7 @@ arguments
     mode
     options.stepMult = 10
     options.minVal = -3
-    options.print = false
+    options.check = false
 end
     % get the bounds
     [maxPoint, minPoint] = choiceBounds(chemPots, choice);
@@ -145,14 +145,14 @@ end
 end
 
 %% total torque in the linear transport approximation
-function [Results] = Torque(Energies, sample, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choice, mode)
+function [Results] = Torque(Energies, sample, totalSysDeriv_EM, gammaL_EM, gammaR_EM, hoppingsInter, hoppingsDeriv, choice, mode)
     %calculates the torque experienced by the molecule in the linear transport approximation
     arguments
         Energies
         sample
-        totalSysDeriv
-        gammaL
-        gammaR
+        totalSysDeriv_EM
+        gammaL_EM
+        gammaR_EM
         hoppingsInter
         hoppingsDeriv
         choice
@@ -160,13 +160,16 @@ function [Results] = Torque(Energies, sample, totalSysDeriv, gammaL, gammaR, hop
     end
     % calculate the torque matrix and the trace
     Traces = zeros(1, length(Energies));
-    for i = 1:length(Energies)
+    parfor i = 1:length(Energies)
         if mode.SI == true
             eigenenergy = mode.energy;
             hoppingLead = mode.hopping;
             [totalSystem, gammaL, gammaR, totalSysDeriv] = makeSystemSI(Energies(i), sample, eigenenergy, hoppingLead, hoppingsInter, hoppingsDeriv);
         elseif mode.EM == true
             totalSystem = sample;
+            totalSysDeriv = totalSysDeriv_EM
+            gammaL = gammaL_EM;
+            gammaR = gammaR_EM;
         end
         Matrix = choiceLin(Energies(i), totalSystem, totalSysDeriv, gammaL, gammaR, choice);
         Traces(i) = trace(real(Matrix));

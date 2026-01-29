@@ -106,25 +106,27 @@ end
 end
 
 %% total transmission in the linear transport approximation
-function [Results] = Transmission(Energies, sample, gammaL, gammaR, hoppingsInter, mode)
+function [Results] = Transmission(Energies, sample, gammaL_EM, gammaR_EM, hoppingsInter, mode)
     %calculates the transport through a molecule in the linear transport approximation
     arguments
         Energies
         sample
-        gammaL
-        gammaR
+        gammaL_EM
+        gammaR_EM
         hoppingsInter
         mode
     end
     % calculate the transport matrix and the trace
     Traces = zeros(1, length(Energies));
-    for i = 1:length(Energies)
+    parfor i = 1:length(Energies)
         if mode.SI == true
             eigenenergy = mode.energy;
             hoppingLead = mode.hopping;
             [totalSystem, gammaL, gammaR] = makeSystemSI(Energies(i), sample, eigenenergy, hoppingLead, hoppingsInter);
         elseif mode.EM == true
             totalSystem = sample;
+            gammaL = gammaL_EM;
+            gammaR = gammaR_EM;
         end
         Matrix = TransmissionAlt(Energies(i), totalSystem, gammaL, gammaR);
         Traces(i) = trace(real(Matrix));
