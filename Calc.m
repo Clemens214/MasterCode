@@ -105,9 +105,9 @@ Plot(4, angles, Energies, Helicity, twoD=true, Spectrum=true, Title='Helicity')
 %Helicity = {HelicityEM{1}, HelicitySI{1}, HelicitySI{1}-HelicityEM{1}};
 %plotSpectrum2D(4, 'Helicity', angles, Energies, Helicity)
 
-%Data = {Angular{1}, Helicity{1}, Torque{1}};
+Data = {Angular{1}, Helicity{1}, Torque{1}};
 %Data = {Angular{1}, Helicity{1}};
-%plotSpectrum2D(1, 'Angular Momentum vs Helicity vs Torquance', angles, Energies, Data)
+plotSpectrum2D(5, 'Angular Momentum vs Helicity vs Torquance', angles, Energies, Data)
 
 function [] = plotSpectrum2D (value, Title, angles, voltages, Data)
     TransPlot = cell(1, length(angles));
