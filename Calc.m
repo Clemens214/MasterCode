@@ -16,36 +16,39 @@ leadVals = struct('size', sizeLead, 'energy', energyLead, 'hopping', hoppingLead
 
 % variables for the hopping
 angleMax = 2*pi;
-angleStep = pi/8;
+angleStep = pi/64;
 angles = makeList(angleMax, angleStep);
-%angles = pi/4;
+angles = pi/4;
 
 %variables for the voltages
 voltageMax = 2.5;
 voltageStep = 0.01;
 voltages = makeList(voltageMax, voltageStep);
+voltages = 2;
 
 %variables for the Energies
-EnergyMax = 2.5;
+EnergyMax = 2.1;
 EnergyStep = 0.01;
 Energies = makeList(EnergyMax, EnergyStep, full=true);
 
 sample = makeSample(energySample, hoppingsSample, sizeSample,  orderSample);
 
-hoppingsSigma = [1, 0; 1, 0];
-SigmaL = zeros(1, length(Energies));
-SigmaR = zeros(1, length(Energies));
-for i = 1:length(Energies)
-    [~, ~, ~, ~, sigmaL, sigmaR] = makeSystemSI(Energies(i), sample, energyLead, hoppingLead, hoppingsSigma);
-    SigmaL(i) = sigmaL(1,1);
-    SigmaR(i) = sigmaR(end,end);
-    %disp(['Energy = ', num2str(Energies(i))])
+if false
+    hoppingsSigma = [1, 0; 1, 0];
+    SigmaL = zeros(1, length(Energies));
+    SigmaR = zeros(1, length(Energies));
+    for i = 1:length(Energies)
+        [~, ~, ~, ~, sigmaL, sigmaR] = makeSystemSI(Energies(i), sample, energyLead, hoppingLead, hoppingsSigma);
+        SigmaL(i) = sigmaL(1,1);
+        SigmaR(i) = sigmaR(end,end);
+        %disp(['Energy = ', num2str(Energies(i))])
+    end
+    figure(5)
+    hold on
+    plot(Energies, real(SigmaL))
+    plot(Energies, imag(SigmaL))
+    hold off
 end
-figure(5)
-hold on
-plot(Energies, real(SigmaL))
-plot(Energies, imag(SigmaL))
-hold off
 
 %checkDecomposition(sample, 0)
 
@@ -71,18 +74,18 @@ for i = 1:length(angles)
     %checkMatrix(totalSystem);
     
     % calculating the values
-    Transmission{i} = TransCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, linearResponse=false ,EM=true);
-    Torque{i} = TorqueCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, conservative=true, linearResponse=false ,EM=true);
-    Angular{i} = AngularCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, nonconservative=true, linearResponse=false ,EM=true);
-    Helicity{i} = HelicityCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, nonconservative=true, linearResponse=false ,EM=true);
+    Transmission{i} = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true ,EM=true);
+    Torque{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true ,EM=true, conservative=true);
+    Angular{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true ,EM=true, nonconservative=true);
+    Helicity{i} = HelicityCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true ,EM=true, nonconservative=true);
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
 %% plot
-Plot(1, angles, voltages, Transmission, threeD=true, Title='Transmission')
-Plot(2, angles, voltages, Torque, threeD=true, Title='Torque')
-Plot(3, angles, voltages, Angular, threeD=true, Title='Angular Momentum')
-Plot(4, angles, voltages, Helicity, threeD=true, Title='Helicity')
+Plot(1, angles, Energies, Transmission, twoD=true, Spectrum=true, Title='Transmission')
+Plot(2, angles, Energies, Torque, twoD=true, Spectrum=true, Title='Torque')
+Plot(3, angles, Energies, Angular, twoD=true, Spectrum=true, Title='Angular Momentum')
+Plot(4, angles, Energies, Helicity, twoD=true, Spectrum=true, Title='Helicity')
 
 %Plot(1, angles, Energies, {Transmission, Torque}, Spectrum=true, Both=true, Title='Both')
 

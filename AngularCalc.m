@@ -109,6 +109,7 @@ arguments
     choice
     mode
     options.stepMult = 10
+    options.stepMin = 0.05
     options.minVal = -3
     options.check = false
 end
@@ -122,8 +123,8 @@ end
         Diffs(i) = Energies(i) - Energies(i-1); 
     end
     LCD = lcd(Diffs);
-    stepSize = (1/LCD) / options.stepMult;
-
+    stepSize = min((1/LCD) / options.stepMult, options.stepMin);
+    
     % calculate the transmissions
     evalPoints = makeList(maxPoint, minPoint, stepSize);
     values = AngularMomentum(evalPoints, totalSystem, operator, gammaL, gammaR, hoppingsInter, choice, mode);

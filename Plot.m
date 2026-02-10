@@ -53,7 +53,7 @@ end
     % plot the Angles
     if options.Angles == true
         if options.twoD == true
-            plotAngles2D (value, Title, angles, Vals)
+            plotValue2D (value, Title, angles, Vals)
         elseif options.threeD == true
             plotAngles3D (value, Title, angles, Vals)
         end
@@ -152,7 +152,8 @@ function [] = plotValue2D (value, Title, angles, voltages, Data)
     end
     hold off
     title(Title);
-    labels = strcat('Voltage = ',cellstr(num2str(voltages.')));
+    %labels = strcat('Voltage = ',cellstr(num2str(voltages.')));
+    labels = strcat('Energy = ',cellstr(num2str(voltages.')));
     legend(labels)
 end
 
