@@ -1,4 +1,4 @@
-function [totalSystem, gammaL, gammaR, varargout] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals, options)
+function [totalSystem, gammaL, gammaR, varargout] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, hoppingsDeriv, leadVals, options)
 arguments
     sample
     sizeSample
@@ -6,8 +6,11 @@ arguments
     sizeLead
     hoppingLead
     hoppingsInter
-    leadVals
-    options.check = true
+    hoppingsDeriv = zeros(size(hoppingsInter))
+    leadVals.maxVal = 1
+    leadVals.decay = 0.2
+    leadVals.offset= 32
+    options.check = false
     options.checkMore = false
 end
     sizeTotal = sizeSample*orderSample + 2*sizeLead;
@@ -17,37 +20,49 @@ end
     % compute the fermi functions
     fermiFuncLeft = fermiFunction(sizeSystem, leadVals, left=true);
     fermiFuncRight = fermiFunction(sizeSystem, leadVals, right=true);
-    if options.checkMore == true
-        checkFermi(fermiFuncLeft, fermiFuncRight)
-    end
     
     % generate the pseudo Hamiltonians of the leads
     [leadL, sigmaL, indicesL] = makeLead(fermiFuncLeft, hoppingLead, sizeSample, orderSample, sizeLead, left=true);
     [leadR, sigmaR, indicesR] = makeLead(fermiFuncRight, hoppingLead, sizeSample, orderSample, sizeLead, right=true);
-    if options.checkMore == true
-        checkIndex(indicesL, indicesR, orderSample)
-    end
     
     % compute the coupling strengths of the leads
     gammaL = -1j*(sigmaL - sigmaL'); %1j*(sigmaL - sigmaL');
     gammaR = -1j*(sigmaR - sigmaR'); %1j*(sigmaR - sigmaR');
-    if options.check == true
-        checkGamma(gammaL, 'gammaL')
-        checkGamma(gammaR, 'gammaR')
-    end
 
     % generate the hopping matrices between the leads and the sample
     interL = makeInter(sizeLead, sizeCentral, hoppingsInter, left=true);
     interR = makeInter(sizeLead, sizeCentral, hoppingsInter, right=true);
-    
+
     % generate the Hamiltonian of the total system
     totalSystem = combineH(sizeLead, sizeCentral, sample, leadL, leadR, interL, interR);
+
+    % check the results
     if options.check == true
+        checkGamma(gammaL, 'gammaL')
+        checkGamma(gammaR, 'gammaR')
         checkHamiltonian(totalSystem)
     end
+    if options.checkMore == true
+        checkFermi(fermiFuncLeft, fermiFuncRight)
+        checkIndex(indicesL, indicesR, orderSample)
+    end
 
-    varargout{1} = sigmaL;
-    varargout{2} = sigmaR;
+    % generate the derivatives of the sample and the leads
+    sampleDeriv = zeros(size(sample));
+    leadDerivL = zeros(size(leadL));
+    leadDerivR = zeros(size(leadR));
+
+    % generate the derivatives of the hopping matrices
+    interDerivL = makeInter(sizeLead, sizeCentral, hoppingsDeriv, left=true);
+    interDerivR = makeInter(sizeLead, sizeCentral, hoppingsDeriv, right=true);
+
+    % generate the derivative of the Hamiltonian
+    totalSysDeriv = combineH(sizeLead, sizeCentral, sampleDeriv, leadDerivL, leadDerivR, interDerivL, interDerivR);
+
+    % return the results
+    varargout{1} = totalSysDeriv;
+    varargout{2} = sigmaL;
+    varargout{3} = sigmaR;
 end
 
 %% Fermi functions
@@ -59,7 +74,9 @@ arguments
     options.left = false
     options.right = false
 end
-    [maxVal, decay, offset] = leadVals{:};
+    maxVal = leadVals.maxVal;
+    decay = leadVals.decay;
+    offset = leadVals.offset;
     values = zeros(1, sizeSystem);
     for i = 1:sizeSystem
         if options.left == true && options.right == false
@@ -235,4 +252,20 @@ function [] = checkHamiltonian(totalSystem)
     else
         disp('No part of the Hamiltonian is hermitian.')
     end
+end
+
+%% helping functions
+function [leadVals, derivVals] = calcVals(opt)%(maxVal, decay, offset)
+    arguments
+        opt.maxVal = 1
+        opt.decay = 0.3
+        % offset should be at most half the length of the leads
+        opt.offset = 32
+        % normal: 32
+    end
+    maxVal = opt.maxVal;
+    decay = opt.decay;
+    offset = opt.offset;
+    leadVals = {maxVal, decay, offset};
+    derivVals = {0, decay, offset};
 end

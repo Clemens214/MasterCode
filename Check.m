@@ -27,7 +27,7 @@ Energies = makeList(EnergyMax, -1*EnergyMax, EnergyStep);
 sample = makeSample(eigenenergy, hoppingsSample, sizeSample,  orderSample);
 
 % preparing the Extended Molecule Hamiltonian
-[totalSystem, GammaL, GammaR, SigmaL, SigmaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, leadVals);
+[totalSystem, GammaL, GammaR, SigmaL, SigmaR] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, maxVal=leadVals{1}, decay=leadVals{2}, offset=leadVals{3});
 
 %% Check the Conductance
 % calculate the Transmission
