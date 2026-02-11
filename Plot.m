@@ -65,6 +65,8 @@ end
     % change plot colors
     %colororder("gem12")
     colororder({'b', 'r', 'g', 'm', 'c', 'y', 'k'});
+    % change font size
+    fontsize(16,"points")
 end
 
 %% plotting functions: Energies (+angles)
@@ -80,7 +82,7 @@ function [] = plotSpectrum2D (value, Title, angles, voltages, Data)
     figure(value)
     hold on
     for i = 1:length(angles)
-        plot(voltages, TransPlot{i});
+        plot(voltages, TransPlot{i}, linewidth=1);
     end
     hold off
     xlabel('Energy (units of t)');
@@ -91,7 +93,14 @@ function [] = plotSpectrum2D (value, Title, angles, voltages, Data)
     end
     title(Title);
     labels = strcat('Angle = ',cellstr(num2str(angles.')));
-    legend(labels)
+    if true
+        labels = cellfun(@(x) [x,'\pi'], labels, 'uniform',false);
+    end
+    if true
+        legend(labels, 'Location','eastoutside');
+    else
+        legend(labels);
+    end
 end
 
 function [] = plotSpectrumBoth (value, ~, angles, voltages, Transmission, Torque)
@@ -113,25 +122,32 @@ function [] = plotSpectrumBoth (value, ~, angles, voltages, Transmission, Torque
     ylabel('Transmission (2e/h)');
     hold on
     for i = 1:length(angles)
-        plot(voltages, TransPlot{i});
+        plot(voltages, TransPlot{i}, linewidth=1);
     end
     hold off
     title('Transmission');
     labels = strcat('Angle = ',cellstr(num2str(angles.')));
-    legend(labels);
+    if true
+        legend(labels, 'Location','eastoutside');
+    else
+        legend(labels);
+    end
     grid on;
-
     subplot(2,1, 2);
     xlabel('Energy (units of t)');
     ylabel('Torque (-1/2\pi)');
     hold on
     for i = 1:length(angles)
-        plot(voltages, TorquePlot{i});
+        plot(voltages, TorquePlot{i}, linewidth=1);
     end
     hold off
     title('Torque');
     labels = strcat('Angle = ',cellstr(num2str(angles.')));
-    legend(labels);
+    if true
+        legend(labels, 'Location','eastoutside');
+    else
+        legend(labels);
+    end
     grid on;
 end
 
@@ -148,13 +164,22 @@ function [] = plotValue2D (value, Title, angles, voltages, Data)
     figure(value)
     hold on
     for i = 1:length(voltages)
-        plot(angles, TransPlot{i});
+        plot(angles, TransPlot{i}, linewidth=1);
     end
     hold off
     title(Title);
     %labels = strcat('Voltage = ',cellstr(num2str(voltages.')));
     labels = strcat('Energy = ',cellstr(num2str(voltages.')));
-    legend(labels)
+    if false
+        legend(labels, 'Location','eastoutside');
+    else
+        legend(labels);
+    end
+    if true
+        TickLabels = cellfun(@num2str , xticklabels, 'uniform',false);
+        TickLabels = cellfun(@(x) [x,'\pi'], TickLabels, 'uniform',false);
+        xticklabels(TickLabels)
+    end
 end
 
 function [] = plotValueBoth (value, ~, angles, voltages, Transmission, Torque)
@@ -176,12 +201,16 @@ function [] = plotValueBoth (value, ~, angles, voltages, Transmission, Torque)
     ylabel('Current (a.u.)');
     hold on
     for i = 1:length(voltages)
-        plot(angles, TransPlot{i});
+        plot(angles, TransPlot{i}, linewidth=1);
     end
     title('Transmission');
     hold off
     labels = strcat('Voltage = ',cellstr(num2str(voltages.')));
-    legend(labels);
+    if true
+        legend(labels, 'Location','eastoutside');
+    else
+        legend(labels);
+    end
     grid on;
 
     subplot(2,1, 2);
@@ -189,12 +218,16 @@ function [] = plotValueBoth (value, ~, angles, voltages, Transmission, Torque)
     ylabel('Torque (a.u.)');
     hold on
     for i = 1:length(voltages)
-        plot(angles, TorquePlot{i});
+        plot(angles, TorquePlot{i}, linewidth=1);
     end
     hold off
     title('Torque');
     labels = strcat('Voltage = ',cellstr(num2str(voltages.')));
-    legend(labels);
+    if true
+        legend(labels, 'Location','eastoutside');
+    else
+        legend(labels);
+    end
     grid on;
 end
 
@@ -245,7 +278,7 @@ function [varargout] = plotAngles2D (value, Title, angles, Vals)
     TransSort = TransPlot(indices);
     % plot the data
     figure(value);
-    plot(angleSort, TransSort)
+    plot(angleSort, TransSort, linewidth=1)
     title(Title);
 end
 
