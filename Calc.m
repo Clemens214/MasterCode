@@ -29,26 +29,34 @@ voltages = makeList(voltageMax, voltageStep);
 voltages = 2;
 
 %variables for the Energies
-EnergyMax = 2.1;
+EnergyMax = 5;
 EnergyStep = 0.01;
 Energies = makeList(EnergyMax, EnergyStep, full=true);
 
 sample = makeSample(energySample, hoppingsSample, sizeSample,  orderSample);
 
-if false
+if true
     hoppingsSigma = [1, 0; 1, 0];
     SigmaL = zeros(1, length(Energies));
     SigmaR = zeros(1, length(Energies));
+    Test  = zeros(1, length(Energies));
     for i = 1:length(Energies)
         [~, ~, ~, ~, sigmaL, sigmaR] = makeSystemSI(Energies(i), sample, energyLead, hoppingLead, hoppingsSigma);
         SigmaL(i) = sigmaL(1,1);
         SigmaR(i) = sigmaR(end,end);
         %disp(['Energy = ', num2str(Energies(i))])
+        x = (Energies(i) - energyLead)/(2 * abs(hoppingLead));
+        if abs(x) <= 1
+            Test(i) = x;
+        else
+            Test(i) = x - sign(x)*sqrt(x*x - 1);
+        end
     end
     figure(5)
     hold on
     plot(Energies, real(SigmaL))
     plot(Energies, imag(SigmaL))
+    plot(Energies, Test)
     hold off
 end
 
