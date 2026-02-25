@@ -16,12 +16,9 @@ leadVals = struct('size', sizeLead, 'energy', energyLead, 'hopping', hoppingLead
 
 % variables for the hopping
 angleMax = 2;
-angleStep = 1/64;
+angleStep = 1/8;
 anglesTick = makeList(angleMax, angleStep);
 angles = makeList(pi*angleMax, pi*angleStep);
-anglesTick = 1/4;
-angles = pi/4;
-
 %variables for the voltages
 voltageMax = 2.5;
 voltageStep = 0.01;
@@ -59,14 +56,10 @@ end
 %checkDecomposition(sample, 0)
 
 %% Calculation
-TransmissionEM = cell(1, length(angles));
-TransmissionSI = cell(1, length(angles));
-TorqueEM = cell(1, length(angles));
-TorqueSI = cell(1, length(angles));
-AngularEM = cell(1, length(angles));
-AngularSI = cell(1, length(angles));
-HelicityEM = cell(1, length(angles));
-HelicitySI = cell(1, length(angles));
+Transmission = cell(1, length(angles));
+Torque = cell(1, length(angles));
+Angular = cell(1, length(angles));
+Helicity = cell(1, length(angles));
 for i = 1:length(angles)
     if orderSample == 1
         hoppingsInter = [hopping; hopping];
@@ -84,14 +77,18 @@ for i = 1:length(angles)
     %checkMatrix(totalSystem);
     
     % calculating the values
-    TransmissionEM{i} = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true ,EM=true);
-    TransmissionSI{i} = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true ,SI=true);
-    TorqueEM{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true ,EM=true);
-    TorqueSI{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true ,SI=true);
-    AngularEM{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true ,EM=true);
-    AngularSI{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true ,SI=true);
-    HelicityEM{i} = HelicityCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true ,EM=true);
-    HelicitySI{i} = HelicityCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true ,SI=true);
+    TransmissionEM = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true ,EM=true);
+    TransmissionSI = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true ,SI=true);
+    Transmission{i} = TransmissionSI - TransmissionEM;
+    TorqueEM = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true ,EM=true);
+    TorqueSI = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true ,SI=true);
+    Torque{i} = TorqueSI - TorqueEM;
+    AngularEM = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true ,EM=true);
+    AngularSI = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true ,SI=true);
+    Angular{i} = AngularSI - AngularEM;
+    HelicityEM= HelicityCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true ,EM=true);
+    HelicitySI= HelicityCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true ,SI=true);
+    Helicity{i} = HelicitySI - HelicityEM;
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
@@ -101,21 +98,22 @@ end
 
 %Plot(1, angles, Energies, {Transmission, Torque}, Spectrum=true, Both=true, Title='Both')
 
-%Plot(2, angles, Energies, Transmission, Spectrum=true, twoD=true, Title='Transmission')
-Transmission = {TransmissionEM{1}, TransmissionSI{1}, TransmissionSI{1}-TransmissionEM{1}};
-plotSpectrum2D(1, 'Transmission', anglesTick, Energies, Transmission)
+Plot(2, angles, Energies, Transmission, threeD=true, Title='Transmission')
+Plot(3, angles, Energies, Torque, threeD=true, Title='Torque')
+Plot(4, angles, voltages, Angular, threeD=true, Title='Angular Momentum')
+Plot(5, angles, voltages, Helicity, threeD=true, Title='Helicity')
 
-%Plot(3, angles, Energies, Torque, Spectrum=true, twoD=true, Title='Torque')
-Torque = {TorqueEM{1}, TorqueSI{1}, TorqueSI{1}-TorqueEM{1}};
-plotSpectrum2D(2, 'Torque', anglesTick, Energies, Torque)
+%Transmission = {TransmissionEM{1}, TransmissionSI{1}, TransmissionSI{1}-TransmissionEM{1}};
+%plotSpectrum2D(1, 'Transmission', anglesTick, Energies, Transmission)
 
-%Plot(4, angles, voltages, Angular, threeD=true, Title='Angular Momentum')
-Angular = {AngularEM{1}, AngularSI{1}, AngularSI{1}-AngularEM{1}};
-plotSpectrum2D(3, 'Angular Momentum', anglesTick, Energies, Angular)
+%Torque = {TorqueEM{1}, TorqueSI{1}, TorqueSI{1}-TorqueEM{1}};
+%plotSpectrum2D(2, 'Torque', anglesTick, Energies, Torque)
 
-%Plot(5, angles, voltages, Helicity, threeD=true, Title='Helicity')
-Helicity = {HelicityEM{1}, HelicitySI{1}, HelicitySI{1}-HelicityEM{1}};
-plotSpectrum2D(4, 'Helicity', anglesTick, Energies, Helicity)
+%Angular = {AngularEM{1}, AngularSI{1}, AngularSI{1}-AngularEM{1}};
+%plotSpectrum2D(3, 'Angular Momentum', anglesTick, Energies, Angular)
+
+%Helicity = {HelicityEM{1}, HelicitySI{1}, HelicitySI{1}-HelicityEM{1}};
+%plotSpectrum2D(4, 'Helicity', anglesTick, Energies, Helicity)
 
 function [] = plotSpectrum2D (value, Title, angles, voltages, Data)
     TransPlot = cell(1, length(Data));
