@@ -7,7 +7,7 @@ arguments
     leadVals
     hoppingsInter
     choice.conservative = false
-    choice.nonconservative = false
+    choice.nonconservative = true
     choice.left = false
     choice.right = false
     mode.EM = false
