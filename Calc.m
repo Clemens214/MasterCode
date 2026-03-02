@@ -7,7 +7,7 @@ energySample = 0;
 hopping = 1;
 hoppingsSample = hopping*eye(orderSample);
 sampleVals = struct('size', sizeSample, 'order', orderSample, 'energy', energySample, 'hopping', hoppingsSample);
-
+    
 % variables for the leads
 sizeLead = 104;
 energyLead = energySample;
@@ -16,9 +16,10 @@ leadVals = struct('size', sizeLead, 'energy', energyLead, 'hopping', hoppingLead
 
 % variables for the hopping
 angleMax = 2;
-angleStep = 1/8;
+angleStep = 1/16;
 anglesTick = makeList(angleMax, angleStep);
 angles = makeList(pi*angleMax, pi*angleStep);
+
 %variables for the voltages
 voltageMax = 2.5;
 voltageStep = 0.01;
@@ -26,13 +27,13 @@ voltages = makeList(voltageMax, voltageStep);
 voltages = 2;
 
 %variables for the Energies
-EnergyMax = 3;
+EnergyMax = 2.5;
 EnergyStep = 0.01;
 Energies = makeList(EnergyMax, EnergyStep, full=true);
 
 sample = makeSample(energySample, hoppingsSample, sizeSample,  orderSample);
 
-if true
+if false
     hoppingsSigma = [1, 0; 1, 0];
     GreensFunc = zeros(1, length(Energies));
     Test  = zeros(1, length(Energies));
@@ -100,8 +101,8 @@ end
 
 Plot(2, angles, Energies, Transmission, threeD=true, Title='Transmission')
 Plot(3, angles, Energies, Torque, threeD=true, Title='Torque')
-Plot(4, angles, voltages, Angular, threeD=true, Title='Angular Momentum')
-Plot(5, angles, voltages, Helicity, threeD=true, Title='Helicity')
+Plot(4, angles, Energies, Angular, threeD=true, Title='Angular Momentum')
+Plot(5, angles, Energies, Helicity, threeD=true, Title='Helicity')
 
 %Transmission = {TransmissionEM{1}, TransmissionSI{1}, TransmissionSI{1}-TransmissionEM{1}};
 %plotSpectrum2D(1, 'Transmission', anglesTick, Energies, Transmission)
