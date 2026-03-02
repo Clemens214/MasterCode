@@ -12,7 +12,7 @@ arguments
     choice.left = false
     choice.right = false
     mode.EM = false
-    mode.SI = false
+    mode.SI = true
     options.linearResponse = true
 end
     if mode.EM == true
