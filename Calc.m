@@ -33,40 +33,14 @@ EnergyMax = 2.5;
 EnergyStep = 0.01;
 Energies = makeList(EnergyMax, EnergyStep, full=true);
 
-sample = makeSample(energySample, hoppingsSample, sizeSample,  orderSample);
-
-if true
-    hoppingsSigma = [1, 0; 1, 0];
-    GreensFunc = zeros(1, length(Energies));
-    Test  = zeros(1, length(Energies));
-    Test2  = zeros(1, length(Energies));
-    for i = 1:length(Energies)
-        [~, ~, ~, ~, ~, ~, Greens] = makeSystemSI(Energies(i), sample, energyLead, hoppingLead, hoppingsSigma);
-        GreensFunc(i) = Greens;
-        %disp(['Energy = ', num2str(Energies(i))])
-        x = (Energies(i) - energyLead)/(2 * abs(hoppingLead));
-        Test(i) = 1/abs(hoppingLead) * (x - sign(x)*sqrt(x*x - 1));
-    end
-    figure(6)
-    hold on
-    plot(Energies, real(GreensFunc))
-    plot(Energies, imag(GreensFunc))
-    %plot(Energies, real(Test))
-    %plot(Energies, imag(Test))
-    hold off
-end
-
+%sample = makeSample(energySample, hoppingsSample, sizeSample,  orderSample);
 %checkDecomposition(sample, 0)
 
 %% Calculation
-TransmissionEM = cell(1, length(angles));
-TransmissionSI = cell(1, length(angles));
-TorqueEM = cell(1, length(angles));
-TorqueSI = cell(1, length(angles));
-AngularEM = cell(1, length(angles));
-AngularSI = cell(1, length(angles));
-HelicityEM= cell(1, length(angles));
-HelicitySI= cell(1, length(angles));
+Transmission = cell(1, length(angles));
+Torque = cell(1, length(angles));
+Angular = cell(1, length(angles));
+Helicity = cell(1, length(angles));
 for i = 1:length(angles)
     if orderSample == 1
         hoppingsInter = [hopping; hopping];
@@ -84,14 +58,10 @@ for i = 1:length(angles)
     %checkMatrix(totalSystem);
     
     % calculating the values
-    TransmissionEM{i} = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true ,EM=true);
-    TransmissionSI{i} = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true ,SI=true);
-    TorqueEM{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true ,EM=true);
-    TorqueSI{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true ,SI=true);
-    AngularEM{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true ,EM=true);
-    AngularSI{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true ,SI=true);
-    HelicityEM{i} = HelicityCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true ,EM=true);
-    HelicitySI{i} = HelicityCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true ,SI=true);
+    Transmission{i} = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true);
+    Torque{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true);
+    Angular{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true);
+    Helicity{i} = HelicityCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true);
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
@@ -105,18 +75,6 @@ end
 %Plot(3, angles, Energies, Torque, threeD=true, Title='Torque')
 %Plot(4, angles, Energies, Angular, threeD=true, Title='Angular Momentum')
 %Plot(5, angles, Energies, Helicity, threeD=true, Title='Helicity')
-
-Transmission = {TransmissionEM{1}, TransmissionSI{1}, TransmissionSI{1}-TransmissionEM{1}};
-plotSpectrum2D(1, 'Transmission', anglesTick, Energies, Transmission)
-
-Torque = {TorqueEM{1}, TorqueSI{1}, TorqueSI{1}-TorqueEM{1}};
-plotSpectrum2D(2, 'Torque', anglesTick, Energies, Torque)
-
-Angular = {AngularEM{1}, AngularSI{1}, AngularSI{1}-AngularEM{1}};
-plotSpectrum2D(3, 'Angular Momentum', anglesTick, Energies, Angular)
-
-Helicity = {HelicityEM{1}, HelicitySI{1}, HelicitySI{1}-HelicityEM{1}};
-plotSpectrum2D(4, 'Helicity', anglesTick, Energies, Helicity)
 
 function [] = plotSpectrum2D (value, Title, angles, voltages, Data)
     TransPlot = cell(1, length(Data));
