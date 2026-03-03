@@ -7,7 +7,7 @@ arguments
     leadVals
     hoppingsInter
     mode.EM = false
-    mode.SI = false
+    mode.SI = true
     options.linearResponse = true
 end
     if mode.EM == true
