@@ -1,4 +1,4 @@
-function [totalSystem, gammaL, gammaR, varargout] = makeSystemSI (Energy, sample, eigenenergy, hoppingLead, hoppingsInter, hoppingsDeriv, options)
+function [totalSystem, GammaL, GammaR, varargout] = makeSystemSI (Energy, sample, eigenenergy, hoppingLead, hoppingsInter, hoppingsDeriv, options)
 arguments
     Energy
     sample
@@ -14,21 +14,21 @@ end
     sizeExtra = options.size;
     
     % compute the self-energies of the leads
-    sigmaL = makeSigma (sizeSample, sizeExtra, Energy, hoppingLead, hoppingsInter, eigenenergy, left=true);
-    sigmaR = makeSigma (sizeSample, sizeExtra, Energy, hoppingLead, hoppingsInter, eigenenergy, right=true);
+    [SigmaL, GreensL] = makeSigma (sizeSample, sizeExtra, Energy, hoppingLead, hoppingsInter, eigenenergy, left=true);
+    [SigmaR, GreensR] = makeSigma (sizeSample, sizeExtra, Energy, hoppingLead, hoppingsInter, eigenenergy, right=true);
 
     % generate the Hamiltonian of the total system
     totalHamiltonian = makeSystem(sample, sizeExtra, eigenenergy, hoppingsInter, hoppingLead);
-    totalSystem = totalHamiltonian + sigmaL + sigmaR;
+    totalSystem = totalHamiltonian + SigmaL + SigmaR;
     
     % compute the coupling strengths of the leads
-    gammaL = -1j*(sigmaL - sigmaL');
-    gammaR = -1j*(sigmaR - sigmaR');
+    GammaL = -1j*(SigmaL - SigmaL');
+    GammaR = -1j*(SigmaR - SigmaR');
     
     % check the results
     if options.check == true
-        checkGamma(gammaL, 'gammaL')
-        checkGamma(gammaR, 'gammaR')
+        checkGamma(GammaL, 'GammaL')
+        checkGamma(GammaR, 'GammaR')
         checkHamiltonian(totalSystem)
     end
     
@@ -38,8 +38,10 @@ end
 
     % return the results
     varargout{1} = totalSysDeriv;
-    varargout{2} = sigmaL;
-    varargout{3} = sigmaR;
+    varargout{2} = SigmaL;
+    varargout{3} = SigmaR;
+    varargout{4} = GreensL;
+    varargout{5} = GreensR;
 end
 
 %% functions used in generating the total Hamiltonian
@@ -176,7 +178,7 @@ end
     varargout{1} = GreensFunc;
 end
 
-function [G_plus, varargout] = CalcGreens (w, t, eig, options)
+function [Result, varargout] = CalcGreens (w, t, eig, options)
 arguments
     w
     t
@@ -192,7 +194,8 @@ end
     G_plus = factor*(1 + root);
     G_minus = factor*(1 - root);
     % return the results
-    varargout{1} = G_minus;
+    Result = real(G_minus) + -1j*imag(G_minus);
+    varargout{1} = G_plus;
 end
 
 %% checking functions

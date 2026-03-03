@@ -1,4 +1,4 @@
-function [totalSystem, gammaL, gammaR, varargout] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, hoppingsDeriv, leadVals, options)
+function [totalSystem, GammaL, GammaR, varargout] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, hoppingsDeriv, leadVals, options)
 arguments
     sample
     sizeSample
@@ -22,12 +22,12 @@ end
     fermiFuncRight = fermiFunction(sizeSystem, leadVals, right=true);
     
     % generate the pseudo Hamiltonians of the leads
-    [leadL, sigmaL, indicesL] = makeLead(fermiFuncLeft, hoppingLead, sizeSample, orderSample, sizeLead, left=true);
-    [leadR, sigmaR, indicesR] = makeLead(fermiFuncRight, hoppingLead, sizeSample, orderSample, sizeLead, right=true);
+    [leadL, SigmaL, indicesL] = makeLead(fermiFuncLeft, hoppingLead, sizeSample, orderSample, sizeLead, left=true);
+    [leadR, SigmaR, indicesR] = makeLead(fermiFuncRight, hoppingLead, sizeSample, orderSample, sizeLead, right=true);
     
     % compute the coupling strengths of the leads
-    gammaL = -1j*(sigmaL - sigmaL'); %1j*(sigmaL - sigmaL');
-    gammaR = -1j*(sigmaR - sigmaR'); %1j*(sigmaR - sigmaR');
+    GammaL = -1j*(SigmaL - SigmaL'); %1j*(SigmaL - SigmaL');
+    GammaR = -1j*(SigmaR - SigmaR'); %1j*(SigmaR - SigmaR');
 
     % generate the hopping matrices between the leads and the sample
     interL = makeInter(sizeLead, sizeCentral, hoppingsInter, left=true);
@@ -38,8 +38,8 @@ end
 
     % check the results
     if options.check == true
-        checkGamma(gammaL, 'gammaL')
-        checkGamma(gammaR, 'gammaR')
+        checkGamma(GammaL, 'GammaL')
+        checkGamma(GammaR, 'GammaR')
         checkHamiltonian(totalSystem)
     end
     if options.checkMore == true
@@ -61,8 +61,8 @@ end
 
     % return the results
     varargout{1} = totalSysDeriv;
-    varargout{2} = sigmaL;
-    varargout{3} = sigmaR;
+    varargout{2} = SigmaL;
+    varargout{3} = SigmaR;
 end
 
 %% Fermi functions
