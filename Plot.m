@@ -66,7 +66,25 @@ end
     %colororder("gem12")
     colororder({'b', 'r', 'g', 'm', 'c', 'y', 'k'});
     % change font size
-    fontsize(16,"points")
+    fontsize(12,"points")
+    fontname("Helvetica")
+    disp('Test')
+end
+
+function [] = resizeFig (figure)
+    set(figure, 'PaperPositionMode','auto')
+    Width = 14.53; %cm
+    Convert = get(0, 'ScreenPixelsPerInch') / 2.54;
+    % get the figure size
+    PosOld = get(figure, 'Position');
+    WidthOld = PosOld(3) / Convert;
+    HeightOld = PosOld(4) / Convert;
+    % set the figure size
+    Factor = Width / WidthOld;
+    WidthNew = Factor * WidthOld;
+    HeightNew = Factor * HeightOld;
+    PosNew = [PosOld(1), PosOld(2), WidthNew, HeightNew];
+    set(figure, 'Units','centimeters', 'Position', PosNew)
 end
 
 %% plotting functions: Energies (+angles)
@@ -79,28 +97,31 @@ function [] = plotSpectrum2D (value, Title, angles, voltages, Data)
         end
     end
     % plot the data
-    figure(value)
+    fig = figure(value);
     hold on
     for i = 1:length(angles)
         plot(voltages, TransPlot{i}, linewidth=1);
     end
     hold off
-    xlabel('Energy (units of t)');
+    xlabel('E');
     if strcmp(Title, 'Transmission')
-        ylabel('Transmission (2e/h)');
+        ylabel('Transmission');
+        yLimits = ylim;
+        ylim([0, yLimits(2)])
     elseif strcmp(Title, 'Torque')
-        ylabel('Torque (-1/2\pi)');
+        ylabel('Torque');
     end
-    title(Title);
-    labels = strcat('Angle = ',cellstr(num2str(angles.')));
-    if true
+    %title(Title);
+    labels = strcat('N = ',cellstr(num2str(angles.')));
+    if false
         labels = cellfun(@(x) [x,'\pi'], labels, 'uniform',false);
     end
     if true
-        legend(labels, 'Location','eastoutside');
+        legend(labels, 'Location','northoutside');
     else
         legend(labels);
     end
+    resizeFig(fig)
 end
 
 function [] = plotSpectrumBoth (value, ~, angles, voltages, Transmission, Torque)
@@ -167,11 +188,16 @@ function [] = plotValue2D (value, Title, angles, voltages, Data)
         plot(angles, TransPlot{i}, linewidth=1);
     end
     hold off
-    title(Title);
+    %title(Title);
     %labels = strcat('Voltage = ',cellstr(num2str(voltages.')));
-    labels = strcat('Energy = ',cellstr(num2str(voltages.')));
+    if strcmp(Title, 'Transmission')
+        ylabel('Transmission');
+    elseif strcmp(Title, 'Torque')
+        ylabel('Torque');
+    end
+    labels = strcat('E = ',cellstr(num2str(voltages.')));
     if false
-        legend(labels, 'Location','eastoutside');
+        legend(labels, 'Location','northoutside');
     else
         legend(labels);
     end

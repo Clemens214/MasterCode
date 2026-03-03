@@ -16,11 +16,9 @@ leadVals = struct('size', sizeLead, 'energy', energyLead, 'hopping', hoppingLead
 
 % variables for the hopping
 angleMax = 2;
-angleStep = 1/16;
+angleStep = 1/64;
 anglesTick = makeList(angleMax, angleStep);
-anglesTick = 1/4;
 angles = makeList(pi*angleMax, pi*angleStep);
-angles = pi/4;
 
 %variables for the voltages
 voltageMax = 2.5;
@@ -30,7 +28,7 @@ voltages = 2;
 
 %variables for the Energies
 EnergyMax = 2.5;
-EnergyStep = 0.01;
+EnergyStep = 0.001;
 Energies = makeList(EnergyMax, EnergyStep, full=true);
 
 %sample = makeSample(energySample, hoppingsSample, sizeSample,  orderSample);
@@ -42,6 +40,7 @@ Torque = cell(1, length(angles));
 Angular = cell(1, length(angles));
 Helicity = cell(1, length(angles));
 for i = 1:length(angles)
+    Sizes = [1, 2, 5, 10];
     if orderSample == 1
         hoppingsInter = [hopping; hopping];
         hoppingsDeriv = [0; 0];
@@ -58,16 +57,16 @@ for i = 1:length(angles)
     %checkMatrix(totalSystem);
     
     % calculating the values
-    Transmission{i} = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true);
-    Torque{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true);
-    Angular{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true);
-    Helicity{i} = HelicityCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true);
+    Transmission{i} = TransCalc(sample, 0, sampleVals, leadVals, hoppingsInter, linearResponse=true);
+    Torque{i} = TorqueCalc(sample, 1, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true);
+    %Angular{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true);
+    %Helicity{i} = HelicityCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true);
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
 %% plot
-%Plot(1, anglesTick, Energies, Transmission, twoD=true, Spectrum=true, Title='Transmission')
-%Plot(2, anglesTick, Energies, Torque, twoD=true, Spectrum=true, Title='Torque')
+Plot(1, anglesTick, [0], Transmission, twoD=true, Value=true, Title='Transmission')
+Plot(2, anglesTick, [1], Torque, twoD=true, Value=true, Title='Torque')
 
 %Plot(1, angles, Energies, {Transmission, Torque}, Spectrum=true, Both=true, Title='Both')
 
