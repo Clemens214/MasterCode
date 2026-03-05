@@ -1,15 +1,15 @@
 %% Variables
 
 % variables for the sample
-sizeSample = 48;
+sizeSample = 4;
 orderSample = 2;
 energySample = 0;
 hopping = 1;
 hoppingsSample = hopping*eye(orderSample);
 sampleVals = struct('size', sizeSample, 'order', orderSample, 'energy', energySample, 'hopping', hoppingsSample);
-    
+
 % variables for the leads
-sizeLead = 104;
+sizeLead = 4;
 energyLead = energySample;
 hoppingLead = hopping;
 leadVals = struct('size', sizeLead, 'energy', energyLead, 'hopping', hoppingLead);
@@ -31,8 +31,8 @@ EnergyMax = 2.5;
 EnergyStep = 0.001;
 Energies = makeList(EnergyMax, EnergyStep, full=true);
 
-%sample = makeSample(energySample, hoppingsSample, sizeSample,  orderSample);
-%checkDecomposition(sample, 0)
+sample = makeSample(energySample, hoppingsSample, sizeSample,  orderSample);
+checkDecomposition(sample, 0)
 
 %% Calculation
 Transmission = cell(1, length(angles));

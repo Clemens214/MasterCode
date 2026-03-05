@@ -137,6 +137,7 @@ end
         Product = gammaL * matrix1 * gammaR * matrix2';
         
         % compute the factor for the chosen matrices
+        disp(['Matrix: idx=', num2str(idx)])
         Factor = FactorCalc(omega, Diag, upperTriag, index1, index2, chemPotL, chemPotR);
         
         Result = Result + Product*Factor;
@@ -166,6 +167,7 @@ end
         vals = [vals1, conj(vals2)];
         factors = [factors1, conj(factors2)];
         % perform the partial fraction decomposition
+        disp(['Factor: idx=', num2str(idx)])
         constants = partialFraction(factors, vals);
         % calculate the result
         elements = 1 ./ (omega - constants);
@@ -181,36 +183,22 @@ arguments
     factors
     vals
 end
-    values = struct('value', [], 'power', [], 'indices', []);
-    idx = 0;
+    % organize the values
+    values = struct('value', [], 'power', [], 'max', [], 'coefficient', []);
     for i = 1:length(vals)
-        bools = ismember(vals(i), values.value);
-        if any(bools)
-            for j  =1:length(bools)
-                if bools(j) == true
-                    values(j).value = vals(i);
-                    values(j).power = values(j).power + 1;
-                    values(j).indices(end+1) = i;
-                end
-            end
-        else
-            idx = idx+1;
-            values(idx).value = vals(i);
-            values(idx).power = 1;
-            values(idx).indices(1) = i;
+        disp(['Frac: i=', num2str(i)])
+        bools = ismember(vals(i), [values.value]);
+        values(i).value = vals(i);
+        values(i).power = sum(bools)+1;
+        if values(i).power == 1
+            Denoms = (vals(i) - [values.value]); 
+            Denoms(i) = [];
+            Denominator = prod(Denoms);
+            Factor = prod(factors);
+            values(i).coefficient = Factor / Denominator;
         end
     end
-    constants = zeros(1, length(factors));
-    for i = 1:length(constants)
-        Denoms = vals(i) - vals; 
-        Denoms(i) = [];
-        Denominator = prod(Denoms);
-        Factor = prod(factors);
-        constants(i) = Factor / Denominator;
-        if isnan(constants(i))
-            disp(['Constant in NaN! i=', num2str(i)])
-        end
-    end
+    disp('Test')
 end
 
 %% helping functions
