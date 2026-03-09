@@ -60,8 +60,8 @@ for i = 1:length(angles)
     %checkMatrix(totalSystem);
     
     % calculating the values
-    [Current{i}, Transmission{i}, EnergiesTrans] = TransCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, linearResponse=false);
-    [Torque{i}, Torquance{i}, EnergiesTorque] = TorqueCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=false, conservative=true);
+    %[Current{i}, Transmission{i}, EnergiesTrans] = TransCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, linearResponse=false);
+    [Torque{i}, Torquance{i}, EnergiesTorque] = TorqueCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, EM=true, SI=false, linearResponse=false, nonconservative=true);
     %Angular{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
     %Helicity{i} = HelicityCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
@@ -73,8 +73,8 @@ end
 
 %Plot(1, angles, Energies, {Transmission, Torque}, Spectrum=true, Both=true, Title='Both')
 
-Plot(1, angles, voltages, Current, threeD=true, Title='Current')
-Plot(2, angles, EnergiesTrans, Transmission, threeD=true, Title='Transmission')
+%Plot(1, angles, voltages, Current, threeD=true, Title='Current')
+%Plot(2, angles, EnergiesTrans, Transmission, threeD=true, Title='Transmission')
 Plot(3, angles, voltages, Torque, threeD=true, Title='Torque')
 Plot(4, angles, EnergiesTorque, Torquance, threeD=true, Title='Torquance')
 %Plot(5, angles, voltages, AngularInt, threeD=true, Title='Angular Momentum, integrated')
