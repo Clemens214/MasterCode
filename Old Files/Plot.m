@@ -87,7 +87,7 @@ function [] = resizeFig (figure)
     set(figure, 'Units','centimeters', 'Position', PosNew)
 end
 
-%% plotting functions: Spectrum (+angles)
+%% plotting functions: Energies (+angles)
 function [] = plotSpectrum2D (value, Title, angles, voltages, Data)
     TransPlot = cell(1, length(angles));
     for i = 1:length(angles)
@@ -257,40 +257,6 @@ function [] = plotValueBoth (value, ~, angles, voltages, Transmission, Torque)
     grid on;
 end
 
-
-function [] = plotSpectrum2D (value, Title, angles, voltages, Data)
-    TransPlot = cell(1, length(Data));
-    for i = 1:length(Data)
-        TransPlot{i} = zeros(1, length(voltages));
-        for j = 1:length(voltages)
-            TransPlot{i}(j) = Data{i}(j);
-        end
-    end
-    % plot the data
-    figure(value)
-    hold on
-    %yyaxis left
-    for i = 1:length(Data)%-1
-        plot(voltages, TransPlot{i}, linewidth=0.5);
-    end
-    ylabel('Angular Momentum')
-    if false
-        yyaxis right
-        plot(voltages, TransPlot{end}, linewidth=1);
-        ylabel('Torque')
-    end
-    hold off
-    xlabel('Energy (units of t)');
-    title(Title);
-    labels = strcat('Angle = ',cellstr(num2str(angles.')));
-    %labels = {'Extended Molecule'; 'Semi-infinite leads'; 'Difference'};
-    if true
-        labels = cellfun(@(x) [x,'\pi'], labels, 'uniform',false);
-    end
-    legend(labels)
-    fontsize(16,"points")
-end
-
 %% plotting functions: 3D
 function [] = plot3D (value, Title, angles, voltages, Data)
     TransPlot = zeros(length(voltages), length(angles));
@@ -346,4 +312,23 @@ function [] = plotAngles3D (value, Title, angles, Vals)
     figure(value)
     surf(angles, angles, Vals)
     title(Title);
+end
+
+%% plotting functions: obsolete
+function [] = plotAngle (value, Title, angles, Vals)
+    plotVals = cell2mat(Vals);
+    figure(value);
+    plot(angles, plotVals)
+    title(Title);
+end
+
+function [] = plotGraph (value, Title, omegas, Vals, chemPots)
+    figure(value);
+    title(Title);
+    for i = 1:length(chemPots)
+        plot(omegas, Vals{i})
+        hold on
+    end
+    labels = strcat('chemPot = ',cellstr(num2str(chemPots.')));
+    legend(labels)
 end

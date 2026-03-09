@@ -1,4 +1,4 @@
-function [Results] = AngularCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, choice, mode, options)
+function [Results, varargout] = AngularCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, choice, mode, options)
 % calculate the angular momentum experienced by a molecule for zero temperature
 arguments
     sample
@@ -48,16 +48,19 @@ end
     elseif options.linearResponse == false
         chemPots = setupPots(voltages);
         if choice.conservative == true || choice.nonconservative == true || choice.left == true || choice.right == true
-            Results = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choice, mode);
+            [Results, values, Energies] = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choice, mode);
         else
             choiceL = choice;
             choiceL.left = true;
-            ResultsL = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choiceL, mode);
+            [ResultsL, valuesL, EnergiesL] = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choiceL, mode);
             choiceR = choice;
             choiceR.right = true;
-            ResultsR = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choiceR, mode);
+            [ResultsR, valuesR, EnergiesR] = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choiceR, mode);
             Results = ResultsL + ResultsR;
+            [values, Energies] = combine(valuesL, valuesR, EnergiesL, EnergiesR);
         end
+        varargout{1} = values;
+        varargout{2} = Energies;
     end
     %disp('Finished calculation of the angular momentum.')
 end
@@ -97,8 +100,32 @@ end
     operator(mid, mid) = sample;
 end
 
+function [values, Energies] = combine(valuesL, valuesR, EnergiesL, EnergiesR)
+    idx = 1;
+    jdx = 1;
+    size = max(length(EnergiesL), length(EnergiesR));
+    values = zeros(1, size);
+    Energies = zeros(1, size);
+    for i = 1:size
+        if jdx > length(EnergiesR) || EnergiesL(idx) < EnergiesR(jdx)
+            idx = idx+1;
+            values(i) = valuesL(idx);
+            Energies(i) = EnergiesL(idx);
+        elseif idx > length(EnergiesR) || EnergiesL(idx) > EnergiesR(jdx)
+            jdx = jdx+1;
+            values(i) = valuesR(idx);
+            Energies(i) = EnergiesR(idx);
+        elseif EnergiesL(idx) == EnergiesR(jdx)
+            values(i) = valuesL(idx) + valuesR(jdx);
+            Energies(i) = EnergiesL(idx);
+            idx = idx+1;
+            jdx = jdx+1;
+        end
+    end
+end
+
 %% integrate the angular momentum
-function [Results] = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choice, mode, options)
+function [Results, varargout] = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choice, mode, options)
 arguments
     chemPots
     totalSystem
@@ -145,6 +172,8 @@ end
         end
         %disp(['Voltage: ', num2str(chemPots(i).left-chemPots(i).right), ', j=', num2str(i)])
     end
+    varargout{1} = values;
+    varargout{2} = evalPoints;
 end
 
 function [fermiFunc] = getFermiFunc(evalPoints, chemPot, Temp)
