@@ -82,6 +82,39 @@ Plot(4, angles, EnergiesTorque, Torquance, threeD=true, Title='Torquance')
 %Plot(7, angles, voltages, HelicityInt, threeD=true, Title='Helicity, integrated')
 %Plot(8, angles, EnergiesHelicity, Helicity, threeD=true, Title='Helicity')
 
+function [] = plotSpectrum2D (value, Title, angles, voltages, Data)
+    TransPlot = cell(1, length(Data));
+    for i = 1:length(Data)
+        TransPlot{i} = zeros(1, length(voltages));
+        for j = 1:length(voltages)
+            TransPlot{i}(j) = Data{i}(j);
+        end
+    end
+    % plot the data
+    figure(value)
+    hold on
+    %yyaxis left
+    for i = 1:length(Data)%-1
+        plot(voltages, TransPlot{i}, linewidth=0.5);
+    end
+    ylabel('Angular Momentum')
+    if false
+        yyaxis right
+        plot(voltages, TransPlot{end}, linewidth=1);
+        ylabel('Torque')
+    end
+    hold off
+    xlabel('Energy (units of t)');
+    title(Title);
+    labels = strcat('Angle = ',cellstr(num2str(angles.')));
+    %labels = {'Extended Molecule'; 'Semi-infinite leads'; 'Difference'};
+    if true
+        labels = cellfun(@(x) [x,'\pi'], labels, 'uniform',false);
+    end
+    legend(labels)
+    fontsize(16,"points")
+end
+
 %% chemPots
 function [totalSysDeriv] = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv)
     sampleDeriv = zeros(sizeSample*orderSample, sizeSample*orderSample);

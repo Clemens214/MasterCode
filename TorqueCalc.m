@@ -48,18 +48,19 @@ end
     elseif options.linearResponse == false
         chemPots = setupPots(voltages);
         if choice.conservative == true || choice.nonconservative == true || choice.left == true || choice.right == true
-            [Results, values] = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choice, mode);
+            [Results, values, Energies] = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choice, mode);
         else
             choiceL = choice;
             choiceL.left = true;
-            [ResultsL, valuesL] = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choiceL, mode);
+            [ResultsL, valuesL, EnergiesL] = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choiceL, mode);
             choiceR = choice;
             choiceR.right = true;
-            [ResultsR, valuesR] = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choiceR, mode);
+            [ResultsR, valuesR, EnergiesR] = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choiceR, mode);
             Results = ResultsL + ResultsR;
-            values = valuesL + valuesR;
+            [values, Energies] = combine(valuesL, valuesR, EnergiesL, EnergiesR);
         end
         varargout{1} = values;
+        varargout{2} = Energies;
     end
     %disp('Finished calculation of the torque.')
 end
@@ -70,6 +71,30 @@ function [chemPots] = setupPots(voltages)
         chemPotL = voltages(j)/2;
         chemPotR = -1*voltages(j)/2;
         chemPots(j) = struct('left', chemPotL, 'right', chemPotR);
+    end
+end
+
+function [values, Energies] = combine(valuesL, valuesR, EnergiesL, EnergiesR)
+    idx = 1;
+    jdx = 1;
+    size = max(length(EnergiesL), length(EnergiesR));
+    values = zeros(1, size);
+    Energies = zeros(1, size);
+    for i = 1:size
+        if jdx > length(EnergiesR) || EnergiesL(idx) < EnergiesR(jdx)
+            idx = idx+1;
+            values(i) = valuesL(idx);
+            Energies(i) = EnergiesL(idx);
+        elseif idx > length(EnergiesR) || EnergiesL(idx) > EnergiesR(jdx)
+            jdx = jdx+1;
+            values(i) = valuesR(idx);
+            Energies(i) = EnergiesR(idx);
+        elseif EnergiesL(idx) == EnergiesR(jdx)
+            values(i) = valuesL(idx) + valuesR(jdx);
+            Energies(i) = EnergiesL(idx);
+            idx = idx+1;
+            jdx = jdx+1;
+        end
     end
 end
 
@@ -123,6 +148,7 @@ end
         %disp(['Voltage: ', num2str(chemPots(i).left-chemPots(i).right), ', j=', num2str(i)])
     end
     varargout{1} = values;
+    varargout{2} = evalPoints;
 end
 
 function [fermiFunc] = getFermiFunc(evalPoints, chemPot, Temp)

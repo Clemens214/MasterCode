@@ -25,16 +25,17 @@ end
         mode.energy = sampleVals.energy;
         mode.hopping = leadVals.hopping;
     end
-    %disp('Starting calculation of the angular momentum.')
+    %disp('Starting calculation of the transmission.')
     if options.linearResponse == true
         Energies = voltages;
         Results = Transmission(Energies, totalSystem, gammaL, gammaR, hoppingsInter, mode);
     elseif options.linearResponse == false
         chemPots = setupPots(voltages);
-        [Results, values] = integrate(chemPots, totalSystem, gammaL, gammaR, hoppingsInter, mode);
+        [Results, values, Energies] = integrate(chemPots, totalSystem, gammaL, gammaR, hoppingsInter, mode);
         varargout{1} = values;
+        varargout{2} = Energies;
     end
-    %disp('Starting calculation of the angular momentum.')
+    %disp('Finished calculation of the transmission.')
 end
 
 function [chemPots] = setupPots(voltages)
@@ -65,7 +66,9 @@ end
         Diffs(i) = Energies(i) - Energies(i-1); 
     end
     LCD = lcd(Diffs);
-    stepSize = min((1/LCD) / options.stepMult, options.stepMin);
+    calcStep = (1/LCD) / options.stepMult;
+    stepSize = min(calcStep, options.stepMin);
+    %disp(['StepSize: Diff=',num2str(min(Diffs)),', LCD=',num2str(calcStep),', Min=',num2str(options.stepMin)])
 
     % calculate the transmissions
     evalPoints = makeList(max(Energies), min(Energies), stepSize);
@@ -85,6 +88,7 @@ end
         %disp(['Voltage: ', num2str(chemPots(i).left-chemPots(i).right), ', j=', num2str(i)])
     end
     varargout{1} = values;
+    varargout{2} = evalPoints;
 end
 
 function [fermiFunc] = getFermiFunc(evalPoints, chemPot, Temp)
