@@ -35,6 +35,7 @@ Energies = makeList(EnergyMax, EnergyStep, full=true);
 %checkDecomposition(sample, 0)
 
 %% Calculation
+Current = cell(1, length(angles));
 Transmission = cell(1, length(angles));
 Torque = cell(1, length(angles));
 Angular = cell(1, length(angles));
@@ -57,16 +58,16 @@ for i = 1:length(angles)
     %checkMatrix(totalSystem);
     
     % calculating the values
-    Transmission{i} = TransCalc(sample, 0, sampleVals, leadVals, hoppingsInter, linearResponse=true);
-    Torque{i} = TorqueCalc(sample, 1, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true);
+    [Current{i}, Transmission{i}] = TransCalc(sample, 0, sampleVals, leadVals, hoppingsInter);
+    %Torque{i} = TorqueCalc(sample, 1, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true);
     %Angular{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true);
     %Helicity{i} = HelicityCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true);
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
 %% plot
-Plot(1, anglesTick, [0], Transmission, twoD=true, Value=true, Title='Transmission')
-Plot(2, anglesTick, [1], Torque, twoD=true, Value=true, Title='Torque')
+%Plot(1, anglesTick, [0], Transmission, twoD=true, Value=true, Title='Transmission')
+%Plot(2, anglesTick, [1], Torque, twoD=true, Value=true, Title='Torque')
 
 %Plot(1, angles, Energies, {Transmission, Torque}, Spectrum=true, Both=true, Title='Both')
 

@@ -1,4 +1,4 @@
-function [Results] = TorqueCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, choice, mode, options)
+function [Results, varargout] = TorqueCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, choice, mode, options)
 % calculate the torque through a molecule for zero temperature
 arguments
     sample
@@ -48,16 +48,18 @@ end
     elseif options.linearResponse == false
         chemPots = setupPots(voltages);
         if choice.conservative == true || choice.nonconservative == true || choice.left == true || choice.right == true
-            Results = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choice, mode);
+            [Results, values] = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choice, mode);
         else
             choiceL = choice;
             choiceL.left = true;
-            ResultsL = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choiceL, mode);
+            [ResultsL, valuesL] = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choiceL, mode);
             choiceR = choice;
             choiceR.right = true;
-            ResultsR = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choiceR, mode);
+            [ResultsR, valuesR] = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choiceR, mode);
             Results = ResultsL + ResultsR;
+            values = valuesL + valuesR;
         end
+        varargout{1} = values;
     end
     %disp('Finished calculation of the torque.')
 end
@@ -72,7 +74,7 @@ function [chemPots] = setupPots(voltages)
 end
 
 %% integrate the torque
-function [Results] = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choice, mode, options)
+function [Results, varargout] = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choice, mode, options)
 arguments
     chemPots
     totalSystem
@@ -120,6 +122,7 @@ end
         end
         %disp(['Voltage: ', num2str(chemPots(i).left-chemPots(i).right), ', j=', num2str(i)])
     end
+    varargout{1} = values;
 end
 
 function [fermiFunc] = getFermiFunc(evalPoints, chemPot, Temp)

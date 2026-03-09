@@ -1,4 +1,4 @@
-function [Results] = TransCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, mode, options)
+function [Results, varargout] = TransCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, mode, options)
 % calculate the transmission through a molecule for zero temperature
 arguments
     sample
@@ -31,7 +31,8 @@ end
         Results = Transmission(Energies, totalSystem, gammaL, gammaR, hoppingsInter, mode);
     elseif options.linearResponse == false
         chemPots = setupPots(voltages);
-        Results = integrate(chemPots, totalSystem, gammaL, gammaR, hoppingsInter, mode);
+        [Results, values] = integrate(chemPots, totalSystem, gammaL, gammaR, hoppingsInter, mode);
+        varargout{1} = values;
     end
     %disp('Starting calculation of the angular momentum.')
 end
@@ -46,7 +47,7 @@ function [chemPots] = setupPots(voltages)
 end
 
 %% integrate the transmission
-function [Results] = integrate(chemPots, totalSystem, gammaL, gammaR, hoppingsInter, mode, options)
+function [Results, varargout] = integrate(chemPots, totalSystem, gammaL, gammaR, hoppingsInter, mode, options)
 arguments
     chemPots
     totalSystem
@@ -83,6 +84,7 @@ end
         end
         %disp(['Voltage: ', num2str(chemPots(i).left-chemPots(i).right), ', j=', num2str(i)])
     end
+    varargout{1} = values;
 end
 
 function [fermiFunc] = getFermiFunc(evalPoints, chemPot, Temp)

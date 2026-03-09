@@ -1,4 +1,4 @@
-function [Results] = AngularCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, choice, mode, options)
+function [Results, varargout] = AngularCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, choice, mode, options)
 % calculate the angular momentum experienced by a molecule for zero temperature
 arguments
     sample
@@ -48,16 +48,18 @@ end
     elseif options.linearResponse == false
         chemPots = setupPots(voltages);
         if choice.conservative == true || choice.nonconservative == true || choice.left == true || choice.right == true
-            Results = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choice, mode);
+            [Results, values] = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choice, mode);
         else
             choiceL = choice;
             choiceL.left = true;
-            ResultsL = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choiceL, mode);
+            [ResultsL, valuesL] = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choiceL, mode);
             choiceR = choice;
             choiceR.right = true;
-            ResultsR = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choiceR, mode);
+            [ResultsR, valuesR] = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choiceR, mode);
             Results = ResultsL + ResultsR;
+            values = valuesL + valuesR;
         end
+        varargout{1} = values;
     end
     %disp('Finished calculation of the angular momentum.')
 end
@@ -98,7 +100,7 @@ end
 end
 
 %% integrate the angular momentum
-function [Results] = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choice, mode, options)
+function [Results, varargout] = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choice, mode, options)
 arguments
     chemPots
     totalSystem
@@ -145,6 +147,7 @@ end
         end
         %disp(['Voltage: ', num2str(chemPots(i).left-chemPots(i).right), ', j=', num2str(i)])
     end
+    varargout{1} = values;
 end
 
 function [fermiFunc] = getFermiFunc(evalPoints, chemPot, Temp)
