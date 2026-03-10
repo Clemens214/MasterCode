@@ -10,6 +10,7 @@ arguments
     options.Value = false
     options.Color = false
     options.Angles = false
+    options.Size = false
     % Dimension of plot
     options.twoD = false
     options.threeD = false
@@ -26,34 +27,37 @@ end
     elseif strcmp(Title, 'Torquance')
         label = '\tau(E)';
     elseif strcmp(Title, 'Torque')
-        label = '\tau(E)';
+        label = '\tau(E) [\frac{-1}{2\pi}]';
     elseif strcmp(Title, 'Angular Momentum')
         label = 'l_{z}(E)';
-    elseif strcmp(Title, 'Helicality')
+    elseif strcmp(Title, 'Helicity') || strcmp(Title, 'Helicality')
         label = 'h(E)';
     else
         label = 'Result (E)';
     end
-    if options.twoD == true || (options.twoD == false && options.threeD == false)
+    if options.twoD == true && options.threeD == false
     % plot the Energy/voltage dependence
         if options.Spectrum == true
-            if options.Both ==true || (options.Transmission == true && options.Torque == true)
-                Transmission = Data{1};
-                Torque = Data{2};
-                plotSpectrumBoth(value, Title, angles, voltages, Transmission, Torque)
-            else
-                plotSpectrum2D(value, Title, angles, voltages, Data)
-            end
+            fig = plotSpectrum2D(value, Title, angles, voltages, Data);
     % plot the Angle dependence
-        elseif options.Value == true
-            if options.Both ==true || (options.Transmission == true && options.Torque == true)
-                Transmission = Data{1};
-                Torque = Data{2};
-                plotValueBoth(value, Title, angles, voltages, Transmission, Torque)
-            else
-                plotValue2D(value, Title, angles, voltages, Data)
-            end
+        elseif options.Value == true || options.Angles == true
+            fig = plotValue2D(value, Title, angles, voltages, Data);
         end
+        %% customize plot
+        resizeFig(fig)
+        if min(voltages) >= 0
+            options.integrate = true;
+        else
+            options.integrate = false;
+        end
+        setLabels(fig, Title, label, options)
+        %% change plot colors
+        Palette = colororder();
+        %colororder("gem12")
+        colororder({'b', 'r', 'g', 'm', 'c', 'y', 'k'});
+        %% change font size
+        fontsize(12,"points")
+        fontname("Helvetica")
     % plot the Data in 3D
     elseif options.threeD == true
         plot3D (value, Title, angles, voltages, Data)
@@ -64,19 +68,12 @@ end
     end
     % plot the Angles
     if options.Angles == true
-        if options.twoD == true
+        if options.twoD == true && options.threeD == false
             plotValue2D (value, Title, angles, Vals)
         elseif options.threeD == true
             plotAngles3D (value, Title, angles, Vals)
         end
     end
-    %% change plot colors
-    Palette = colororder();
-    %colororder("gem12")
-    colororder({'b', 'r', 'g', 'm', 'c', 'y', 'k'});
-    %% change font size
-    fontsize(12,"points")
-    fontname("Helvetica")
 end
 
 function [] = resizeFig (figure)
@@ -95,49 +92,57 @@ function [] = resizeFig (figure)
     set(figure, 'Units','centimeters', 'Position', PosNew)
 end
 
-function [] = setLabels (figure, Title, label)
-    %title(Title);
-    %labels = strcat('Voltage = ',cellstr(num2str(voltages.')));
-    ylabel('label');
-    elseif strcmp(Title, 'Torque')
-        ylabel('Torque');
-    end
-    labels = strcat('E = ',cellstr(num2str(voltages.')));
+function [] = setLabels (figure, Title, label, options)
+arguments
+    figure
+    Title
+    label
+    options.Spectrum = false
+    options.Value = false
+    options.Size = false
+    options.integrate = false
+end
+    % set the title of the plot
     if false
-        legend(labels, 'Location','northoutside');
-    else
-        legend(labels);
+        title(Title);
     end
-    if true
+    % set the x-label of the plot
+    if options.Spectrum == true && options.integrate == true
+        xlabel('V');
+    elseif options.Spectrum == true && options.integrate == false
+        xlabel('E');
+    elseif options.Value == true
+        xlabel('\theta');
+    end
+    % set the x-axis ticks
+    if options.Value == true
         TickLabels = cellfun(@num2str , xticklabels, 'uniform',false);
         TickLabels = cellfun(@(x) [x,'\pi'], TickLabels, 'uniform',false);
         xticklabels(TickLabels)
     end
-end
-
-    xlabel('E');
+    % set the y-label of the plot
+    ylabel(label);
+    % set the limits of the y-axis
     if strcmp(Title, 'Transmission')
-        ylabel('Transmission');
         yLimits = ylim;
         ylim([0, yLimits(2)])
-    elseif strcmp(Title, 'Torque')
-        ylabel('Torque');
     end
-    %title(Title);
-    labels = strcat('N = ',cellstr(num2str(angles.')));
-    if false
+    % set the legend of the plot
+    if options.Value == true && options.integrate == true
+        labels = strcat('V=',cellstr(num2str(voltages.')));
+    elseif options.Value == true && options.integrate == false
+        labels = strcat('E=',cellstr(num2str(voltages.')));
+    elseif options.Spectrum == true
+        labels = strcat('\theta=',cellstr(num2str(angles.')));
         labels = cellfun(@(x) [x,'\pi'], labels, 'uniform',false);
+    elseif options.Size == true
+        labels = strcat('N=',cellstr(num2str(angles.')));
     end
-    if true
-        legend(labels, 'Location','northoutside');
-    else
-        legend(labels);
-    end
-    resizeFig(fig)
+    legend(labels, 'Location','northoutside');
 end
 
 %% plotting functions: Energies (+angles)
-function [fig] = plotSpectrum2D (value, Title, angles, voltages, Data)
+function [fig] = plotSpectrum2D (value, angles, voltages, Data)
     TransPlot = cell(1, length(angles));
     for i = 1:length(angles)
         TransPlot{i} = zeros(1, length(voltages));
@@ -155,7 +160,7 @@ function [fig] = plotSpectrum2D (value, Title, angles, voltages, Data)
 end
 
 %% plotting functions: Angle (+voltages)
-function [fig] = plotValue2D (value, Title, angles, voltages, Data)
+function [fig] = plotValue2D (value, angles, voltages, Data)
     TransPlot = cell(1, length(voltages));
     for i = 1:length(voltages)
         TransPlot{i} = zeros(1, length(angles));
@@ -269,6 +274,39 @@ function [] = plotValueBoth (value, ~, angles, voltages, Transmission, Torque)
         legend(labels);
     end
     grid on;
+end
+
+function [] = plotSpectrum2DBoth (value, Title, angles, voltages, Data)
+    TransPlot = cell(1, length(Data));
+    for i = 1:length(Data)
+        TransPlot{i} = zeros(1, length(voltages));
+        for j = 1:length(voltages)
+            TransPlot{i}(j) = Data{i}(j);
+        end
+    end
+    % plot the data
+    figure(value)
+    hold on
+    %yyaxis left
+    for i = 1:length(Data)%-1
+        plot(voltages, TransPlot{i}, linewidth=0.5);
+    end
+    ylabel('Angular Momentum')
+    if false
+        yyaxis right
+        plot(voltages, TransPlot{end}, linewidth=1);
+        ylabel('Torque')
+    end
+    hold off
+    xlabel('Energy (units of t)');
+    title(Title);
+    labels = strcat('Angle = ',cellstr(num2str(angles.')));
+    %labels = {'Extended Molecule'; 'Semi-infinite leads'; 'Difference'};
+    if true
+        labels = cellfun(@(x) [x,'\pi'], labels, 'uniform',false);
+    end
+    legend(labels)
+    fontsize(16,"points")
 end
 
 %% plotting functions: 3D

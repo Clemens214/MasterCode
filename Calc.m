@@ -67,6 +67,12 @@ for i = 1:length(angles)
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
+if true
+    save('variables')
+else
+    load('variables')
+end
+
 %% plot
 %Plot(1, anglesTick, [0], Transmission, twoD=true, Value=true, Title='Transmission')
 %Plot(2, anglesTick, [1], Torque, twoD=true, Value=true, Title='Torque')
