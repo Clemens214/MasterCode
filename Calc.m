@@ -15,8 +15,8 @@ hoppingLead = hopping;
 leadVals = struct('size', sizeLead, 'energy', energyLead, 'hopping', hoppingLead);
 
 % variables for the hopping
-angleMax = 2;
-angleStep = 1/16;
+angleMax = 0.5;
+angleStep = 1/8;
 anglesTick = makeList(angleMax, angleStep);
 angles = makeList(pi*angleMax, pi*angleStep);
 
@@ -27,21 +27,21 @@ voltages = makeList(voltageMax, voltageStep);
 
 %variables for the Energies
 EnergyMax = 2.5;
-EnergyStep = 0.01;
+EnergyStep = 0.001;
 Energies = makeList(EnergyMax, EnergyStep, full=true);
 
 %sample = makeSample(energySample, hoppingsSample, sizeSample,  orderSample);
 %checkDecomposition(sample, 0)
 
 %% Calculation
-Current = cell(1, length(angles));
 Transmission = cell(1, length(angles));
-Torque = cell(1, length(angles));
 Torquance = cell(1, length(angles));
-AngularInt = cell(1, length(angles));
 Angular = cell(1, length(angles));
-HelicityInt = cell(1, length(angles));
 Helicity = cell(1, length(angles));
+
+Current = cell(1, length(angles));
+Torque = cell(1, length(angles));
+
 for i = 1:length(angles)
     Sizes = [1, 2, 5, 10];
     if orderSample == 1
@@ -59,30 +59,49 @@ for i = 1:length(angles)
     
     %checkMatrix(totalSystem);
     
-    % calculating the values
-    %[Current{i}, Transmission{i}, EnergiesTrans] = TransCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, linearResponse=false);
-    [Torque{i}, Torquance{i}, EnergiesTorque] = TorqueCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, EM=true, SI=false, linearResponse=false, nonconservative=true);
+    % calculating the trace values
+    if true
+    %Transmission{i} = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true);
+    Torquance{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true, nonconservative=true);
+    %Torquance{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, EM=true, SI=false, linearResponse=true, nonconservative=true);
     %Angular{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
     %Helicity{i} = HelicityCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
+    end
+
+    % calculating the integrated values
+    if false
+    %Current{i} = TransCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, linearResponse=false);
+    Torque{i} = TorqueCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=false, nonconservative=true);
+    %Torque{i} = TorqueCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, EM=true, SI=false, linearResponse=false, nonconservative=true);
+    end
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
+if false
 if true
     save('variables')
 else
     load('variables')
 end
+end
 
 %% plot
-%Plot(1, anglesTick, [0], Transmission, twoD=true, Value=true, Title='Transmission')
-%Plot(2, anglesTick, [1], Torque, twoD=true, Value=true, Title='Torque')
+if true
+    %Plot(1, anglesTick, Energies, Transmission, twoD=true, Spectrum=true, Title='Transmission')
+    Plot(2, anglesTick, Energies, Torquance, twoD=true, Spectrum=true, Title='Torquance')
+    %Plot(3, anglesTick, Energies, Angular, twoD=true, Spectrum=true, Title='Angular Momentum')
+    %Plot(4, anglesTick, Energies, Helicity, twoD=true, Spectrum=true, Title='Helicality')
+end
 
-%Plot(1, angles, Energies, {Transmission, Torque}, Spectrum=true, Both=true, Title='Both')
+if false
+    %Plot(1, anglesTick, voltages, Current, twoD=true, Value=true, Title='Current')
+    Plot(2, anglesTick, voltages, Torque, twoD=true, Spectrum=true, Title='Torque')
+end
 
 %Plot(1, angles, voltages, Current, threeD=true, Title='Current')
 %Plot(2, angles, EnergiesTrans, Transmission, threeD=true, Title='Transmission')
-Plot(3, angles, voltages, Torque, threeD=true, Title='Torque')
-Plot(4, angles, EnergiesTorque, Torquance, threeD=true, Title='Torquance')
+%Plot(3, angles, voltages, Torque, threeD=true, Title='Torque')
+%Plot(4, angles, EnergiesTorque, Torquance, threeD=true, Title='Torquance')
 %Plot(5, angles, voltages, AngularInt, threeD=true, Title='Angular Momentum, integrated')
 %Plot(6, angles, EnergiesAngular, Angular, threeD=true, Title='Angular Momentum')
 %Plot(7, angles, voltages, HelicityInt, threeD=true, Title='Helicity, integrated')

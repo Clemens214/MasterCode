@@ -23,34 +23,35 @@ end
     if strcmp(Title, 'Transmission')
         label = 'T(E)';
     elseif strcmp(Title, 'Current')
-        label = 'I(E) [\frac{2e}{h}]';
+        label = 'I(E) [2e/h]';
     elseif strcmp(Title, 'Torquance')
-        label = '\tau(E)';
+        label = '\tau (E)';
     elseif strcmp(Title, 'Torque')
-        label = '\tau(E) [\frac{-1}{2\pi}]';
+        label = '\tau (E) [-1/2\pi]';
     elseif strcmp(Title, 'Angular Momentum')
-        label = 'l_{z}(E)';
+        label = 'L_{z}(E)';
     elseif strcmp(Title, 'Helicity') || strcmp(Title, 'Helicality')
         label = 'h(E)';
     else
         label = 'Result (E)';
     end
     if options.twoD == true && options.threeD == false
-    % plot the Energy/voltage dependence
-        if options.Spectrum == true
-            fig = plotSpectrum2D(value, Title, angles, voltages, Data);
-    % plot the Angle dependence
-        elseif options.Value == true || options.Angles == true
-            fig = plotValue2D(value, Title, angles, voltages, Data);
-        end
-        %% customize plot
-        resizeFig(fig)
         if min(voltages) >= 0
             options.integrate = true;
         else
             options.integrate = false;
         end
-        setLabels(fig, Title, label, options)
+    % plot the Energy/voltage dependence
+        if options.Spectrum == true
+            fig = plotSpectrum2D(value, angles, voltages, Data);
+            setLabels(fig, Title, label, angles, options)
+    % plot the Angle dependence
+        elseif options.Value == true || options.Angles == true
+            fig = plotValue2D(value, angles, voltages, Data);
+            setLabels(fig, Title, label, voltages, options)
+        end
+        %% customize plot
+        resizeFig(fig)
         %% change plot colors
         Palette = colororder();
         %colororder("gem12")
@@ -92,15 +93,17 @@ function [] = resizeFig (figure)
     set(figure, 'Units','centimeters', 'Position', PosNew)
 end
 
-function [] = setLabels (figure, Title, label, options)
+function [] = setLabels (figure, Title, label, values, options)
 arguments
     figure
     Title
     label
-    options.Spectrum = false
-    options.Value = false
-    options.Size = false
-    options.integrate = false
+    values
+    options
+    %options.Spectrum = false
+    %options.Value = false
+    %options.Size = false
+    %options.integrate = false
 end
     % set the title of the plot
     if false
@@ -129,16 +132,16 @@ end
     end
     % set the legend of the plot
     if options.Value == true && options.integrate == true
-        labels = strcat('V=',cellstr(num2str(voltages.')));
+        labels = strcat('V=',cellstr(num2str(values.')));
     elseif options.Value == true && options.integrate == false
-        labels = strcat('E=',cellstr(num2str(voltages.')));
+        labels = strcat('E=',cellstr(num2str(values.')));
     elseif options.Spectrum == true
-        labels = strcat('\theta=',cellstr(num2str(angles.')));
+        labels = strcat('\theta=',cellstr(num2str(values.')));
         labels = cellfun(@(x) [x,'\pi'], labels, 'uniform',false);
     elseif options.Size == true
         labels = strcat('N=',cellstr(num2str(angles.')));
     end
-    legend(labels, 'Location','northoutside');
+    legend(labels, 'Location','northoutside');%, 'Interpreter','latex');
 end
 
 %% plotting functions: Energies (+angles)
@@ -157,6 +160,7 @@ function [fig] = plotSpectrum2D (value, angles, voltages, Data)
         plot(voltages, TransPlot{i}, linewidth=1);
     end
     hold off
+    grid on
 end
 
 %% plotting functions: Angle (+voltages)
@@ -175,6 +179,7 @@ function [fig] = plotValue2D (value, angles, voltages, Data)
         plot(angles, TransPlot{i}, linewidth=1);
     end
     hold off
+    grid on
 end
 
 %% plot both
