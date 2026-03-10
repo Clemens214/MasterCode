@@ -31,7 +31,9 @@ EnergyMax = 2.5;
 EnergyStep = 0.001;
 Energies = makeList(EnergyMax, EnergyStep, full=true);
 
-sample = makeSample(energySample, hoppingsSample, sizeSample,  orderSample);
+%sample = makeSample(energySample, hoppingsSample, sizeSample,  orderSample);
+%sample = randi(21, 4);
+sample = eye(4);
 checkDecomposition(sample, 0)
 
 %% Calculation

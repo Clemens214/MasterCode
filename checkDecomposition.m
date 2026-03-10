@@ -9,7 +9,7 @@ end
     TestFunc = GreensFunc * GreensFunc;
     gammaL = eye(size(totalSystem));
     gammaR = eye(size(totalSystem));
-
+    
     chemPotL = 1;
     chemPotR = -1;
     
@@ -168,37 +168,66 @@ end
         factors = [factors1, conj(factors2)];
         % perform the partial fraction decomposition
         disp(['Factor: idx=', num2str(idx)])
-        constants = partialFraction(factors, vals);
+        [constants, values, orders] = partialFraction(factors, vals);
         % calculate the result
-        elements = 1 ./ (omega - constants);
-        element = prod(elements);
+        denominators = (omega - values).^orders;
+        elements = constants ./ denominators;
+        element = sum(elements);
         % save the result
         values(idx) = element;
     end
     Result = sum(values);
 end
 
-function [constants] = partialFraction(factors, vals)
+function [Constants, Denominators, orders] = partialFraction(factors, vals)
 arguments
     factors
     vals
 end
-    % organize the values
-    values = struct('value', [], 'power', [], 'max', [], 'coefficient', []);
-    for i = 1:length(vals)
-        disp(['Frac: i=', num2str(i)])
-        bools = ismember(vals(i), [values.value]);
-        values(i).value = vals(i);
-        values(i).power = sum(bools)+1;
-        if values(i).power == 1
-            Denoms = (vals(i) - [values.value]); 
-            Denoms(i) = [];
-            Denominator = prod(Denoms);
-            Factor = prod(factors);
-            values(i).coefficient = Factor / Denominator;
+    % identify the unique values
+    [values, ~, idx] = unique(vals);
+    % get the orders of the values
+    orders = groupcounts(idx);
+    if numel(vals) ~= sum(orders)
+        error('The orders and the number of elements in the partial fraction do NOT match!')
+    end
+    % calculate the coefficients for the different values
+    PolyVals = zeros(numel(vals), numel(vals));
+    Denominators = zeros(1, numel(vals));
+    Orders = zeros(1, numel(vals));
+    column = 0;
+    for i = 1:numel(values)
+        value = values(i);
+        order = orders(i);
+        % calculate the coefficents for the value
+        for j = 1:order
+            % get the values in the polynome
+            removed = 0;
+            mask = true(1, numel(vals));
+            for k = 1:numel(vals)
+                if value == vals(k) && removed < j
+                    mask(k) = false;
+                    removed = removed + 1;
+                end
+            end
+            % calculate the coefficients
+            Constants = poly(vals(mask));
+            disp(Constants)
+            % return the coefficients
+            column = column + 1;
+            PolyVals(:, column) = [zeros(1, numel(values)-j), Constants].';
+            test = [zeros(1, numel(values)-j), Constants].';
+            disp(['Size column=',num2str(numel(vals)),', Size Result=',num2str(numel(test))])
+            Denominators(column) = value;
+            Orders(column) = order;
         end
     end
-    disp('Test')
+    % calculate the numerators, includung the factor
+    Factor = prod(factors);
+    Numerators = [zeros(1, numel(vals)-1), Factor];
+    % calculate the coefficients
+    Constants = PolyVals \ Numerators.';
+    Constants = Constants.';
 end
 
 %% helping functions
