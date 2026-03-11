@@ -6,7 +6,7 @@ function [Eigenvals, leftEVs, rightEVs, varargout] = getEigenvectors(totalSystem
 arguments
     totalSystem
     options.check = true
-    options.checkMore = true
+    options.checkMore = false
 end
     % calculate the (left and right) Eigenvectors and Eigenvalues
     % normalize the Eigenvectors to enable reconstruction of the original matrix
@@ -18,13 +18,14 @@ end
         varargout{1} = Test;
         varargout{2} = Diff;
         varargout{3} = maxDiff;
-        if options.checkMore == true
-            allTest = all(Test);
-            if allTest == true
-                disp(['The Eigenvalue decomposition DOES reproduce the Hamiltonian. Maximum Difference: ', num2str(maxDiff)])
-            else
-                disp(['The Eigenvalue decomposition does NOT reproduce the Hamiltonian. Maximum Difference: ', num2str(maxDiff)])
-            end
+        % return the checking results
+        allTest = all(all(Test));
+        if options.checkMore == true && allTest == true
+            disp(['The Eigenvalue decomposition DOES reproduce the Hamiltonian. Maximum Difference: ', num2str(maxDiff)])
+        elseif options.checkMore == true && allTest == false
+            disp(['The Eigenvalue decomposition does NOT reproduce the Hamiltonian. Maximum Difference: ', num2str(maxDiff)])
+        elseif options.checkMore == false && allTest == false
+            error(['The Eigenvalue decomposition does NOT reproduce the Hamiltonian. Maximum Difference: ', num2str(maxDiff)])
         end
     end
 end

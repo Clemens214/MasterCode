@@ -14,7 +14,7 @@ end
     chemPotR = -1;
     
     % compute the Eigenvectors and the Eigenvalues of the system
-    [Eigenvals, leftEVs, rightEVs] = getEigenvectors(totalSystem);
+    [Eigenvals, leftEVs, rightEVs] = getEigenvectors(totalSystem, check=true, checkMore=true);
     EigFunc = EigCalc(omega, Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR);
     [TestEig, ~, maxDiffEig] = checkResult(TestFunc, EigFunc);
     if all(TestEig)
@@ -24,7 +24,7 @@ end
     end
     
     % compute the Schur decomposition of the system
-    [Diag, upperTriag, SchurVec] = getSchur(totalSystem);
+    [Diag, upperTriag, SchurVec] = getSchur(totalSystem, check=true, checkMore=true);
     SchurFunc = SchurCalc(omega, Diag, upperTriag, SchurVec, gammaL, gammaR, chemPotL, chemPotR);
     [TestSchur, ~, maxDiffSchur] = checkResult(TestFunc, SchurFunc);
     if all(TestSchur)
@@ -134,7 +134,7 @@ end
         matrix2(index2.row, index2.column) = 1;
             
         % compute the matrix element for chosen matrices
-        Product = gammaL * matrix1 * gammaR * matrix2';
+        Product = gammaL * matrix1 * gammaR * matrix2.';
         
         % compute the factor for the chosen matrices
         disp(['Matrix: idx=', num2str(idx)])
@@ -155,6 +155,7 @@ arguments
     chemPotL
     chemPotR
     options.check = true
+    options.checkMore = false
 end
     % get the combinations of the paths
     combis = combinations(index1.factor, index2.factor);
@@ -173,17 +174,65 @@ end
         denominators = (omega - values).^orders;
         elements = constants ./ denominators;
         element = sum(elements);
+        % perform the multiplication
+        products = factors ./ (omega - vals);
+        product = prod( products);
+        % save the result
+        values(idx) = product;
+        % check the result
+        if options.check == true
+            checkPartialFraction(factors, vals, omega, check=options.checkMore);
+        end
+    end
+    Result = sum(values);
+    Result = FactorCalcOld(omega, Diag, upperTriag, index1, index2);
+end
+
+function [Result] = FactorCalcOld(omega, Diag, upperTriag, index1, index2, options)
+arguments
+    omega
+    Diag
+    upperTriag
+    index1
+    index2
+    options.check = true
+    options.checkMore = false
+end
+    % get the combinations of the paths
+    combis = combinations(index1.factor, index2.factor);
+    combis1 = combis{:, 1};
+    combis2 = combis{:, 2};
+    values = zeros(1, height(combis));
+    for idx = 1:height(combis)
+        [factors1, vals1] = getVals(combis1(idx).power, combis1(idx).paths, Diag, upperTriag);
+        denominators1 = omega - vals1;
+        if combis1(idx).power == 0
+            denominators1(2) = 1;
+        end
+        [factors2, vals2] = getVals(combis2(idx).power, combis2(idx).paths, Diag, upperTriag);
+        denominators2 = omega - vals2;
+        if combis2(idx).power == 0
+            denominators2(2) = 1;
+        end
+        factors = [factors1, conj(factors2)];
+        denominators = [denominators1, conj(denominators2)];
+        % calculate the result
+        elements = factors ./ denominators;
+        element = prod(elements);
         % save the result
         values(idx) = element;
     end
     Result = sum(values);
 end
 
-function [Constants, Denominators, orders] = partialFraction(factors, vals)
+function [Constants, Denominators, Orders] = partialFraction(factors, vals)
 arguments
     factors
     vals
 end
+    PolyVals = zeros(numel(vals), numel(vals));
+    Denominators = zeros(1, numel(vals));
+    Orders = zeros(1, numel(vals));
     % identify the unique values
     [values, ~, idx] = unique(vals);
     % get the orders of the values
@@ -192,16 +241,13 @@ end
         error('The orders and the number of elements in the partial fraction do NOT match!')
     end
     % calculate the coefficients for the different values
-    PolyVals = zeros(numel(vals), numel(vals));
-    Denominators = zeros(1, numel(vals));
-    Orders = zeros(1, numel(vals));
     column = 0;
     for i = 1:numel(values)
         value = values(i);
         order = orders(i);
         % calculate the coefficents for the value
         for j = 1:order
-            % get the values in the polynome
+            % get the values in the polynomial
             removed = 0;
             mask = true(1, numel(vals));
             for k = 1:numel(vals)
@@ -210,16 +256,14 @@ end
                     removed = removed + 1;
                 end
             end
+            masked = vals(mask);        % length = numel(vals)-j
             % calculate the coefficients
-            Constants = poly(vals(mask));
-            disp(Constants)
+            Constants = poly(masked);   % length = numel(masked)+1
             % return the coefficients
             column = column + 1;
-            PolyVals(:, column) = [zeros(1, numel(values)-j), Constants].';
-            test = [zeros(1, numel(values)-j), Constants].';
-            disp(['Size column=',num2str(numel(vals)),', Size Result=',num2str(numel(test))])
+            PolyVals(:, column) = [zeros(1, j-1), Constants].';
             Denominators(column) = value;
-            Orders(column) = order;
+            Orders(column) = j;
         end
     end
     % calculate the numerators, includung the factor
@@ -340,4 +384,33 @@ end
         Diff = abs(Diff);
     end
     maxDiff = max(max(abs(Diff)));
+end
+
+function [varargout] = checkPartialFraction(factors, vals, omega, options)
+arguments
+    factors
+    vals
+    omega = 0
+    options.check = true
+end
+    % perform the partial fraction decomposition
+    [constants, values, orders] = partialFraction(factors, vals);
+    denominators = (omega - values).^orders;
+    elements = constants ./ denominators;
+    element = sum(elements);
+    varargout{1} = element;
+    % perform the multiplication
+    products = factors ./ (omega - vals);
+    product = prod(products);
+    varargout{2} = product;
+    % compare the results
+    [Test, ~, maxDiff] = checkResult(element, product);
+    allTest = all(Test);
+    if options.check == true && allTest == true
+        disp(['The PFD DOES match the product! Difference: ', num2str(maxDiff)])
+    elseif options.check == true && allTest == false
+        disp(['The PFD does NOT match the product! Difference: ', num2str(maxDiff)])
+    elseif options.check == false && allTest == false
+        error(['The PFD does NOT match the product! Difference: ', num2str(maxDiff)])
+    end
 end

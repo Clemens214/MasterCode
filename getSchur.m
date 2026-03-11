@@ -2,7 +2,7 @@ function [Diag, upperTriag, SchurVec, varargout] = getSchur(totalSystem, options
 arguments
     totalSystem
     options.check = true
-    options.checkMore = true
+    options.checkMore = false
 end
     % calculate the Schur-vectors
     % calculate the diagonal (Eigenvalues) and upper-triangular matrices
@@ -15,13 +15,14 @@ end
         varargout{1} = Test;
         varargout{2} = Diff;
         varargout{3} = maxDiff;
-        if options.checkMore == true
-            allTest = all(Test);
-            if allTest == true
-                disp(['The Schur decomposition DOES reproduce the Hamiltonian. Maximum Difference: ', num2str(maxDiff)])
-            else
-                disp(['The Schur decomposition does NOT reproduce the Hamiltonian. Maximum Difference: ', num2str(maxDiff)])
-            end
+        % return the checking results
+        allTest = all(all(Test));
+        if options.checkMore == true && allTest == true
+            disp(['The Schur decomposition DOES reproduce the Hamiltonian. Maximum Difference: ', num2str(maxDiff)])
+        elseif options.checkMore == true && allTest == false
+            disp(['The Schur decomposition does NOT reproduce the Hamiltonian. Maximum Difference: ', num2str(maxDiff)])
+        elseif options.checkMore == false && allTest == false
+            error(['The Schur decomposition does NOT reproduce the Hamiltonian. Maximum Difference: ', num2str(maxDiff)])
         end
     end
 end
