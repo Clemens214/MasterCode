@@ -31,21 +31,27 @@ assumptions(Energy)
 %% Generate the total Hamiltonian of the System
 [totalSystem, gammaL, gammaR, totalSysDeriv] = makeSystem(Energy, sample, energySample, hoppingLead, hoppingsInter, hoppingsDeriv);
 disp(totalSystem);
+GreensLead = CalcGreens(Energy, hoppingLead, energyLead);
 
-TransOp = gammaR;
+totalSystemSimp = simplify(subs(totalSystem, {GreensFunc}, {GreensLead}));
+disp(totalSystemSimp);
+gammaLsimp = simplify(subs(gammaL, {GreensFunc}, {GreensLead}));
+gammaRsimp = simplify(subs(gammaR, {GreensFunc}, {GreensLead}));clc
+
+TransOp = gammaRsimp;
 TorqueOp = totalSysDeriv;
 disp(TorqueOp);
 AngularOp = AngularOperator(length(totalSystem), sizeLead, orderSample);
 HelicityOp = HelicityOperator(length(totalSystem), sizeLead, orderSample);
 
 %% Calculate the observables
-[Transmission, TransMatrix, GreensFunc] = Calc(Energy, totalSystem, TransOp, gammaL, gammaR, left=true);
+[Transmission, TransMatrix, GreensFunc] = Calc(Energy, totalSystemSimp, TransOp, gammaLsimp, gammaRsimp, left=true);
 disp('Finished calculation of the Transmission.')
-[Torque, TorqueMatrix] = Calc(Energy, totalSystem, TorqueOp, gammaL, gammaR, nonconservative=true);
+[Torque, TorqueMatrix] = Calc(Energy, totalSystemSimp, TorqueOp, gammaLsimp, gammaRsimp, nonconservative=true);
 disp('Finished calculation of the Torque.')
-[Angular, AngularMatrix] = Calc(Energy, totalSystem, AngularOp, gammaL, gammaR, conservative=true);
+[Angular, AngularMatrix] = Calc(Energy, totalSystemSimp, AngularOp, gammaLsimp, gammaRsimp, conservative=true);
 disp('Finished calculation of the Angular Momentum.')
-[Helicity, HelicityMatrix] = Calc(Energy, totalSystem, HelicityOp, gammaL, gammaR, conservative=true);
+[Helicity, HelicityMatrix] = Calc(Energy, totalSystemSimp, HelicityOp, gammaLsimp, gammaRsimp, conservative=true);
 disp('Finished calculation of the Helicity.')
 
 %% substitute the values
@@ -392,7 +398,8 @@ end
         hoppings = hoppingsInter(2, :);
     end
     Sigma = sym(zeros(length(hoppings), length(hoppings)));
-    GreensFunc = CalcGreens(Energy, hoppingLead, eigenenergy);
+    %GreensFunc = CalcGreens(Energy, hoppingLead, eigenenergy);
+    GreensFunc = sym("G");
     for i = 1:length(hoppings)
         for j = 1:length(hoppings)
             Sigma(i, j) = hoppings(i) * GreensFunc * hoppings(j);
