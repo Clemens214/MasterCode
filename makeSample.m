@@ -4,7 +4,7 @@ arguments
     eigenenergy
     hoppings
     size
-    order = 1
+    order = 2
 end
     % include the eigenenergy
     smallEnergy = eye(size, size);

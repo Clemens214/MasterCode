@@ -18,7 +18,7 @@ end
     [SigmaR, GreensR] = makeSigma (sizeSample, sizeExtra, Energy, hoppingLead, hoppingsInter, eigenenergy, right=true);
 
     % generate the Hamiltonian of the total system
-    totalHamiltonian = makeSystem(sample, sizeExtra, eigenenergy, hoppingsInter, hoppingLead);
+    totalHamiltonian = combineSystem(sample, sizeExtra, eigenenergy, hoppingsInter, hoppingLead);
     totalSystem = totalHamiltonian + SigmaL + SigmaR;
     
     % compute the coupling strengths of the leads
@@ -34,7 +34,7 @@ end
     
     % generate the derivative of the Hamiltonian
     sampleDeriv = zeros(size(sample));
-    totalSysDeriv = makeSystem(sampleDeriv, sizeExtra, 0, hoppingsDeriv, 0);
+    totalSysDeriv = combineSystem(sampleDeriv, sizeExtra, 0, hoppingsDeriv, 0);
 
     % return the results
     varargout{1} = totalSysDeriv;
@@ -45,7 +45,7 @@ end
 end
 
 %% functions used in generating the total Hamiltonian
-function [totalSystem] = makeSystem (sample, sizeExtra, eigenenergy, hoppingsInter, hoppingLead)
+function [totalSystem] = combineSystem (sample, sizeExtra, eigenenergy, hoppingsInter, hoppingLead)
 arguments
     sample
     sizeExtra

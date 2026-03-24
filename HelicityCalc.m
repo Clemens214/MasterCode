@@ -7,7 +7,7 @@ arguments
     leadVals
     hoppingsInter
     choice.conservative = false
-    choice.nonconservative = true
+    choice.nonconservative = false
     choice.left = false
     choice.right = false
     mode.EM = false
@@ -85,7 +85,6 @@ end
     sizeCenter = sizeTotal - 2*sizeLead;
     sizeSample = sizeCenter/order;
     small = zeros(sizeSample, sizeSample);
-    sample = zeros(sizeCenter, sizeCenter);
     for row = 1:sizeSample
         for column = 1:sizeSample
             if column == row+1
@@ -93,9 +92,15 @@ end
             elseif row == column+1
                 small(row, column) = -1;
             end
+        end
+    end
+    sample = zeros(sizeCenter, sizeCenter);
+    for row = 1:sizeSample
+        for column = 1:sizeSample
+            rangeRow = order*(row-1)+1 : order*row;
+            rangeColumn = order*(column-1)+1 : order*column;
             if small(row, column) ~= 0
-                range = order*(row-1)+1 : order*row;
-                sample(range, range) = small(row, column) * Pauli;
+                sample(rangeRow, rangeColumn) = small(row, column) * Pauli;
             end
         end
     end

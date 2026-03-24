@@ -62,29 +62,13 @@ for i = 1:length(angles)
     % calculating the trace values
     if true
         Transmission{i} = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true);
-        Torquance{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true, nonconservative=true);
+        Torquance{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true, conservative=true);
         Angular{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
         Helicity{i} = HelicityCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
     elseif false
         Torquance{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, EM=true, SI=false, linearResponse=true, nonconservative=true);
     end
-
-    % calculating the integrated values
-    if false
-        Current{i} = TransCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, linearResponse=false);
-        Torque{i} = TorqueCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=false, nonconservative=true);
-    elseif false
-        Torque{i} = TorqueCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, EM=true, SI=false, linearResponse=false, nonconservative=true);
-    end
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
-end
-
-if false
-if true
-    save('variables')
-else
-    load('variables')
-end
 end
 
 %% plot
