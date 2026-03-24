@@ -49,13 +49,13 @@ disp('Finished calculation of the Angular Momentum.')
 disp('Finished calculation of the Helicity.')
 
 %% substitute the values
-TransSimp = simplify(subs(Transmission, {hopping}, {1}));
+TransSimp = simplify(subs(Transmission, {hopping, eta}, {1, 1E-12}));
 disp('Finished substitution of the Transmission.')
-TorqueSimp = simplify(subs(Torque, {hopping}, {1}));
+TorqueSimp = simplify(subs(Torque, {hopping, eta}, {1, 1E-12}));
 disp('Finished substitution of the Torque.')
-AngularSimp = simplify(subs(Angular, {hopping}, {1}));
+AngularSimp = simplify(subs(Angular, {hopping, eta}, {1, 1E-12}));
 disp('Finished substitution of the Angular Momentum.')
-HelicitySimp = simplify(subs(Helicity, {hopping}, {1}));
+HelicitySimp = simplify(subs(Helicity, {hopping, eta}, {1, 1E-12}));
 disp('Finished substitution of the Helicity.')
 
 if true
@@ -80,7 +80,7 @@ if true
 end
 
 %% save the variables
-if false
+if true
 if true
     save('variables')
 else
@@ -406,7 +406,8 @@ arguments
     w
     t
     eig
-    options.eta = 1E-12
+    %options.eta = 1E-12
+    options.eta = sym("eta")
 end
     eta = options.eta;
     % calculate parts of the Greens function
