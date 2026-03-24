@@ -8,7 +8,8 @@ hopping = sym("t", "real");
 assumptions(hopping)
 hoppingsSample = hopping*eye(orderSample);
 
-sample = makeSampleSym(energySample, hoppingsSample, sizeSample,  orderSample);
+sample = makeSample(energySample, hoppingsSample, sizeSample,  orderSample);
+disp(sample);
 
 % variables for the leads
 sizeLead = 1;
@@ -29,9 +30,11 @@ assumptions(Energy)
 
 %% Generate the total Hamiltonian of the System
 [totalSystem, gammaL, gammaR, totalSysDeriv] = makeSystem(Energy, sample, energySample, hoppingLead, hoppingsInter, hoppingsDeriv);
+disp(totalSystem);
 
 TransOp = gammaR;
 TorqueOp = totalSysDeriv;
+disp(TorqueOp);
 AngularOp = AngularOperator(length(totalSystem), sizeLead, orderSample);
 HelicityOp = HelicityOperator(length(totalSystem), sizeLead, orderSample);
 
@@ -77,7 +80,7 @@ if true
 end
 
 %% save the variables
-if true
+if false
 if true
     save('variables')
 else
@@ -190,7 +193,7 @@ end
 end
 
 %% functions used in generating the sample
-function [sample] = makeSampleSym(eigenenergy, hoppings, size,  order)
+function [sample] = makeSample(eigenenergy, hoppings, size,  order)
 % generate the sample's Hamiltonian
 arguments
     eigenenergy
@@ -225,6 +228,7 @@ end
             end
         end
     end
+    sample = simplify(sample);
 end
 
 %% functions used in generating the total Hamiltonian
@@ -258,11 +262,11 @@ end
     totalSysDeriv = combineSystem(sampleDeriv, sizeExtra, 0, hoppingsDeriv, 0);
 
     % return the results
-    varargout{1} = totalSysDeriv;
-    varargout{2} = SigmaL;
-    varargout{3} = SigmaR;
-    varargout{4} = GreensL;
-    varargout{5} = GreensR;
+    varargout{1} = simplify(totalSysDeriv);
+    varargout{2} = simplify(SigmaL);
+    varargout{3} = simplify(SigmaR);
+    varargout{4} = simplify(GreensL);
+    varargout{5} = simplify(GreensR);
 end
 
 function [totalSystem] = combineSystem (sample, sizeExtra, eigenenergy, hoppingsInter, hoppingLead)

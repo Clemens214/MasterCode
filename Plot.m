@@ -52,13 +52,12 @@ end
         end
         %% customize plot
         resizeFig(fig)
+        fontsize(12,"points")
+        fontname("Helvetica")
         %% change plot colors
         Palette = colororder();
         %colororder("gem12")
         colororder({'b', 'r', 'g', 'm', 'c', 'y', 'k'});
-        %% change font size
-        fontsize(12,"points")
-        fontname("Helvetica")
     % plot the Data in 3D
     elseif options.threeD == true
         plot3D (value, Title, angles, voltages, Data)
