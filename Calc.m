@@ -71,6 +71,14 @@ for i = 1:length(angles)
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
+if false
+if true
+    save('variables')
+else
+    load('variables')
+end
+end
+
 %% plot
 if true
     Plot('Transmission', anglesTick, Energies, Transmission, twoD=true, Spectrum=true)

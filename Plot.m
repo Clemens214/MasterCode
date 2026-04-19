@@ -11,6 +11,7 @@ arguments
     options.Size = false
     options.Color = false
     options.Angles = false
+    options.Size = false
     % Dimension of plot
     options.twoD = false
     options.threeD = false
@@ -31,9 +32,14 @@ end
     elseif options.Helicity == true
         Title = 'Helicity';
     else
-        Title = choice.Title;
+        label = 'Result (E)';
     end
-    if options.twoD == true || (options.twoD == false && options.threeD == false)
+    if options.twoD == true && options.threeD == false
+        if min(voltages) >= 0
+            options.integrate = true;
+        else
+            options.integrate = false;
+        end
     % plot the Energy/voltage dependence
         if options.Spectrum == true
             fig = plotSpectrum2D(name, angles, voltages, Data);
@@ -51,6 +57,10 @@ end
     % plot in Color
     if options.Color == true
         plotColor(name, Title, angles, voltages, Data)
+    end
+    % plot in Color
+    if options.Color == true
+        plotColor(value, Title, angles, voltages, Data)
     end
     % plot the Angles
     if options.Angles == true
@@ -194,6 +204,7 @@ function [] = plotSpectrumBoth (name, ~, angles, voltages, Transmission, Torque)
         legend(labels);
     end
     grid on;
+
     subplot(2,1, 2);
     xlabel('Energy (units of t)');
     ylabel('Torque (-1/2\pi)');

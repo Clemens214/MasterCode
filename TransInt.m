@@ -5,29 +5,19 @@ arguments
     gammaL
     gammaR
     voltages
-    options.Schur = true
     options.linearResponse = true
     options.print = false
 end
     %disp('Starting calculation of the current.')
     if options.linearResponse == false
         chemPots = setupPots(voltages);
-        if options.Schur == false
-            % compute the Eigenvectors and the Eigenvalues of the system
-            [Eigenvals, leftEVs, rightEVs] = getEigenvectors(totalSystem);%, checkMore=true);
-        elseif options.Schur == true
-            % compute the Schur decomposition of the System's pseudo Hamiltonian
-            [Diag, upperTriag, SchurVec] = getSchur(totalSystem);
-        end
+        % compute the Schur decomposition of the System's pseudo Hamiltonian
+        [Diag, upperTriag, SchurVec] = getSchur(totalSystem);
         Results = zeros(1, length(chemPots));
         for i = 1:length(chemPots)
             chemPotL = chemPots(i).left;
             chemPotR = chemPots(i).right;
-            if options.Schur == false
-                Matrix = TransmissionMatrixEV(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR);
-            elseif options.Schur == true
-                Matrix = TransmissionMatrixSchur(Diag, upperTriag, SchurVec, gammaL, gammaR, chemPotL, chemPotR);
-            end
+            Matrix = TransmissionMatrix(Diag, upperTriag, SchurVec, gammaL, gammaR, chemPotL, chemPotR);
             Results(i) = real(trace(Matrix));
             if options.print == true
                 disp(['Voltage: ', num2str(chemPotL - chemPotR), ', j=', num2str(i)])
@@ -47,26 +37,35 @@ end
     %disp('Finished calculation of the current.')
 end
 
-%% total transmission for finite voltages
-function [Result] = TransmissionMatrixSchur(Diag, upperTriag, SchurVec, gammaL, gammaR, chemPotL, chemPotR)
-    index = struct('i', [], 'j', [], ...
+%% total transmission for finite voltages using Schur
+function [Result] = TransmissionMatrix(Diag, upperTriag, SchurVec, gammaL, gammaR, chemPotL, chemPotR)
+    index = struct('index1', [], 'index2', [], ...
                     'Eigenval', [], 'EigenvalD', [], ...
                     'leftEV', [], 'leftEVD', [], ...
                     'rightEV', [], 'rightEVD', []);
-    for i = 1:length(Eigenvals)
-        for j = 1:length(Eigenvals)
-            idx = (i-1)*length(Eigenvals) + j;
-            index(idx).i = i;
-            index(idx).j = j;
+    idx = 0;
+    for i = 1:length(Diag)
+    for j = i:length(Diag)
+        for k = 1:length(Diag)
+        for l = k:length(Diag)
+            idx = idx + 1;
+            index(idx).index1 = [i, j];
+            index(idx).index1 = [k, l];
             % set the normal variables
-            index(idx).Eigenval = Eigenvals(i,i);
-            index(idx).leftEV = leftEVs(:,i)';
-            index(idx).rightEV = rightEVs(:,i);
+            for m = 1:length(Diag)-1
+                index(idx).Eigenval = Eigenvals(i,i);
+                index(idx).leftEV = leftEVs(:,i)';
+                index(idx).rightEV = rightEVs(:,i);
+            end
             % set the daggered variables
-            index(idx).EigenvalD = Eigenvals(j,j)';
-            index(idx).leftEVD = leftEVs(:,j);
-            index(idx).rightEVD = rightEVs(:,j)';
+            for m = 1:length(Diag)-1
+                index(idx).EigenvalD = Eigenvals(j,j)';
+                index(idx).leftEVD = leftEVs(:,j);
+                index(idx).rightEVD = rightEVs(:,j)';
+            end
         end
+        end
+    end
     end
 
     %disp('Starting calculation of the transmission element.')
@@ -97,53 +96,99 @@ function [Result] = TransmissionMatrixSchur(Diag, upperTriag, SchurVec, gammaL, 
     %disp('Finished calculation of the transmission element.')
 end
 
-function [Result] = TransmissionMatrixEV(Eigenvals, leftEVs, rightEVs, gammaL, gammaR, chemPotL, chemPotR)
-    index = struct('i', [], 'j', [], ...
-                    'Eigenval', [], 'EigenvalD', [], ...
-                    'leftEV', [], 'leftEVD', [], ...
-                    'rightEV', [], 'rightEVD', []);
-    for i = 1:length(Eigenvals)
-        for j = 1:length(Eigenvals)
-            idx = (i-1)*length(Eigenvals) + j;
-            index(idx).i = i;
-            index(idx).j = j;
-            % set the normal variables
-            index(idx).Eigenval = Eigenvals(i,i);
-            index(idx).leftEV = leftEVs(:,i)';
-            index(idx).rightEV = rightEVs(:,i);
-            % set the daggered variables
-            index(idx).EigenvalD = Eigenvals(j,j)';
-            index(idx).leftEVD = leftEVs(:,j);
-            index(idx).rightEVD = rightEVs(:,j)';
+function [Result] = GreensCalc(Diag, upperTriag, SchurVec)
+    index = struct('row', [], 'column', [], 'power', [], 'paths', []);
+    idx = 0;
+    for row = 1:length(Diag)
+        for column = row:length(Diag)
+            for power = 0:abs(row-column)
+                idx = idx + 1;
+                % set the indices
+                index(idx).row = row;
+                index(idx).column = column;
+                index(idx).power = power;
+                % set the variables
+                matrix = zeros(length(Diag), length(Diag));
+                matrix(row, column) = 1;
+                index(idx).matrix = matrix;
+                index(idx).paths = getPaths(row, column, power);
+            end
         end
     end
-
-    %disp('Starting calculation of the transmission element.')
-    Result = 0;
-    parfor idx = 1:length(index)
-        % get the normal left and right Eigenvectors
-        leftEV = index(idx).leftEV;
-        rightEV = index(idx).rightEV;
-        
-        % get the daggered Eigenvectors
-        leftEVdagger = index(idx).leftEVD;
-        rightEVdagger = index(idx).rightEVD;
-            
-        % compute the matrix element for chosen i and j
-        ProductLeft = rightEV;
-        ProductMid = leftEV * gammaR * leftEVdagger;
-        ProductRight = rightEVdagger * gammaL;
-            
-        Product = ProductLeft * ProductMid * ProductRight;
-        
-        % compute the additional matrix element
-        EigVal = index(idx).Eigenval;
-        EigValDagger = index(idx).EigenvalD;
-        factor = FactorElement(EigVal, EigValDagger, chemPotL) - FactorElement(EigVal, EigValDagger, chemPotR);
-        
-        Result = Result + Product*factor;
+    Matrix = zeros(size(Diag));
+    Matrices = cell(1, length(Diag));
+    for i = 1:numel(Matrices)
+        Matrices{i} = zeros(length(Diag), length(Diag));
     end
-    %disp('Finished calculation of the transmission element.')
+    for i = 1:numel(index)
+        row = index(i).row;
+        column = index(i).column;
+        power = index(i).power;
+        paths = index(i).paths;
+
+        Factor = 0;
+        for j = 1:height(paths)
+            path = paths(j,:);
+            Element = 1;
+            for k = 1:length(path)-1
+                if power == 0
+                    I = eye(path(k), path(k+1));
+                    val =  I(path(k), path(k+1));
+                else
+                    fac = omega - Diag(path(k), path(k));
+                    val = 1/fac * upperTriag(path(k), path(k+1));
+                end
+                Element = Element * val;
+            end
+            Factor = Factor + Element;
+        end
+        Matrix(row, column) = Matrix(row, column) + Factor;
+        MatricesMatrix = Matrices{power+1};
+        MatricesMatrix(row, column) = Factor;
+        Matrices{power+1} = MatricesMatrix;
+
+        Test = ((omega*eye(length(Diag)) - Diag) \ upperTriag)^power;
+        if Factor ~= Test(row, column)
+            disp(['The factors do NOT match!', ' row: ', num2str(row), ', column: ', num2str(column), ', power: ', num2str(power)])
+        end
+    end
+    for i = 1:numel(Matrices)
+        Test = ((omega*eye(length(Diag)) - Diag) \ upperTriag)^(i-1);
+        if Matrices{i} ~= Test
+            disp(['The matrices do NOT match!', ' power: ', num2str(power)])
+        end
+    end
+    invDiag = (omega*eye(length(Diag)) - Diag);
+    ResultSchur = invDiag \ Matrix;
+    Result = SchurVec * ResultSchur * SchurVec';
+end
+
+function [paths] = getPaths(row, column, power)
+    %disp(['row: ', num2str(row), ', column: ', num2str(column), ', power: ', num2str(power)])
+    range = row+1 : column-1;
+    if power > 0
+        if length(range) == 1
+            centers = range;
+        else
+            centers = nchoosek(range, power-1);
+        end
+        paths = zeros(size(centers, 1), size(centers, 2)+2);
+        for idx = 1:size(centers, 1)
+            paths(idx, :) = [row, centers(idx, :), column];
+        end
+    else
+        paths = [row, column];
+    end
+end
+
+
+function [paths] = getPaths(row, column, power)
+    range = row+1 : column-1;
+    centers = nchoosek(range, power-1);
+    paths = cell(1, height(centers));
+    for idx = 1:height(centers)
+        paths{idx} = [row, centers(idx, :), column];
+    end
 end
 
 %% calculate the factor
@@ -160,12 +205,26 @@ end
 
 %% total transmission in the linear transport approximation
 function [Result] = TransmissionLin(Energy, totalSystem, gammaL, gammaR)
-    % calculate the Greens Function
-    GreensFuncInv = Energy*eye(length(totalSystem)) - totalSystem;
-    GreensFunc = inv(GreensFuncInv);
-    
-    % calculate the matrix product
-    Result = GreensFunc * gammaL * GreensFunc' * gammaR;
+%calculates the transport through a molecule in the linear transport approximation
+arguments
+    Energy
+    totalSystem
+    gammaL
+    gammaR
+end
+    % G*B*Gt*C
+    % GreensFunc * gammaL * GreensFunc' * gammaR
+    GreensInv = Energy*eye(length(totalSystem)) - totalSystem;
+    % F = decomposition(GreensInv,'lu');
+    F = decomposition(GreensInv,'lu');  % create reusable LU object (works for sparse/dense)
+    % Y = F \ B;
+    Y = F \ gammaL;
+    % W = C * Y;
+    W = gammaR * Y;
+    % Z = F' \ W;
+    Z = F' \ W;                         % uses transpose of factorization
+    % t = trace(Z);
+    Result = Z;
 end
 
 %% helping functions
