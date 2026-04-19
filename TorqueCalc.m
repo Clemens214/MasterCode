@@ -208,16 +208,23 @@ function [Results] = Torque(Energies, sample, totalSysDeriv_EM, gammaL_EM, gamma
     Results = Traces;
 end
 
-function [Result] = TorqueAlt(Energy, totalSystem, totalSysDeriv, midFactor)
+function [Result] = TorqueAlt(Energy, totalSystem, totalSysDeriv, midFactor, options)
     % A*G*B*Gt
     % F = decomposition(GreensInv,'lu');
     % Y = F \ B;
     % T = A * Y;
     % Z = F' \ T;
     % t = trace(Z);
-
+arguments
+    Energy
+    totalSystem
+    totalSysDeriv
+    midFactor
+    options.eta = 1E-12
+end
+    eta = 1j*options.eta;
     % totalSysDeriv * GreensFunc * midFactor * GreensFunc'
-    GreensInv = Energy*eye(length(totalSystem)) - totalSystem;
+    GreensInv = (Energy+eta)*eye(length(totalSystem)) - totalSystem;
     F = decomposition(GreensInv,'lu');    % create reusable factorization object
     
     Y = F \ midFactor;                     % solves Aw * Y = B

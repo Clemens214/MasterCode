@@ -1,7 +1,7 @@
 %% Variables
 
 % variables for the sample
-sizeSample = 48;
+sizeSample = 5;
 orderSample = 2;
 energySample = 0;
 hopping = 1;
@@ -68,10 +68,24 @@ for i = 1:length(angles)
 end
 
 %% plot
+<<<<<<< Updated upstream
 %Plot(1, anglesTick, [0], Transmission, twoD=true, Value=true, Title='Transmission')
 %Plot(2, anglesTick, [1], Torque, twoD=true, Value=true, Title='Torque')
 
 %Plot(1, angles, Energies, {Transmission, Torque}, Spectrum=true, Both=true, Title='Both')
+=======
+if true
+    Plot('Transmission', anglesTick, Energies, Transmission, twoD=true, Spectrum=true)
+    Plot('Torquance', anglesTick, Energies, Torquance, twoD=true, Spectrum=true)
+    Plot('Angular Momentum', anglesTick, Energies, Angular, twoD=true, Spectrum=true)
+    Plot('Helicality', anglesTick, Energies, Helicity, twoD=true, Spectrum=true)
+end
+
+if false
+    %Plot(Current', anglesTick, voltages, Current, twoD=true, Value=true)
+    Plot('Torque', anglesTick, voltages, Torque, twoD=true, Spectrum=true)
+end
+>>>>>>> Stashed changes
 
 Plot(1, angles, voltages, Current, threeD=true, Title='Current')
 Plot(2, angles, EnergiesTrans, Transmission, threeD=true, Title='Transmission')
@@ -81,13 +95,6 @@ Plot(4, angles, EnergiesTorque, Torquance, threeD=true, Title='Torquance')
 %Plot(6, angles, EnergiesAngular, Angular, threeD=true, Title='Angular Momentum')
 %Plot(7, angles, voltages, HelicityInt, threeD=true, Title='Helicity, integrated')
 %Plot(8, angles, EnergiesHelicity, Helicity, threeD=true, Title='Helicity')
-
-%% chemPots
-function [totalSysDeriv] = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv)
-    sampleDeriv = zeros(sizeSample*orderSample, sizeSample*orderSample);
-    hoppingDeriv = 0;
-    [totalSysDeriv, ~, ~] = makeSystemEM(sampleDeriv, sizeSample, orderSample, sizeLead, hoppingDeriv, hoppingsDeriv, maxVal=0, check=false);
-end
 
 %% helping functions
 function [values] = makeList(maxVal, stepVal, options)
