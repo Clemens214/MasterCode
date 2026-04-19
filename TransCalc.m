@@ -142,16 +142,23 @@ function [Results] = Transmission(Energies, sample, gammaL_EM, gammaR_EM, hoppin
     Results = Traces;
 end
 
-function [Result] = TransmissionAlt(Energy, totalSystem, gammaL, gammaR)
+function [Result] = TransmissionAlt(Energy, totalSystem, gammaL, gammaR, options)
     % G*B*Gt*C
     % F = decomposition(GreensInv,'lu');
     % Y = F \ B;
     % W = C * Y;
     % Z = F' \ W;
     % t = trace(Z);
-    
+arguments
+    Energy
+    totalSystem
+    gammaL
+    gammaR
+    options.eta = 1E-12
+end
+    eta = 1j*options.eta;
     % GreensFunc * gammaL * GreensFunc' * gammaR
-    GreensInv = Energy*eye(length(totalSystem)) - totalSystem;
+    GreensInv = (Energy+eta)*eye(length(totalSystem)) - totalSystem;
     F = decomposition(GreensInv,'lu');    % create reusable LU object (works for sparse/dense)
     
     Y = F \ gammaL;
