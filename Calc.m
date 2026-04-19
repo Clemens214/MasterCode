@@ -73,25 +73,14 @@ end
 
 %% plot
 if true
-    Plot(1, anglesTick, Energies, Transmission, twoD=true, Spectrum=true, Title='Transmission')
-    Plot(2, anglesTick, Energies, Torquance, twoD=true, Spectrum=true, Title='Torquance')
-    Plot(3, anglesTick, Energies, Angular, twoD=true, Spectrum=true, Title='Angular Momentum')
-    Plot(4, anglesTick, Energies, Helicity, twoD=true, Spectrum=true, Title='Helicality')
+    Plot('Transmission', anglesTick, Energies, Transmission, twoD=true, Spectrum=true)
+    Plot('Torquance', anglesTick, Energies, Torquance, twoD=true, Spectrum=true)
+    Plot('Angular Momentum', anglesTick, Energies, Angular, twoD=true, Spectrum=true)
+    Plot('Helicality', anglesTick, Energies, Helicity, twoD=true, Spectrum=true)
+elseif false
+    %Plot('Current', anglesTick, voltages, Current, twoD=true, Value=true)
+    Plot('Torque', anglesTick, voltages, Torque, twoD=true, Spectrum=true)
 end
-
-if false
-    %Plot(1, anglesTick, voltages, Current, twoD=true, Value=true, Title='Current')
-    Plot(2, anglesTick, voltages, Torque, twoD=true, Spectrum=true, Title='Torque')
-end
-
-%Plot(1, angles, voltages, Current, threeD=true, Title='Current')
-%Plot(2, angles, EnergiesTrans, Transmission, threeD=true, Title='Transmission')
-%Plot(3, angles, voltages, Torque, threeD=true, Title='Torque')
-%Plot(4, angles, EnergiesTorque, Torquance, threeD=true, Title='Torquance')
-%Plot(5, angles, voltages, AngularInt, threeD=true, Title='Angular Momentum, integrated')
-%Plot(6, angles, EnergiesAngular, Angular, threeD=true, Title='Angular Momentum')
-%Plot(7, angles, voltages, HelicityInt, threeD=true, Title='Helicity, integrated')
-%Plot(8, angles, EnergiesHelicity, Helicity, threeD=true, Title='Helicity')
 
 %% chemPots
 function [totalSysDeriv] = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv)

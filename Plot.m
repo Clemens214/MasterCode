@@ -1,6 +1,6 @@
-function [] = Plot(value, angles, voltages, Data , choice, options)
+function [] = Plot(name, angles, voltages, Data , choice, options)
 arguments
-    value
+    name
     angles
     voltages
     Data
@@ -8,6 +8,7 @@ arguments
     % Type of plot
     options.Spectrum = false
     options.Value = false
+    options.Size = false
     options.Color = false
     options.Angles = false
     options.Size = false
@@ -17,21 +18,19 @@ arguments
     % Data to be plotted
     options.Transmission = false
     options.Torque = false
+    options.Angular = false
+    options.Helicity = false
     options.Both = false
 end
-    Title = choice.Title;
-    if strcmp(Title, 'Transmission')
-        label = 'T(E)';
-    elseif strcmp(Title, 'Current')
-        label = 'I(E) [2e/h]';
-    elseif strcmp(Title, 'Torquance')
-        label = '\tau (E)';
-    elseif strcmp(Title, 'Torque')
-        label = '\tau (E) [-1/2\pi]';
-    elseif strcmp(Title, 'Angular Momentum')
-        label = 'L_{z}(E)';
-    elseif strcmp(Title, 'Helicity') || strcmp(Title, 'Helicality')
-        label = 'h(E)';
+    Palette = colororder();
+    if options.Transmission == true
+        Title = 'Transmission';
+    elseif options.Torque == true
+        Title = 'Torque';
+    elseif options.Angular == true
+        Title = 'Angular Momentum';
+    elseif options.Helicity == true
+        Title = 'Helicity';
     else
         label = 'Result (E)';
     end
@@ -43,24 +42,21 @@ end
         end
     % plot the Energy/voltage dependence
         if options.Spectrum == true
-            fig = plotSpectrum2D(value, angles, voltages, Data);
+            fig = plotSpectrum2D(name, angles, voltages, Data);
             setLabels(fig, Title, label, angles, options)
     % plot the Angle dependence
         elseif options.Value == true || options.Angles == true
-            fig = plotValue2D(value, angles, voltages, Data);
+            fig = plotValue2D(name, angles, voltages, Data);
             setLabels(fig, Title, label, voltages, options)
         end
-        %% customize plot
         resizeFig(fig)
-        fontsize(12,"points")
-        fontname("Helvetica")
-        %% change plot colors
-        Palette = colororder();
-        %colororder("gem12")
-        colororder({'b', 'r', 'g', 'm', 'c', 'y', 'k'});
     % plot the Data in 3D
     elseif options.threeD == true
-        plot3D (value, Title, angles, voltages, Data)
+        plot3D (name, Title, angles, voltages, Data)
+    end
+    % plot in Color
+    if options.Color == true
+        plotColor(name, Title, angles, voltages, Data)
     end
     % plot in Color
     if options.Color == true
@@ -69,27 +65,18 @@ end
     % plot the Angles
     if options.Angles == true
         if options.twoD == true && options.threeD == false
-            plotValue2D (value, Title, angles, Vals)
+            plotValue2D (name, Title, angles, Vals)
         elseif options.threeD == true
-            plotAngles3D (value, Title, angles, Vals)
+            plotAngles3D (name, Title, angles, Vals)
         end
     end
-end
-
-function [] = resizeFig (figure)
-    set(figure, 'PaperPositionMode','auto')
-    Width = 14.53; %cm
-    Convert = get(0, 'ScreenPixelsPerInch') / 2.54;
-    % get the figure size
-    PosOld = get(figure, 'Position');
-    WidthOld = PosOld(3) / Convert;
-    HeightOld = PosOld(4) / Convert;
-    % set the figure size
-    Factor = Width / WidthOld;
-    WidthNew = Factor * WidthOld;
-    HeightNew = Factor * HeightOld;
-    PosNew = [PosOld(1), PosOld(2), WidthNew, HeightNew];
-    set(figure, 'Units','centimeters', 'Position', PosNew)
+    % change plot colors
+    %colororder("gem12")
+    colororder({'b', 'r', 'g', 'm', 'c', 'y', 'k'});
+    % change font size
+    fontsize(12,"points")
+    fontname("Helvetica")
+    disp('Test')
 end
 
 function [] = setLabels (figure, Title, label, values, options)
@@ -99,10 +86,15 @@ arguments
     label
     values
     options
-    %options.Spectrum = false
-    %options.Value = false
-    %options.Size = false
-    %options.integrate = false
+    % Type of plot
+    % options.Spectrum = false
+    % options.Value = false
+    % options.Size = false
+    % options.integrate = false
+    % Data to be plotted
+    % options.Transmission = false
+    % options.Torque = false
+    % options.Both = false
 end
     % set the title of the plot
     if false
@@ -125,7 +117,7 @@ end
     % set the y-label of the plot
     ylabel(label);
     % set the limits of the y-axis
-    if strcmp(Title, 'Transmission')
+    if options.Transmission == true
         yLimits = ylim;
         ylim([0, yLimits(2)])
     end
@@ -133,7 +125,7 @@ end
     if options.Value == true && options.integrate == true
         labels = strcat('V=',cellstr(num2str(values.')));
     elseif options.Value == true && options.integrate == false
-        labels = strcat('E=',cellstr(num2str(values.')));
+        labels = strcat('E=',cellstr(num2str(values.')));resizeFig
     elseif options.Spectrum == true
         labels = strcat('\theta=',cellstr(num2str(values.')));
         labels = cellfun(@(x) [x,'\pi'], labels, 'uniform',false);
@@ -144,7 +136,7 @@ end
 end
 
 %% plotting functions: Energies (+angles)
-function [fig] = plotSpectrum2D (value, angles, voltages, Data)
+function [fig] = plotSpectrum2D (name, angles, voltages, Data)
     TransPlot = cell(1, length(angles));
     for i = 1:length(angles)
         TransPlot{i} = zeros(1, length(voltages));
@@ -153,7 +145,7 @@ function [fig] = plotSpectrum2D (value, angles, voltages, Data)
         end
     end
     % plot the data
-    fig = figure(value);
+    fig = figure(name);
     hold on
     for i = 1:length(angles)
         plot(voltages, TransPlot{i}, linewidth=1);
@@ -163,7 +155,7 @@ function [fig] = plotSpectrum2D (value, angles, voltages, Data)
 end
 
 %% plotting functions: Angle (+voltages)
-function [fig] = plotValue2D (value, angles, voltages, Data)
+function [fig] = plotValue2D (name, angles, voltages, Data)
     TransPlot = cell(1, length(voltages));
     for i = 1:length(voltages)
         TransPlot{i} = zeros(1, length(angles));
@@ -172,7 +164,7 @@ function [fig] = plotValue2D (value, angles, voltages, Data)
         end
     end
     % plot the data
-    fig = figure(value);
+    fig = figure(name);
     hold on
     for i = 1:length(voltages)
         plot(angles, TransPlot{i}, linewidth=1);
@@ -182,7 +174,7 @@ function [fig] = plotValue2D (value, angles, voltages, Data)
 end
 
 %% plot both
-function [] = plotSpectrumBoth (value, ~, angles, voltages, Transmission, Torque)
+function [] = plotSpectrumBoth (name, ~, angles, voltages, Transmission, Torque)
     TransPlot = cell(1, length(angles));
     TorquePlot = cell(1, length(angles));
     for i = 1:length(angles)
@@ -194,7 +186,7 @@ function [] = plotSpectrumBoth (value, ~, angles, voltages, Transmission, Torque
         end
     end
     % plot the data
-    figure(value)
+    figure(Name=name);
     % plot the Transmission
     subplot(2,1, 1);
     xlabel('Energy (units of t)');
@@ -231,7 +223,7 @@ function [] = plotSpectrumBoth (value, ~, angles, voltages, Transmission, Torque
     grid on;
 end
 
-function [] = plotValueBoth (value, ~, angles, voltages, Transmission, Torque)
+function [] = plotValueBoth (name, ~, angles, voltages, Transmission, Torque)
     TransPlot = cell(1, length(voltages));
     TorquePlot = cell(1, length(voltages));
     for i = 1:length(voltages)
@@ -243,7 +235,7 @@ function [] = plotValueBoth (value, ~, angles, voltages, Transmission, Torque)
         end
     end
     % plot the data
-    figure(value)
+    figure(Name=name);
     % plot the Transmission
     subplot(2,1, 1);
     xlabel('Angle (°)'); 
@@ -280,7 +272,7 @@ function [] = plotValueBoth (value, ~, angles, voltages, Transmission, Torque)
     grid on;
 end
 
-function [] = plotSpectrum2DBoth (value, Title, angles, voltages, Data)
+function [] = plotSpectrum2DBoth (name, Title, angles, voltages, Data)
     TransPlot = cell(1, length(Data));
     for i = 1:length(Data)
         TransPlot{i} = zeros(1, length(voltages));
@@ -289,7 +281,7 @@ function [] = plotSpectrum2DBoth (value, Title, angles, voltages, Data)
         end
     end
     % plot the data
-    figure(value)
+    figure(Name=name);
     hold on
     %yyaxis left
     for i = 1:length(Data)%-1
@@ -314,12 +306,12 @@ function [] = plotSpectrum2DBoth (value, Title, angles, voltages, Data)
 end
 
 %% plotting functions: 3D
-function [] = plot3D (value, Title, angles, voltages, Data)
+function [] = plot3D (name, Title, angles, voltages, Data)
     TransPlot = zeros(length(voltages), length(angles));
     for i = 1:length(Data)
         TransPlot(:, i) = Data{i}.';
     end
-    figure(value)
+    figure(Name=name);
     surf(angles, voltages, TransPlot)
     xlabel('Angle (°)');
     ylabel('Voltage (a.u.)'); 
@@ -327,12 +319,12 @@ function [] = plot3D (value, Title, angles, voltages, Data)
     title(Title);
 end
 
-function [] = plotColor (value, Title, angles, voltages, Data)
+function [] = plotColor (name, Title, angles, voltages, Data)
     DataPlot = zeros(length(voltages), length(angles));
     for i = 1:length(Data)
         DataPlot(:, i) = Data{i}.';
     end
-    figure(value)
+    figure(Name=name);
     surf(angles, voltages, DataPlot,'EdgeColor', 'None', 'facecolor', 'interp');
     view(2);
     colorbar;
@@ -343,7 +335,7 @@ function [] = plotColor (value, Title, angles, voltages, Data)
 end
 
 %% plotting functions: Angles (Both and Difference)
-function [varargout] = plotAngles2D (value, Title, angles, Vals)
+function [varargout] = plotAngles2D (name, Title, angles, Vals)
     TransPlot = zeros(1, length(angles)*length(angles));
     angleDiff = zeros(1, length(angles)*length(angles));
     indices = zeros(1, length(angles)*length(angles));
@@ -359,13 +351,30 @@ function [varargout] = plotAngles2D (value, Title, angles, Vals)
     [angleSort, indices] = sort(angleDiff);
     TransSort = TransPlot(indices);
     % plot the data
-    figure(value);
+    figure(Name=name);
     plot(angleSort, TransSort, linewidth=1)
     title(Title);
 end
 
-function [] = plotAngles3D (value, Title, angles, Vals)
-    figure(value)
+function [] = plotAngles3D (name, Title, angles, Vals)
+    figure(Name=name);
     surf(angles, angles, Vals)
     title(Title);
+end
+
+%% Helping functions
+function [] = resizeFig (figure)
+    set(figure, 'PaperPositionMode','auto')
+    Width = 14.53; %cm
+    Convert = get(0, 'ScreenPixelsPerInch') / 2.54;
+    % get the figure size
+    PosOld = get(figure, 'Position');
+    WidthOld = PosOld(3) / Convert;
+    HeightOld = PosOld(4) / Convert;
+    % set the figure size
+    Factor = Width / WidthOld;
+    WidthNew = Factor * WidthOld;
+    HeightNew = Factor * HeightOld;
+    PosNew = [PosOld(1), PosOld(2), WidthNew, HeightNew];
+    set(figure, 'Units','centimeters', 'Position', PosNew)
 end
