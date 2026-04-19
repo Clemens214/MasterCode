@@ -1,7 +1,7 @@
 %% Variables
 
 % variables for the sample
-sizeSample = 5;
+sizeSample = 48;
 orderSample = 2;
 energySample = 0;
 hopping = 1;
@@ -15,8 +15,8 @@ hoppingLead = hopping;
 leadVals = struct('size', sizeLead, 'energy', energyLead, 'hopping', hoppingLead);
 
 % variables for the hopping
-angleMax = 2;
-angleStep = 1/16;
+angleMax = 0.5;
+angleStep = 1/8;
 anglesTick = makeList(angleMax, angleStep);
 angles = makeList(pi*angleMax, pi*angleStep);
 
@@ -27,21 +27,21 @@ voltages = makeList(voltageMax, voltageStep);
 
 %variables for the Energies
 EnergyMax = 2.5;
-EnergyStep = 0.01;
+EnergyStep = 0.001;
 Energies = makeList(EnergyMax, EnergyStep, full=true);
 
 %sample = makeSample(energySample, hoppingsSample, sizeSample,  orderSample);
 %checkDecomposition(sample, 0)
 
 %% Calculation
-Current = cell(1, length(angles));
 Transmission = cell(1, length(angles));
-Torque = cell(1, length(angles));
 Torquance = cell(1, length(angles));
-AngularInt = cell(1, length(angles));
 Angular = cell(1, length(angles));
-HelicityInt = cell(1, length(angles));
 Helicity = cell(1, length(angles));
+
+Current = cell(1, length(angles));
+Torque = cell(1, length(angles));
+
 for i = 1:length(angles)
     Sizes = [1, 2, 5, 10];
     if orderSample == 1
@@ -59,42 +59,35 @@ for i = 1:length(angles)
     
     %checkMatrix(totalSystem);
     
-    % calculating the values
-    [Current{i}, Transmission{i}, EnergiesTrans] = TransCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, linearResponse=false);
-    [Torque{i}, Torquance{i}, EnergiesTorque] = TorqueCalc(sample, voltages, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=false, conservative=true);
-    %Angular{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
-    %Helicity{i} = HelicityCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
+    % calculating the trace values
+    if true
+        Transmission{i} = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true);
+        Torquance{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true, conservative=true);
+        Angular{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
+        Helicity{i} = HelicityCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
+    elseif false
+        Torquance{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, EM=true, SI=false, linearResponse=true, nonconservative=true);
+    end
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
 %% plot
-<<<<<<< Updated upstream
-%Plot(1, anglesTick, [0], Transmission, twoD=true, Value=true, Title='Transmission')
-%Plot(2, anglesTick, [1], Torque, twoD=true, Value=true, Title='Torque')
-
-%Plot(1, angles, Energies, {Transmission, Torque}, Spectrum=true, Both=true, Title='Both')
-=======
 if true
     Plot('Transmission', anglesTick, Energies, Transmission, twoD=true, Spectrum=true)
     Plot('Torquance', anglesTick, Energies, Torquance, twoD=true, Spectrum=true)
     Plot('Angular Momentum', anglesTick, Energies, Angular, twoD=true, Spectrum=true)
     Plot('Helicality', anglesTick, Energies, Helicity, twoD=true, Spectrum=true)
-end
-
-if false
-    %Plot(Current', anglesTick, voltages, Current, twoD=true, Value=true)
+elseif false
+    %Plot('Current', anglesTick, voltages, Current, twoD=true, Value=true)
     Plot('Torque', anglesTick, voltages, Torque, twoD=true, Spectrum=true)
 end
->>>>>>> Stashed changes
 
-Plot(1, angles, voltages, Current, threeD=true, Title='Current')
-Plot(2, angles, EnergiesTrans, Transmission, threeD=true, Title='Transmission')
-Plot(3, angles, voltages, Torque, threeD=true, Title='Torque')
-Plot(4, angles, EnergiesTorque, Torquance, threeD=true, Title='Torquance')
-%Plot(5, angles, voltages, AngularInt, threeD=true, Title='Angular Momentum, integrated')
-%Plot(6, angles, EnergiesAngular, Angular, threeD=true, Title='Angular Momentum')
-%Plot(7, angles, voltages, HelicityInt, threeD=true, Title='Helicity, integrated')
-%Plot(8, angles, EnergiesHelicity, Helicity, threeD=true, Title='Helicity')
+%% chemPots
+function [totalSysDeriv] = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv)
+    sampleDeriv = zeros(sizeSample*orderSample, sizeSample*orderSample);
+    hoppingDeriv = 0;
+    [totalSysDeriv, ~, ~] = makeSystemEM(sampleDeriv, sizeSample, orderSample, sizeLead, hoppingDeriv, hoppingsDeriv, maxVal=0, check=false);
+end
 
 %% helping functions
 function [values] = makeList(maxVal, stepVal, options)
