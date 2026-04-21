@@ -99,6 +99,7 @@ end
         title(Title);
     end
     % set the x-label of the plot
+    options.integrate = false;
     if options.Spectrum == true && options.integrate == true
         xlabel('V');
     elseif options.Spectrum == true && options.integrate == false
@@ -136,7 +137,7 @@ end
     if options.Value == true && options.integrate == true
         labels = strcat('V=',cellstr(num2str(values.')));
     elseif options.Value == true && options.integrate == false
-        labels = strcat('E=',cellstr(num2str(values.')));resizeFig
+        labels = strcat('E=',cellstr(num2str(values.')));
     elseif options.Spectrum == true
         labels = strcat('\theta=',cellstr(num2str(values.')));
         labels = cellfun(@(x) [x,'\pi'], labels, 'uniform',false);
