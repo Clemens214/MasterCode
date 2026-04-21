@@ -11,7 +11,6 @@ arguments
     options.Size = false
     options.Color = false
     options.Angles = false
-    options.Size = false
     % Dimension of plot
     options.twoD = false
     options.threeD = false
@@ -32,7 +31,7 @@ end
     elseif options.Helicity == true
         Title = 'Helicity';
     else
-        label = 'Result (E)';
+        Title = choice.Title;
     end
     if options.twoD == true && options.threeD == false
         if min(voltages) >= 0
@@ -43,11 +42,11 @@ end
     % plot the Energy/voltage dependence
         if options.Spectrum == true
             fig = plotSpectrum2D(name, angles, voltages, Data);
-            setLabels(fig, Title, label, angles, options)
+            setLabels(fig, Title, angles, options)
     % plot the Angle dependence
         elseif options.Value == true || options.Angles == true
             fig = plotValue2D(name, angles, voltages, Data);
-            setLabels(fig, Title, label, voltages, options)
+            setLabels(fig, Title, voltages, options)
         end
         resizeFig(fig)
     % plot the Data in 3D
@@ -79,11 +78,10 @@ end
     disp('Test')
 end
 
-function [] = setLabels (figure, Title, label, values, options)
+function [] = setLabels (figure, Title, values, options)
 arguments
     figure
     Title
-    label
     values
     options
     % Type of plot
@@ -115,7 +113,20 @@ end
         xticklabels(TickLabels)
     end
     % set the y-label of the plot
-    ylabel(label);
+    if options.Transmission == true
+        label = 'T(E)';
+        unit = '';
+    elseif options.Torque == true
+        label = '\tau(E)';
+        unit = '[kg m^2 s^{-1} / J]';
+    elseif options.Angular == true
+        label = 'L_z(E)';
+        unit = '[N m / J]';
+    elseif options.Helicity == true
+        label = 'h(E)';
+        unit = '';
+    end
+    ylabel( strcat(label, ' ', unit) );
     % set the limits of the y-axis
     if options.Transmission == true
         yLimits = ylim;
@@ -145,7 +156,7 @@ function [fig] = plotSpectrum2D (name, angles, voltages, Data)
         end
     end
     % plot the data
-    fig = figure(name);
+    fig = figure(Name=name);
     hold on
     for i = 1:length(angles)
         plot(voltages, TransPlot{i}, linewidth=1);
@@ -164,7 +175,7 @@ function [fig] = plotValue2D (name, angles, voltages, Data)
         end
     end
     % plot the data
-    fig = figure(name);
+    fig = figure(Name=name);
     hold on
     for i = 1:length(voltages)
         plot(angles, TransPlot{i}, linewidth=1);
