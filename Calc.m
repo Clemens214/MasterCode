@@ -37,11 +37,9 @@ Energies = makeList(EnergyMax, EnergyStep, full=true);
 Transmission = cell(1, length(angles));
 Torquance = cell(1, length(angles));
 TorquanceNC = cell(1, length(angles));
+
 Angular = cell(1, length(angles));
 Helicity = cell(1, length(angles));
-
-Current = cell(1, length(angles));
-Torque = cell(1, length(angles));
 
 for i = 1:length(angles)
     Sizes = [1, 2, 5, 10];
@@ -64,11 +62,11 @@ for i = 1:length(angles)
     if true
         Transmission{i} = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true);
         Torquance{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true, conservative=true);
-        Angular{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
-        Helicity{i} = HelicityCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
+        TorquanceNC{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true, nonconservative=true);
     end
     if true
-        TorquanceNC{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true, nonconservative=true);
+        Angular{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
+        Helicity{i} = HelicityCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
     end
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
@@ -85,11 +83,11 @@ end
 if true
     Plot('Transmission', anglesTick, Energies, Transmission, twoD=true, Spectrum=true, Transmission=true)
     Plot('Torquance', anglesTick, Energies, Torquance, twoD=true, Spectrum=true, Torque=true)
-    Plot('Angular Momentum', anglesTick, Energies, Angular, twoD=true, Spectrum=true, Angular=true)
-    Plot('Helicality', anglesTick, Energies, Helicity, twoD=true, Spectrum=true, Helicity=true)
+    Plot('TorquanceNC', anglesTick, Energies, TorquanceNC, twoD=true, Spectrum=true, Torque=true)
 end
 if true
-    Plot('TorquanceNC', anglesTick, Energies, TorquanceNC, twoD=true, Spectrum=true, Torque=true)
+    Plot('Angular Momentum', anglesTick, Energies, Angular, twoD=true, Spectrum=true, Angular=true)
+    Plot('Helicality', anglesTick, Energies, Helicity, twoD=true, Spectrum=true, Helicity=true)
 end
 
 %% chemPots

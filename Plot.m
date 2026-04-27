@@ -119,13 +119,13 @@ end
         unit = '';
     elseif options.Torque == true
         label = '\tau(E)';
-        unit = '[kg m^2 s^{-1} / J]';
+        unit = '';
     elseif options.Angular == true
         label = 'L_z(E)';
-        unit = '[N m / J]';
+        unit = '[1/t]';
     elseif options.Helicity == true
         label = 'h(E)';
-        unit = '';
+        unit = '[1/t]';
     end
     ylabel( strcat(label, ' ', unit) );
     % set the limits of the y-axis
