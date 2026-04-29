@@ -6,24 +6,59 @@ arguments
     hoppingLead
     hoppingsInter
     hoppingsDeriv = zeros(size(hoppingsInter))
-    options.size = 1
+    options.size = 0
     options.check = false
     options.checkMore = false
 end
     sizeSample = length(sample);
     sizeExtra = options.size;
+
+    hoppingLead = -1*hoppingLead;
+    chiral_term = 0.55;
+    epsilon = 100000;
+    theta = pi/4;
+
+    rangeL = 1 : 2;
+    rangeM = sizeSample-3 : sizeSample-2;
+    rangeR = sizeSample-1 : sizeSample;
     
     % compute the self-energies of the leads
     [SigmaL, GreensL] = makeSigma (sizeSample, sizeExtra, Energy, hoppingLead, hoppingsInter, eigenenergy, left=true);
     [SigmaR, GreensR] = makeSigma (sizeSample, sizeExtra, Energy, hoppingLead, hoppingsInter, eigenenergy, right=true);
+    
+    eta = 0.1;
+    SigmaL(rangeL, rangeL) = [-1j*eta, 0; 0, -1j*eta];
+    SigmaR(rangeR, rangeR) = [-1j*eta, 0; 0, -1j*eta];
 
     % generate the Hamiltonian of the total system
+<<<<<<< Updated upstream
     totalHamiltonian = combineSystem(sample, sizeExtra, eigenenergy, hoppingsInter, hoppingLead);
+=======
+    totalHamiltonian = makeSystem(sample, sizeExtra, eigenenergy, hoppingsInter, hoppingLead);
+
+    % site 1: end group term
+    h1 = [0, 0; 0, 1]*epsilon;
+    % site N-1: chiral term
+    rc = rotation_matrix(theta - pi/6);
+    chiral_group = chiral_term *( rc * h1 * rc.' ) /epsilon;
+    % site N: end group term
+    r = rotation_matrix(theta);
+    rot_h1 = ( r * h1 * r.' );
+
+    totalHamiltonian = sample;
+    totalHamiltonian(rangeL, rangeL) = h1;
+    totalHamiltonian(rangeM, rangeM) = chiral_group;
+    totalHamiltonian(rangeR, rangeR) = rot_h1;
+
+>>>>>>> Stashed changes
     totalSystem = totalHamiltonian + SigmaL + SigmaR;
     
     % compute the coupling strengths of the leads
     GammaL = -1j*(SigmaL - SigmaL');
     GammaR = -1j*(SigmaR - SigmaR');
+
+    GammaL = 1j*(SigmaL - SigmaL');
+    GammaR =-1j*(SigmaR - SigmaR');
     
     % check the results
     if options.check == true
@@ -34,7 +69,24 @@ end
     
     % generate the derivative of the Hamiltonian
     sampleDeriv = zeros(size(sample));
+<<<<<<< Updated upstream
     totalSysDeriv = combineSystem(sampleDeriv, sizeExtra, 0, hoppingsDeriv, 0);
+=======
+    totalSysDeriv = makeSystem(sampleDeriv, sizeExtra, 0, hoppingsDeriv, 0);
+    
+    % site N-1: chiral term
+    rc = rotation_matrix(theta - pi/6);
+    drc = drotation_matrix(theta - pi/6);
+    chiral_group = chiral_term *( drc * h1 * rc.' ) /epsilon + chiral_term *( rc * h1 * drc.' ) /epsilon;
+    % site N: end group term
+    dr = drotation_matrix(theta);
+    r = rotation_matrix(theta);
+    rot_h1 = ( dr * h1 * r.') + ( r * h1 * dr.' );
+
+    totalSysDeriv = sampleDeriv;
+    totalSysDeriv(rangeM, rangeM) = chiral_group;
+    totalSysDeriv(rangeR, rangeR) = rot_h1;
+>>>>>>> Stashed changes
 
     % return the results
     varargout{1} = totalSysDeriv;
@@ -42,6 +94,20 @@ end
     varargout{3} = SigmaR;
     varargout{4} = GreensL;
     varargout{5} = GreensR;
+end
+
+% rotation matrix
+function [matrix] = rotation_matrix(angle)
+    c = cos(angle);
+    s = sin(angle);
+    matrix = [c, -s; s, c];
+end
+
+% d(rotation matrix) / d theta
+function [matrix] = drotation_matrix(angle)
+    dc = -sin(angle);
+    ds = cos(angle);
+    matrix = [dc, -ds; ds, dc];
 end
 
 %% functions used in generating the total Hamiltonian

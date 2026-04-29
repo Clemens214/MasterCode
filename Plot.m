@@ -13,7 +13,7 @@ arguments
     options.Angles = false
     options.Size = false
     % Dimension of plot
-    options.twoD = false
+    options.twoD = true
     options.threeD = false
     % Data to be plotted
     options.Transmission = false
@@ -53,10 +53,6 @@ end
     % plot the Data in 3D
     elseif options.threeD == true
         plot3D (name, Title, angles, voltages, Data)
-    end
-    % plot in Color
-    if options.Color == true
-        plotColor(name, Title, angles, voltages, Data)
     end
     % plot in Color
     if options.Color == true

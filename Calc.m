@@ -1,7 +1,11 @@
 %% Variables
 
 % variables for the sample
+<<<<<<< Updated upstream
 sizeSample = 48;
+=======
+sizeSample = 4;
+>>>>>>> Stashed changes
 orderSample = 2;
 energySample = 0;
 hopping = 1;
@@ -19,6 +23,9 @@ angleMax = 0.5;
 angleStep = 1/8;
 anglesTick = makeList(angleMax, angleStep);
 angles = makeList(pi*angleMax, pi*angleStep);
+
+anglesTick = 1/4;
+angles = pi/4;
 
 %variables for the voltages
 voltageMax = 4.5;
@@ -58,10 +65,12 @@ for i = 1:length(angles)
     sample = makeSample(energySample, hoppingsSample, sizeSample,  orderSample);
     
     %checkMatrix(totalSystem);
+
+    [totalSystem, GammaL, GammaR, totalSysDeriv] = makeSystemSI (0, sample, energySample, hoppingLead, hoppingsInter, hoppingsDeriv, size=0);
     
     % calculating the trace values
-    if true
-        Transmission{i} = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true);
+    if false
+        Transmission{i} = -1*TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true);
         Torquance{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true, conservative=true);
         Angular{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
         Helicity{i} = HelicityCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
@@ -72,6 +81,7 @@ for i = 1:length(angles)
 end
 
 %% plot
+<<<<<<< Updated upstream
 if true
     Plot('Transmission', anglesTick, Energies, Transmission, twoD=true, Spectrum=true)
     Plot('Torquance', anglesTick, Energies, Torquance, twoD=true, Spectrum=true)
@@ -80,6 +90,16 @@ if true
 elseif false
     %Plot('Current', anglesTick, voltages, Current, twoD=true, Value=true)
     Plot('Torque', anglesTick, voltages, Torque, twoD=true, Spectrum=true)
+=======
+if false
+    Plot('Transmission', anglesTick, Energies, Transmission, twoD=true, Spectrum=true, Transmission=true)
+    Plot('Torquance', anglesTick, Energies, Torquance, twoD=true, Spectrum=true, Torque=true)
+    Plot('TorquanceNC', anglesTick, Energies, TorquanceNC, twoD=true, Spectrum=true, Torque=true)
+end
+if true
+    Plot('Angular Momentum', anglesTick, Energies, Angular, twoD=true, Spectrum=true, Angular=true)
+    Plot('Helicality', anglesTick, Energies, Helicity, twoD=true, Spectrum=true, Helicity=true)
+>>>>>>> Stashed changes
 end
 
 %% chemPots
