@@ -60,12 +60,12 @@ for i = 1:length(angles)
     
     % calculating the trace values
     if true
-        Transmission{i} = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true);
-        Torquance{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true, conservative=true);
-        TorquanceNC{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true, nonconservative=true);
+        %Transmission{i} = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true);
+        %Torquance{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true, conservative=true);
+        %TorquanceNC{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true, nonconservative=true);
     end
     if true
-        Angular{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
+        %Angular{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
         Helicity{i} = HelicityCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
     end
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
@@ -81,12 +81,12 @@ end
 
 %% plot
 if true
-    Plot('Transmission', anglesTick, Energies, Transmission, twoD=true, Spectrum=true, Transmission=true)
-    Plot('Torquance', anglesTick, Energies, Torquance, twoD=true, Spectrum=true, Torque=true)
-    Plot('TorquanceNC', anglesTick, Energies, TorquanceNC, twoD=true, Spectrum=true, Torque=true)
+    %Plot('Transmission', anglesTick, Energies, Transmission, twoD=true, Spectrum=true, Transmission=true)
+    %Plot('Torquance', anglesTick, Energies, Torquance, twoD=true, Spectrum=true, Torque=true)
+    %Plot('TorquanceNC', anglesTick, Energies, TorquanceNC, twoD=true, Spectrum=true, Torque=true)
 end
 if true
-    Plot('Angular Momentum', anglesTick, Energies, Angular, twoD=true, Spectrum=true, Angular=true)
+    %Plot('Angular Momentum', anglesTick, Energies, Angular, twoD=true, Spectrum=true, Angular=true)
     Plot('Helicality', anglesTick, Energies, Helicity, twoD=true, Spectrum=true, Helicity=true)
 end
 

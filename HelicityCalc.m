@@ -100,7 +100,7 @@ end
             rangeRow = order*(row-1)+1 : order*row;
             rangeColumn = order*(column-1)+1 : order*column;
             if small(row, column) ~= 0
-                sample(rangeRow, rangeColumn) = small(row, column) * Pauli;
+                sample(rangeRow, rangeColumn) = 1j/2 * small(row, column) * Pauli;
             end
         end
     end
