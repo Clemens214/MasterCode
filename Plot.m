@@ -103,7 +103,7 @@ end
     if options.Spectrum == true && options.integrate == true
         xlabel('V');
     elseif options.Spectrum == true && options.integrate == false
-        xlabel('E');
+        xlabel('E [t]');
     elseif options.Value == true
         xlabel('\theta');
     end
