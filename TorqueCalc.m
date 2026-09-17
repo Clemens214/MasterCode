@@ -7,7 +7,7 @@ arguments
     leadVals
     hoppingsInter
     hoppingsDeriv
-    choice.conservative = false
+    choice.conservative = true
     choice.nonconservative = false
     choice.left = false
     choice.right = false

@@ -76,6 +76,9 @@ end
     fontsize(12,"points")
     fontname("Helvetica")
     disp('Test')
+    % export the plot
+    cleanfigure;
+    matlab2tikz('myfile.tex')
 end
 
 function [] = setLabels (figure, Title, values, options)

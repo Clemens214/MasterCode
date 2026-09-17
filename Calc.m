@@ -9,7 +9,7 @@ hoppingsSample = hopping*eye(orderSample);
 sampleVals = struct('size', sizeSample, 'order', orderSample, 'energy', energySample, 'hopping', hoppingsSample);
 
 % variables for the leads
-sizeLead = 104;
+sizeLead = 1;
 energyLead = energySample;
 hoppingLead = hopping;
 leadVals = struct('size', sizeLead, 'energy', energyLead, 'hopping', hoppingLead);
@@ -20,15 +20,15 @@ angleStep = 1/8;
 anglesTick = makeList(angleMax, angleStep);
 angles = makeList(pi*angleMax, pi*angleStep);
 
-%variables for the voltages
-voltageMax = 4.5;
-voltageStep = 0.01;
-voltages = makeList(voltageMax, voltageStep);
-
 %variables for the Energies
-EnergyMax = 2.5;
+EnergyMax = 2.1;
 EnergyStep = 0.001;
 Energies = makeList(EnergyMax, EnergyStep, full=true);
+
+%variables for the voltages
+voltageMax = 2*EnergyMax;
+voltageStep = 0.01;
+voltages = makeList(voltageMax, voltageStep);
 
 %sample = makeSample(energySample, hoppingsSample, sizeSample,  orderSample);
 %checkDecomposition(sample, 0)
@@ -36,10 +36,7 @@ Energies = makeList(EnergyMax, EnergyStep, full=true);
 %% Calculation
 Transmission = cell(1, length(angles));
 Torquance = cell(1, length(angles));
-TorquanceNC = cell(1, length(angles));
-
 Angular = cell(1, length(angles));
-Helicity = cell(1, length(angles));
 
 for i = 1:length(angles)
     Sizes = [1, 2, 5, 10];
@@ -56,39 +53,18 @@ for i = 1:length(angles)
     % compute the Hamiltonian of the Sample
     sample = makeSample(energySample, hoppingsSample, sizeSample,  orderSample);
     
-    %checkMatrix(totalSystem);
-    
     % calculating the trace values
-    if true
-        Transmission{i} = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, linearResponse=true);
-        Torquance{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true, conservative=true);
-        TorquanceNC{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv, linearResponse=true, nonconservative=true);
-    end
-    if true
-        Angular{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
-        Helicity{i} = HelicityCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
-    end
+    Transmission{i} = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
+    Torquance{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv);
+    Angular{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
+
     disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
 end
 
-if false
-    if true
-        save('variables')
-    else
-        load('variables')
-    end
-end
-
 %% plot
-if true
-    Plot('Transmission', anglesTick, Energies, Transmission, twoD=true, Spectrum=true, Transmission=true)
-    Plot('Torquance', anglesTick, Energies, Torquance, twoD=true, Spectrum=true, Torque=true)
-    Plot('TorquanceNC', anglesTick, Energies, TorquanceNC, twoD=true, Spectrum=true, Torque=true)
-end
-if true
-    Plot('Angular Momentum', anglesTick, Energies, Angular, twoD=true, Spectrum=true, Angular=true)
-    Plot('Helicality', anglesTick, Energies, Helicity, twoD=true, Spectrum=true, Helicity=true)
-end
+Plot('Transmission', anglesTick, Energies, Transmission, twoD=true, Spectrum=true, Transmission=true)
+Plot('Torquance', anglesTick, Energies, Torquance, twoD=true, Spectrum=true, Torque=true)
+Plot('Angular Momentum', anglesTick, Energies, Angular, twoD=true, Spectrum=true, Angular=true)
 
 %% chemPots
 function [totalSysDeriv] = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv)
