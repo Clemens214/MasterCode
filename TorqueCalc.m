@@ -202,10 +202,27 @@ function [Results] = Torque(Energies, sample, totalSysDeriv_EM, gammaL_EM, gamma
             gammaR = gammaR_EM;
         end
         Matrix = choiceLin(Energies(i), totalSystem, totalSysDeriv, gammaL, gammaR, choice);
-        Traces(i) = trace(real(Matrix));
+        Traces(i) = trace(real(Matrix))/(2*pi);
     end
     % return the results
     Results = Traces;
+end
+
+
+function [Result] = TorqueMatrix(Energy, totalSystem, totalSysDeriv, midFactor, options)
+arguments
+    Energy
+    totalSystem
+    totalSysDeriv
+    midFactor
+    options.eta = 1E-12
+end
+    eta = 1j*options.eta;
+    % totalSysDeriv * GreensFunc * midFactor * GreensFunc'
+    GreensInv = (Energy+eta)*eye(length(totalSystem)) - totalSystem;
+    GreensFunc = inv(GreensInv);
+    % calculate the torque matrix
+    Result = totalSysDeriv * GreensFunc * midFactor * GreensFunc';
 end
 
 function [Result] = TorqueAlt(Energy, totalSystem, totalSysDeriv, midFactor, options)
@@ -319,10 +336,10 @@ function [TotalResult] = choiceLin(Energy, totalSystem, totalSysDeriv, gammaL, g
         elseif choice.right == true
             midFactor = gammaR;
         end
-        TotalResult = TorqueAlt(Energy, totalSystem, totalSysDeriv, midFactor);
+        TotalResult = TorqueMatrix(Energy, totalSystem, totalSysDeriv, midFactor);
     else
-        ResultL = TorqueAlt(Energy, totalSystem, totalSysDeriv, gammaL);
-        ResultR = TorqueAlt(Energy, totalSystem, totalSysDeriv, gammaR);
+        ResultL = TorqueMatrix(Energy, totalSystem, totalSysDeriv, gammaL);
+        ResultR = TorqueMatrix(Energy, totalSystem, totalSysDeriv, gammaR);
         TotalResult = ResultL + ResultR;
     end
 end

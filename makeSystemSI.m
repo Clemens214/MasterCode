@@ -187,14 +187,14 @@ arguments
 end
     eta = options.eta;
     % calculate parts of the Greens function
-    val = w - eig + 1j*eta;
-    factor = val/(2*t^2);
-    root = sqrt(1-( 4*t^2/val^2 ));
+    z = w - eig + 1j*eta;
+    factor = z/(2*t^2);
+    root = sqrt(1-( 4*t^2/z^2 ));
     % calculate the final Greens function elements
-    G_plus = factor*(1 + root);
     G_minus = factor*(1 - root);
+    G_plus = factor*(1 + root);
     % return the results
-    Result = real(G_minus) + -1j*imag(G_minus);
+    Result = G_minus;
     varargout{1} = G_plus;
 end
 

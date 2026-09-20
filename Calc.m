@@ -15,23 +15,21 @@ hoppingLead = hopping;
 leadVals = struct('size', sizeLead, 'energy', energyLead, 'hopping', hoppingLead);
 
 % variables for the hopping
-angleMax = 0.5;
-angleStep = 1/8;
+angleMax = 2;
+angleStep = 0.001;%1/8;
 anglesTick = makeList(angleMax, angleStep);
-angles = makeList(pi*angleMax, pi*angleStep);
+angles = pi*anglesTick;
 
 %variables for the Energies
-EnergyMax = 2.1;
-EnergyStep = 0.001;
-Energies = makeList(EnergyMax, EnergyStep, full=true);
+EnergyMax = 1;
+EnergyStep = 0.25;
+%Energies = makeList(EnergyMax, EnergyStep, full=true);
+Energies = makeList(EnergyMax, EnergyStep, full=false);
 
 %variables for the voltages
 voltageMax = 2*EnergyMax;
 voltageStep = 0.01;
 voltages = makeList(voltageMax, voltageStep);
-
-%sample = makeSample(energySample, hoppingsSample, sizeSample,  orderSample);
-%checkDecomposition(sample, 0)
 
 %% Calculation
 Transmission = cell(1, length(angles));
@@ -53,6 +51,13 @@ for i = 1:length(angles)
     % compute the Hamiltonian of the Sample
     sample = makeSample(energySample, hoppingsSample, sizeSample,  orderSample);
     
+    % calculate the surface Green's function
+    GreensL = zeros(1, length(Energies));
+    GreensR = zeros(1, length(Energies));
+    for j = 1:length(Energies)
+        [~, ~, ~, ~, ~, ~, GreensL(j), GreensR(j)] = makeSystemSI (Energies(j), sample, 0, hoppingLead, hoppingsInter, hoppingsDeriv);
+    end
+
     % calculating the trace values
     Transmission{i} = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
     Torquance{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv);
@@ -62,9 +67,40 @@ for i = 1:length(angles)
 end
 
 %% plot
-Plot('Transmission', anglesTick, Energies, Transmission, twoD=true, Spectrum=true, Transmission=true)
-Plot('Torquance', anglesTick, Energies, Torquance, twoD=true, Spectrum=true, Torque=true)
-Plot('Angular Momentum', anglesTick, Energies, Angular, twoD=true, Spectrum=true, Angular=true)
+Plot('Transmission', anglesTick, Energies, Transmission, twoD=true, Value=true, Transmission=true)
+Plot('Torquance', anglesTick, Energies, Torquance, twoD=true, Value=true, Torque=true)
+Plot('Angular', anglesTick, Energies, Angular, twoD=true, Value=true, Angular=true)
+disp('Test')
+
+%% Greens
+if false
+    if orderSample == 1
+        hoppingsInter = [hopping; hopping];
+        hoppingsDeriv = [0; 0];
+    elseif orderSample == 2
+        hoppingsInter = [1, 0; 1, 0];
+        hoppingsDeriv = [0, 1; 0, 0];
+    end
+    % compute the Hamiltonian of the Sample
+    sample = makeSample(energySample, hoppingsSample, sizeSample,  orderSample);
+    % calculate the surface Green's function
+    GreensL = zeros(1, length(Energies));
+    GreensR = zeros(1, length(Energies));
+    for j = 1:length(Energies)
+        [~, ~, ~, ~, ~, ~, GreensL(j), GreensR(j)] = makeSystemSI (Energies(j), sample, 0, hoppingLead, hoppingsInter, hoppingsDeriv);
+    end
+    % plot the surface Green's function
+    plotGreens('GreensL', Energies, GreensL)
+    plotGreens('GreensR', Energies, GreensR)
+end
+
+function [] = plotGreens(name, Energies, Greens)
+    fig = figure(Name=name);
+    hold on
+    plot(Energies, real(Greens), linewidth=1);
+    plot(Energies, imag(Greens), linewidth=1);
+    hold off
+end
 
 %% chemPots
 function [totalSysDeriv] = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv)

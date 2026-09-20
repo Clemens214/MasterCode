@@ -237,7 +237,7 @@ end
             gammaR = gammaR_EM;
         end
         Matrix = choiceLin(Energies(i), operator, totalSystem, gammaL, gammaR, choice);
-        Traces(i) = trace(real(Matrix));
+        Traces(i) = trace(real(Matrix))/(2*pi);
     end
     % return the results
     Results = Traces;

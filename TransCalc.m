@@ -135,11 +135,27 @@ function [Results] = Transmission(Energies, sample, gammaL_EM, gammaR_EM, hoppin
             gammaL = gammaL_EM;
             gammaR = gammaR_EM;
         end
-        Matrix = TransmissionAlt(Energies(i), totalSystem, gammaL, gammaR);
+        Matrix = TransmissionMatrix(Energies(i), totalSystem, gammaL, gammaR);
         Traces(i) = trace(real(Matrix));
     end
     % return the results
     Results = Traces;
+end
+
+function [Result] = TransmissionMatrix(Energy, totalSystem, gammaL, gammaR, options)
+arguments
+    Energy
+    totalSystem
+    gammaL
+    gammaR
+    options.eta = 1E-12
+end
+    eta = 1j*options.eta;
+    % GreensFunc * gammaL * GreensFunc' * gammaR
+    GreensInv = (Energy+eta)*eye(length(totalSystem)) - totalSystem;
+    GreensFunc = inv(GreensInv);
+    % calculate the transmission matrix
+    Result = GreensFunc * gammaL * GreensFunc' * gammaR;
 end
 
 function [Result] = TransmissionAlt(Energy, totalSystem, gammaL, gammaR, options)

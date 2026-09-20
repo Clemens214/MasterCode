@@ -227,10 +227,26 @@ end
             gammaR = gammaR_EM;
         end
         Matrix = choiceLin(Energies(i), operator, totalSystem, gammaL, gammaR, choice);
-        Traces(i) = trace(real(Matrix));
+        Traces(i) = trace(real(Matrix))/(2*pi);
     end
     % return the results
     Results = Traces;
+end
+
+function [Result] = AngularMatrix(Energy, operator, totalSystem, midFactor, options)
+arguments
+    Energy
+    operator
+    totalSystem
+    midFactor
+    options.eta = 1E-12
+end
+    eta = 1j*options.eta;
+    % operator * GreensFunc * midFactor * GreensFunc'
+    GreensInv = (Energy+eta)*eye(length(totalSystem)) - totalSystem;
+    GreensFunc = inv(GreensInv);
+    % calculate the angular momentum matrix
+    Result = operator * GreensFunc * midFactor * GreensFunc';
 end
 
 function [Result] = AngularAlt(Energy, operator, totalSystem, midFactor, options)
@@ -338,10 +354,10 @@ function [TotalResult] = choiceLin(Energy, operator, totalSystem, gammaL, gammaR
         elseif choice.right == true
             midFactor = gammaR;
         end
-        TotalResult = AngularAlt(Energy, operator, totalSystem, midFactor);
+        TotalResult = AngularMatrix(Energy, operator, totalSystem, midFactor);
     else
-        ResultL = AngularAlt(Energy, operator, totalSystem, gammaL);
-        ResultR = AngularAlt(Energy, operator, totalSystem, gammaR);
+        ResultL = AngularMatrix(Energy, operator, totalSystem, gammaL);
+        ResultR = AngularMatrix(Energy, operator, totalSystem, gammaR);
         TotalResult = ResultL + ResultR;
     end
 end
