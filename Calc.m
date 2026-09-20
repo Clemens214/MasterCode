@@ -18,13 +18,14 @@ leadVals = struct('size', sizeLead, 'energy', energyLead, 'hopping', hoppingLead
 angleMax = 2;
 angleStep = 0.001;%1/8;
 anglesTick = makeList(angleMax, angleStep);
+anglesTick = 1/4;
 angles = pi*anglesTick;
 
 %variables for the Energies
-EnergyMax = 1;
-EnergyStep = 0.25;
-%Energies = makeList(EnergyMax, EnergyStep, full=true);
-Energies = makeList(EnergyMax, EnergyStep, full=false);
+EnergyMax = 2.1;
+EnergyStep = 0.001;
+Energies = makeList(EnergyMax, EnergyStep, full=true);
+%Energies = makeList(EnergyMax, EnergyStep, full=false);
 
 %variables for the voltages
 voltageMax = 2*EnergyMax;
@@ -36,40 +37,34 @@ Transmission = cell(1, length(angles));
 Torquance = cell(1, length(angles));
 Angular = cell(1, length(angles));
 
-for i = 1:length(angles)
-    Sizes = [1, 2, 5, 10];
+Sizes = [1, 2, 5, 10];
+for i = 1:length(Sizes)
     if orderSample == 1
         hoppingsInter = [hopping; hopping];
         hoppingsDeriv = [0; 0];
     elseif orderSample == 2
-        hoppingsInter = [cos(angles(i)), sin(angles(i)); 1, 0];
+        hoppingsInter = [cos(angles(1)), sin(angles(1)); 1, 0];
                         % cos(angles(j)), sin(angles(j))];
-        hoppingsDeriv = [-1*sin(angles(i)), cos(angles(i)); 0, 0];
+        hoppingsDeriv = [-1*sin(angles(1)), cos(angles(1)); 0, 0];
                         % -1*sin(angles(j)), cos(angles(j))];
     end
     
     % compute the Hamiltonian of the Sample
-    sample = makeSample(energySample, hoppingsSample, sizeSample,  orderSample);
+    sample = makeSample(energySample, hoppingsSample, Sizes(i),  orderSample);
     
-    % calculate the surface Green's function
-    GreensL = zeros(1, length(Energies));
-    GreensR = zeros(1, length(Energies));
-    for j = 1:length(Energies)
-        [~, ~, ~, ~, ~, ~, GreensL(j), GreensR(j)] = makeSystemSI (Energies(j), sample, 0, hoppingLead, hoppingsInter, hoppingsDeriv);
-    end
-
     % calculating the trace values
     Transmission{i} = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
-    Torquance{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv);
-    Angular{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
+    %Torquance{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv);
+    %Angular{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
 
-    disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
+    disp(['Angle: ', num2str(Sizes(i)), ', i=', num2str(i)])
 end
 
 %% plot
-Plot('Transmission', anglesTick, Energies, Transmission, twoD=true, Value=true, Transmission=true)
-Plot('Torquance', anglesTick, Energies, Torquance, twoD=true, Value=true, Torque=true)
-Plot('Angular', anglesTick, Energies, Angular, twoD=true, Value=true, Angular=true)
+Plot('Sizes', Sizes, Energies, Transmission, twoD=true, Size=true, Transmission=true)
+%Plot('Transmission', anglesTick, Energies, Transmission, twoD=true, Value=true, Transmission=true)
+%Plot('Torquance', anglesTick, Energies, Torquance, twoD=true, Value=true, Torque=true)
+%Plot('Angular', anglesTick, Energies, Angular, twoD=true, Value=true, Angular=true)
 disp('Test')
 
 %% Greens

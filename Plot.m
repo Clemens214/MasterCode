@@ -42,6 +42,10 @@ end
         elseif options.Value == true || options.Angles == true
             fig = plotValue2D(name, angles, voltages, Data);
             setLabels(fig, Title, voltages, options)
+    % plot the Size dependence
+        elseif options.Size == true
+            fig = plotSpectrum2D(name, angles, voltages, Data);
+            setLabels(fig, Title, angles, options)
         end
         setTicks (fig, angles, voltages, Data, options)
         resizeFig(fig)
@@ -89,7 +93,7 @@ end
     options.integrate = false;
     if options.Spectrum == true && options.integrate == true
         xlabel('V [t]');
-    elseif options.Spectrum == true && options.integrate == false
+    elseif options.Spectrum == true && options.integrate == false || options.Size == true
         xlabel('\omega [t]');
     elseif options.Value == true
         xlabel('\Delta\theta');
@@ -118,7 +122,7 @@ end
         labels = strcat('\Delta\theta=',cellstr(num2str(values.')));
         labels = cellfun(@(x) [x,'\pi'], labels, 'uniform',false);
     elseif options.Size == true
-        labels = strcat('N=',cellstr(num2str(angles.')));
+        labels = strcat('N=',cellstr(num2str(values.')));
     end
     legend(labels, 'Location','northoutside', 'NumColumns', 2);%, 'Interpreter','latex');
 end
@@ -133,7 +137,7 @@ arguments
 end
     % set the limits of the x-axis
     xLimits = xlim;
-    if options.Spectrum == true
+    if options.Spectrum == true || options.Size == true
         xMin = min(voltages);
         xMax = max(voltages);
     elseif options.Value == true || options.Angles == true
