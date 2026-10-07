@@ -13,6 +13,7 @@ arguments
     mode.EM = false
     mode.SI = true
     options.linearResponse = true
+    options.eta = 1E-12
 end
     orderSample = sampleVals.order;
     if mode.EM == true
@@ -35,27 +36,27 @@ end
     if options.linearResponse == true
         Energies = voltages;
         if choice.conservative == true || choice.nonconservative == true || choice.left == true || choice.right == true
-            Results = AngularMomentum(Energies, totalSystem, operator, gammaL, gammaR, hoppingsInter, choice, mode);
+            Results = AngularMomentum(Energies, totalSystem, operator, gammaL, gammaR, hoppingsInter, choice, mode, eta=options.eta);
         else
             choiceL = choice;
             choiceL.left = true;
-            ResultsL =  AngularMomentum(Energies, totalSystem, operator, gammaL, gammaR, hoppingsInter, choiceL, mode);
+            ResultsL =  AngularMomentum(Energies, totalSystem, operator, gammaL, gammaR, hoppingsInter, choiceL, mode, eta=options.eta);
             choiceR = choice;
             choiceR.right = true;
-            ResultsR =  AngularMomentum(Energies, totalSystem, operator, gammaL, gammaR, hoppingsInter, choiceR, mode);
+            ResultsR =  AngularMomentum(Energies, totalSystem, operator, gammaL, gammaR, hoppingsInter, choiceR, mode, eta=options.eta);
             Results = ResultsL + ResultsR;
         end
     elseif options.linearResponse == false
         chemPots = setupPots(voltages);
         if choice.conservative == true || choice.nonconservative == true || choice.left == true || choice.right == true
-            [Results, values, Energies] = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choice, mode);
+            [Results, values, Energies] = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choice, mode, eta=options.eta);
         else
             choiceL = choice;
             choiceL.left = true;
-            [ResultsL, valuesL, EnergiesL] = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choiceL, mode);
+            [ResultsL, valuesL, EnergiesL] = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choiceL, mode, eta=options.eta);
             choiceR = choice;
             choiceR.right = true;
-            [ResultsR, valuesR, EnergiesR] = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choiceR, mode);
+            [ResultsR, valuesR, EnergiesR] = integrate(chemPots, totalSystem, operator, gammaL, gammaR, hoppingsInter, choiceR, mode, eta=options.eta);
             Results = ResultsL + ResultsR;
             [values, Energies] = combine(valuesL, valuesR, EnergiesL, EnergiesR);
         end
@@ -154,7 +155,7 @@ end
     
     % calculate the transmissions
     evalPoints = makeList(maxPoint, minPoint, stepSize);
-    values = AngularMomentum(evalPoints, totalSystem, operator, gammaL, gammaR, hoppingsInter, choice, mode);
+    values = AngularMomentum(evalPoints, totalSystem, operator, gammaL, gammaR, hoppingsInter, choice, mode, options);
     
     % calculate the integrals
     Results = zeros(1, length(chemPots));
@@ -200,7 +201,7 @@ end
 end
 
 %% total angular momentum in the linear transport approximation
-function [Results] = AngularMomentum(Energies, sample, operator_EM, gammaL_EM, gammaR_EM, hoppingsInter, choice, mode)
+function [Results] = AngularMomentum(Energies, sample, operator_EM, gammaL_EM, gammaR_EM, hoppingsInter, choice, mode, options)
 arguments
     Energies
     sample
@@ -210,6 +211,7 @@ arguments
     hoppingsInter
     choice
     mode
+    options.eta = 1E-12
 end
     % calculate the transport matrix and the trace
     Traces = zeros(1, length(Energies));
@@ -217,7 +219,7 @@ end
         if mode.SI == true
             eigenenergy = mode.energy;
             hoppingLead = mode.hopping;
-            [totalSystem, gammaL, gammaR] = makeSystemSI(Energies(i), sample, eigenenergy, hoppingLead, hoppingsInter);
+            [totalSystem, gammaL, gammaR] = makeSystemSI(Energies(i), sample, eigenenergy, hoppingLead, hoppingsInter, eta=options.eta);
             sizeExtra = (size(totalSystem) - size(sample))/2;
             operator = AngularOperator(length(totalSystem), sizeExtra(1));
         elseif mode.EM == true
@@ -226,7 +228,7 @@ end
             gammaL = gammaL_EM;
             gammaR = gammaR_EM;
         end
-        Matrix = choiceLin(Energies(i), operator, totalSystem, gammaL, gammaR, choice);
+        Matrix = choiceLin(Energies(i), operator, totalSystem, gammaL, gammaR, choice, eta=options.eta);
         Traces(i) = trace(real(Matrix))/(2*pi);
     end
     % return the results
@@ -343,7 +345,16 @@ function [fermiFunc] = choiceFermiFunc(evalPoints, chemPotL, chemPotR, choice)
     end
 end
 
-function [TotalResult] = choiceLin(Energy, operator, totalSystem, gammaL, gammaR, choice)
+function [TotalResult] = choiceLin(Energy, operator, totalSystem, gammaL, gammaR, choice, options)
+arguments
+    Energy
+    operator
+    totalSystem
+    gammaL
+    gammaR
+    choice
+    options.eta = 1E-12
+end
     if choice.conservative == true || choice.nonconservative == true || choice.left == true || choice.right == true
         if choice.conservative == true
             midFactor = gammaL + gammaR;
@@ -354,10 +365,10 @@ function [TotalResult] = choiceLin(Energy, operator, totalSystem, gammaL, gammaR
         elseif choice.right == true
             midFactor = gammaR;
         end
-        TotalResult = AngularMatrix(Energy, operator, totalSystem, midFactor);
+        TotalResult = AngularMatrix(Energy, operator, totalSystem, midFactor, eta=options.eta);
     else
-        ResultL = AngularMatrix(Energy, operator, totalSystem, gammaL);
-        ResultR = AngularMatrix(Energy, operator, totalSystem, gammaR);
+        ResultL = AngularMatrix(Energy, operator, totalSystem, gammaL, eta=options.eta);
+        ResultR = AngularMatrix(Energy, operator, totalSystem, gammaR, eta=options.eta);
         TotalResult = ResultL + ResultR;
     end
 end

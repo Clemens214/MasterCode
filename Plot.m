@@ -6,12 +6,14 @@ arguments
     Data
     choice.Title = ''
     % Type of plot
+    options.Size = false
     options.Spectrum = false
     options.Value = false
-    options.Size = false
+    options.Max = false
     options.Color = false
     options.Angles = false
     options.integrate = false
+    options.etas = false
     % Dimension of plot
     options.twoD = false
     options.threeD = false
@@ -20,6 +22,7 @@ arguments
     options.Torque = false
     options.Angular = false
     options.Helicity = false
+    options.Difference = false
 end
     Palette = colororder();
     if options.Transmission == true
@@ -30,22 +33,34 @@ end
         Title = 'Angular';
     elseif options.Helicity == true
         Title = 'Helicity';
+    elseif options.Difference
+        Title = 'Difference';
     else
         Title = choice.Title;
     end
     if options.twoD == true && options.threeD == false
+    % plot the Size dependence
+        if options.Size == true
+            fig = plotSpectrum2D(name, angles, voltages, Data);
+            setLabels(fig, Title, angles, options)
     % plot the Energy/voltage dependence
-        if options.Spectrum == true
+        elseif options.Spectrum == true
             fig = plotSpectrum2D(name, angles, voltages, Data);
             setLabels(fig, Title, angles, options)
     % plot the Angle dependence
         elseif options.Value == true || options.Angles == true
             fig = plotValue2D(name, angles, voltages, Data);
             setLabels(fig, Title, voltages, options)
-    % plot the Size dependence
-        elseif options.Size == true
-            fig = plotSpectrum2D(name, angles, voltages, Data);
-            setLabels(fig, Title, angles, options)
+    % plot the Angle dependence of the maxima
+        elseif options.Max == true
+            [fig, Data] = plotMax2D(name, angles, voltages, Data);
+            setLabels(fig, Title, voltages, options)
+    % plot the eta dependence
+        elseif options.Difference == true
+            etas = angles;
+            fig = plotDiff2D(name, etas, Data{1}, Data{2}, Data{3});
+            labels = ['Transmission', 'Torque', 'Angular'];
+            setLabels(fig, Title, labels, options)
         end
         setTicks (fig, angles, voltages, Data, options)
         resizeFig(fig)
@@ -90,13 +105,14 @@ end
         title(Title);
     end
     % set the x-label of the plot
-    options.integrate = false;
     if options.Spectrum == true && options.integrate == true
         xlabel('V [t]');
     elseif options.Spectrum == true && options.integrate == false || options.Size == true
         xlabel('\omega [t]');
-    elseif options.Value == true
+    elseif options.Value == true || options.Max == true
         xlabel('\Delta\theta');
+    elseif options.etas == true
+        xlabel('\eta');
     end
     % set the y-label of the plot
     if options.Transmission == true
@@ -111,20 +127,31 @@ end
     elseif options.Helicity == true
         label = 'h(\omega)';
         unit = '[1/t]';
+    elseif options.Difference == true
+        label = 'Difference';
+        unit = '';
     end
-    ylabel( strcat(label, ' ', unit) );
+    if options.Max == true
+        ylabel( strcat('max(', label, ') ', unit) )
+    else
+        ylabel( strcat(label, ' ', unit) );
+    end
     % set the legend of the plot
-    if options.Value == true && options.integrate == true
+    if options.Size == true
+        labels = strcat('N=',cellstr(num2str(values.')));
+    elseif options.Value == true && options.integrate == true
         labels = strcat('V=',cellstr(num2str(values.')));
     elseif options.Value == true && options.integrate == false
         labels = strcat('\omega=',cellstr(num2str(values.')));
     elseif options.Spectrum == true
         labels = strcat('\Delta\theta=',cellstr(num2str(values.')));
         labels = cellfun(@(x) [x,'\pi'], labels, 'uniform',false);
-    elseif options.Size == true
-        labels = strcat('N=',cellstr(num2str(values.')));
+    elseif options.etas == true
+        labels = {'Transmission'; 'Torque'; 'Angular Momentum'};
     end
-    legend(labels, 'Location','northoutside', 'NumColumns', 2);%, 'Interpreter','latex');
+    if options.Max == false
+        legend(labels, 'Location','northoutside', 'NumColumns', 2);%, 'Interpreter','latex');
+    end
 end
 
 function [] = setTicks (figure, angles, voltages, Data, options)
@@ -140,9 +167,13 @@ end
     if options.Spectrum == true || options.Size == true
         xMin = min(voltages);
         xMax = max(voltages);
-    elseif options.Value == true || options.Angles == true
+    elseif options.Value == true || options.Max == true || options.Angles == true
         xMin = min(angles);
         xMax = max(angles);
+    elseif options.Difference == true
+        etas = angles;
+        xMin = min(etas);
+        xMax = max(etas);
     end
     xlim([xMin, xMax])
     % set the limits of the y-axis
@@ -154,14 +185,16 @@ end
         yMinima(i) = min(Data{i});
     end
     yMax = 1.1*max(yMaxima);
-    if options.Transmission == true
+    if options.etas == true
+        yMin = 0;
+    elseif options.Transmission == true
         yMin = min(yMinima);
     else
         yMin = 1.1*min(yMinima);
     end
     ylim([yMin, yMax])
     % set the x-axis ticks
-    if options.Value == true
+    if options.Value == true || options.Max == true || options.Angles == true
         TickLabels = cellfun(@num2str , xticklabels, 'uniform',false);
         TickLabels = cellfun(@(x) [x,'\pi'], TickLabels, 'uniform',false);
         xticklabels(TickLabels)
@@ -225,6 +258,35 @@ function [fig] = plotValue2D (name, angles, voltages, Data)
     end
     hold off
     grid off
+end
+
+function [fig, Result] = plotMax2D (name, angles, voltages, Data)
+    Result = cell(1, 1);
+    TransPlot = zeros(1, length(angles));
+    for i = 1:length(angles)
+        TransPlot(i) = max(Data{i});
+    end
+    Result{1} = TransPlot;
+    % plot the data
+    fig = figure(Name=name);
+    hold on
+    plot(angles, TransPlot, linewidth=1);
+    hold off
+    grid off
+end
+
+%% plotting functions: eta
+function [fig] = plotDiff2D (name, etas, Transmission, Torque, Angular)
+    % plot the data
+    fig = figure(Name=name);
+    hold on
+    plot(etas, Transmission, linewidth=1);
+    plot(etas, Torque, linewidth=1);
+    plot(etas, Angular, linewidth=1);
+    hold off
+    grid off
+    xscale("log")
+    yscale("log")
 end
 
 %% plotting functions: 3D

@@ -34,6 +34,18 @@ assumptions(Energy)
 
 eta = sym("eta", "positive");
 
+%% Generate the surface Greens function
+GreensSurf = calcSurface(Energy, eta, hopping);
+
+function [GreensSimp] = calcSurface(w, eta, t)
+    z = w + 1j*eta;
+    factor = z/(2*t^2);
+    root = sqrt(1 - (4*t^2)/(z)^2);
+    rootSimp = simplify(root);
+    Greens = factor*(1-root);
+    GreensSimp = simplify(Greens);
+end
+
 %% Generate the total Hamiltonian of the System
 GreensFunc = sym("G");
 [totalSystem, gammaL, gammaR, totalSysDeriv] = makeSystem(Energy, sample, energySample, hoppingLead, hoppingsInter, hoppingsDeriv, Greens=GreensFunc);

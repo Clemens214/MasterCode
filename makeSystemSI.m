@@ -7,6 +7,7 @@ arguments
     hoppingsInter
     hoppingsDeriv = zeros(size(hoppingsInter))
     options.size = 1
+    options.eta = 1E-12
     options.check = false
     options.checkMore = false
 end
@@ -14,8 +15,8 @@ end
     sizeExtra = options.size;
     
     % compute the self-energies of the leads
-    [SigmaL, GreensL] = makeSigma (sizeSample, sizeExtra, Energy, hoppingLead, hoppingsInter, eigenenergy, left=true);
-    [SigmaR, GreensR] = makeSigma (sizeSample, sizeExtra, Energy, hoppingLead, hoppingsInter, eigenenergy, right=true);
+    [SigmaL, GreensL] = makeSigma (sizeSample, sizeExtra, Energy, hoppingLead, hoppingsInter, eigenenergy, eta=options.eta, left=true);
+    [SigmaR, GreensR] = makeSigma (sizeSample, sizeExtra, Energy, hoppingLead, hoppingsInter, eigenenergy, eta=options.eta, right=true);
 
     % generate the Hamiltonian of the total system
     totalHamiltonian = makeSystem(sample, sizeExtra, eigenenergy, hoppingsInter, hoppingLead);
@@ -132,12 +133,13 @@ arguments
     hoppingLead
     hoppingsInter
     eigenenergy
+    options.eta = 1E-12
     options.left = false
     options.right = false
 end
     sizeTotal = sizeSample + 2*sizeExtra;
     % return the self-energy matrix
-    [Sigma, GreensFunc] = CalcSigma(Energy, sizeExtra, hoppingLead, hoppingsInter, eigenenergy, left=options.left, right=options.right);
+    [Sigma, GreensFunc] = CalcSigma(Energy, sizeExtra, hoppingLead, hoppingsInter, eigenenergy, eta=options.eta, left=options.left, right=options.right);
     % place the self- energy matrix
     sizeSigma = length(Sigma);
     if options.left == true
@@ -159,6 +161,7 @@ arguments
     eigenenergy
     options.left = false
     options.right = false
+    options.eta = 1E-12
 end
     % calculate the self- energy
     if sizeExtra >= 1
@@ -169,7 +172,7 @@ end
         hoppings = hoppingsInter(2, :);
     end
     Sigma = zeros(length(hoppings), length(hoppings));
-    GreensFunc = CalcGreens(Energy, hoppingLead, eigenenergy);
+    GreensFunc = CalcGreens(Energy, hoppingLead, eigenenergy, eta=options.eta);
     for i = 1:length(hoppings)
         for j = 1:length(hoppings)
             Sigma(i, j) = hoppings(i) * GreensFunc * hoppings(j);

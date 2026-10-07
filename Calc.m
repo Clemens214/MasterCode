@@ -18,7 +18,6 @@ leadVals = struct('size', sizeLead, 'energy', energyLead, 'hopping', hoppingLead
 angleMax = 2;
 angleStep = 0.001;%1/8;
 anglesTick = makeList(angleMax, angleStep);
-anglesTick = 1/4;
 angles = pi*anglesTick;
 
 %variables for the Energies
@@ -33,41 +32,103 @@ voltageStep = 0.01;
 voltages = makeList(voltageMax, voltageStep);
 
 %% Calculation
-Transmission = cell(1, length(angles));
-Torquance = cell(1, length(angles));
-Angular = cell(1, length(angles));
-
-Sizes = [1, 2, 5, 10];
-for i = 1:length(Sizes)
-    if orderSample == 1
-        hoppingsInter = [hopping; hopping];
-        hoppingsDeriv = [0; 0];
-    elseif orderSample == 2
-        hoppingsInter = [cos(angles(1)), sin(angles(1)); 1, 0];
-                        % cos(angles(j)), sin(angles(j))];
-        hoppingsDeriv = [-1*sin(angles(1)), cos(angles(1)); 0, 0];
-                        % -1*sin(angles(j)), cos(angles(j))];
-    end
-    
-    % compute the Hamiltonian of the Sample
-    sample = makeSample(energySample, hoppingsSample, Sizes(i),  orderSample);
-    
-    % calculating the trace values
-    Transmission{i} = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
-    %Torquance{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv);
-    %Angular{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
-
-    disp(['Angle: ', num2str(Sizes(i)), ', i=', num2str(i)])
+if true
+[Transmission, Torquance, Angular] = calc(angles, Energies, sampleVals, leadVals);
+Plot('Transmission', anglesTick, Energies, Transmission, twoD=true, Max=true, Transmission=true)
+Plot('Torquance', anglesTick, Energies, Torquance, twoD=true, Max=true, Torque=true)
+Plot('Angular', anglesTick, Energies, Angular, twoD=true, Max=true, Angular=true)
 end
 
-%% plot
-Plot('Sizes', Sizes, Energies, Transmission, twoD=true, Size=true, Transmission=true)
-%Plot('Transmission', anglesTick, Energies, Transmission, twoD=true, Value=true, Transmission=true)
-%Plot('Torquance', anglesTick, Energies, Torquance, twoD=true, Value=true, Torque=true)
-%Plot('Angular', anglesTick, Energies, Angular, twoD=true, Value=true, Angular=true)
+if false
+    anglesTick = 1/4;
+    angles = pi*anglesTick;
+    Transmission = calcSizes(angles, Energies, sampleVals, leadVals);
+    Plot('Sizes', Sizes, Energies, Transmission, twoD=true, Size=true, Transmission=true)
+end
 disp('Test')
 
-%% Greens
+%% Calculating functions
+function [Transmission, Torquance, Angular] = calc(angles, Energies, sampleVals, leadVals)
+    Transmission = cell(1, length(angles));
+    Torquance = cell(1, length(angles));
+    Angular = cell(1, length(angles));
+    for i = 1:length(angles)
+        if sampleVals.order == 1
+            hoppingsInter = [1; 1];
+            hoppingsDeriv = [0; 0];
+        elseif sampleVals.order == 2
+            hoppingsInter = [cos(angles(i)), sin(angles(i)); 1, 0];
+                            %cos(angles(j)), sin(angles(j))];
+            hoppingsDeriv = [-1*sin(angles(i)), cos(angles(i)); 0, 0];
+                            %-1*sin(angles(j)), cos(angles(j))];
+        end
+        % compute the Hamiltonian of the Sample
+        sample = makeSample(sampleVals.energy, sampleVals.hopping, sampleVals.size, sampleVals.order);
+        % calculating the trace values
+        Transmission{i} = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
+        Torquance{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv);
+        Angular{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
+        disp(['Angle: ', num2str(angles(i)), ', i=', num2str(i)])
+    end
+end
+
+function [Results] = calcResult(angles, Energies, sampleVals, leadVals, options)
+arguments
+    angles 
+    Energies 
+    sampleVals 
+    leadVals 
+    options.Transmission = false
+    options.Torque = false
+    options.Angular = false
+end
+    Results = cell(1, length(angles));
+    for i = 1:length(angles)
+        if sampleVals.order == 1
+            hoppingsInter = [1; 1];
+            hoppingsDeriv = [0; 0];
+        elseif sampleVals.order == 2
+            hoppingsInter = [cos(angles(i)), sin(angles(i)); 1, 0];
+                            %cos(angles(j)), sin(angles(j))];
+            hoppingsDeriv = [-1*sin(angles(i)), cos(angles(i)); 0, 0];
+                            %-1*sin(angles(j)), cos(angles(j))];
+        end
+        % compute the Hamiltonian of the Sample
+        sample = makeSample(sampleVals.energy, sampleVals.hopping, sampleVals.size, sampleVals.order);
+        % calculating the trace values
+        if options.Transmission == true
+            Results{i} = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
+            disp(['Transmission; Angle: ', num2str(angles(i)), ', i=', num2str(i)])
+        elseif options.Torque == true
+            Results{i} = TorqueCalc(sample, Energies, sampleVals, leadVals, hoppingsInter, hoppingsDeriv);
+            disp(['Torque; Angle: ', num2str(angles(i)), ', i=', num2str(i)])
+        elseif options.Angular == true
+            Results{i} = AngularCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
+            disp(['Angular; Angle: ', num2str(angles(i)), ', i=', num2str(i)])
+        end
+    end
+end
+
+function [Transmission] = calcSizes(angle, Energies, sampleVals, leadVals)
+    Sizes = [1, 2, 5, 10];
+    % calculate the transmission for different sizes
+    Transmission = cell(1, length(Sizes));
+    for i = 1:length(Sizes)
+        if sampleVals.order == 1
+            hoppingsInter = [1; 1];
+        elseif sampleVals.order == 2
+            hoppingsInter = [cos(angle), sin(angle); 1, 0];
+                            %cos(angles(j)), sin(angles(j))];
+        end
+        % compute the Hamiltonian of the Sample
+        sample = makeSample(sampleVals.energy, sampleVals.hopping, Sizes(i), sampleVals.order);
+        % calculating the trace values
+        Transmission{i} = TransCalc(sample, Energies, sampleVals, leadVals, hoppingsInter);
+        disp(['N = ', num2str(Sizes(i)), ', i=', num2str(i)])
+    end
+end
+
+%% Greens function
 if false
     if orderSample == 1
         hoppingsInter = [hopping; hopping];
@@ -95,13 +156,6 @@ function [] = plotGreens(name, Energies, Greens)
     plot(Energies, real(Greens), linewidth=1);
     plot(Energies, imag(Greens), linewidth=1);
     hold off
-end
-
-%% chemPots
-function [totalSysDeriv] = makeDeriv(sizeSample, orderSample, sizeLead, hoppingsDeriv)
-    sampleDeriv = zeros(sizeSample*orderSample, sizeSample*orderSample);
-    hoppingDeriv = 0;
-    [totalSysDeriv, ~, ~] = makeSystemEM(sampleDeriv, sizeSample, orderSample, sizeLead, hoppingDeriv, hoppingsDeriv, maxVal=0, check=false);
 end
 
 %% helping functions

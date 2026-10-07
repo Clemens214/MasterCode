@@ -9,6 +9,7 @@ arguments
     mode.EM = false
     mode.SI = true
     options.linearResponse = true
+    options.eta = 1E-12
 end
     if mode.EM == true
         disp('Using the extended molecule formalism.')
@@ -28,10 +29,10 @@ end
     %disp('Starting calculation of the transmission.')
     if options.linearResponse == true
         Energies = voltages;
-        Results = Transmission(Energies, totalSystem, gammaL, gammaR, hoppingsInter, mode);
+        Results = Transmission(Energies, totalSystem, gammaL, gammaR, hoppingsInter, mode, eta=options.eta);
     elseif options.linearResponse == false
         chemPots = setupPots(voltages);
-        [Results, values, Energies] = integrate(chemPots, totalSystem, gammaL, gammaR, hoppingsInter, mode);
+        [Results, values, Energies] = integrate(chemPots, totalSystem, gammaL, gammaR, hoppingsInter, mode, eta=options.eta);
         varargout{1} = values;
         varargout{2} = Energies;
     end
@@ -56,6 +57,7 @@ arguments
     gammaR
     hoppingsInter
     mode
+    options.eta = 1E-12
     options.stepMult = 10
     options.stepMin = 0.05
 end
@@ -72,7 +74,7 @@ end
 
     % calculate the transmissions
     evalPoints = makeList(max(Energies), min(Energies), stepSize);
-    values = Transmission(evalPoints, totalSystem, gammaL, gammaR, hoppingsInter, mode);
+    values = Transmission(evalPoints, totalSystem, gammaL, gammaR, hoppingsInter, mode, eta=options.eta);
 
     % calculate the integrals
     Results = zeros(1, length(chemPots));
@@ -113,7 +115,7 @@ end
 end
 
 %% total transmission in the linear transport approximation
-function [Results] = Transmission(Energies, sample, gammaL_EM, gammaR_EM, hoppingsInter, mode)
+function [Results] = Transmission(Energies, sample, gammaL_EM, gammaR_EM, hoppingsInter, mode, options)
     %calculates the transport through a molecule in the linear transport approximation
     arguments
         Energies
@@ -122,6 +124,7 @@ function [Results] = Transmission(Energies, sample, gammaL_EM, gammaR_EM, hoppin
         gammaR_EM
         hoppingsInter
         mode
+        options.eta = 1E-12
     end
     % calculate the transport matrix and the trace
     Traces = zeros(1, length(Energies));
@@ -129,13 +132,13 @@ function [Results] = Transmission(Energies, sample, gammaL_EM, gammaR_EM, hoppin
         if mode.SI == true
             eigenenergy = mode.energy;
             hoppingLead = mode.hopping;
-            [totalSystem, gammaL, gammaR] = makeSystemSI(Energies(i), sample, eigenenergy, hoppingLead, hoppingsInter);
+            [totalSystem, gammaL, gammaR] = makeSystemSI(Energies(i), sample, eigenenergy, hoppingLead, hoppingsInter, eta=options.eta);
         elseif mode.EM == true
             totalSystem = sample;
             gammaL = gammaL_EM;
             gammaR = gammaR_EM;
         end
-        Matrix = TransmissionMatrix(Energies(i), totalSystem, gammaL, gammaR);
+        Matrix = TransmissionMatrix(Energies(i), totalSystem, gammaL, gammaR, eta=options.eta);
         Traces(i) = trace(real(Matrix));
     end
     % return the results

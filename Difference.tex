@@ -1,0 +1,59 @@
+% This file was created by matlab2tikz.
+%
+%The latest updates can be retrieved from
+%  http://www.mathworks.com/matlabcentral/fileexchange/22022-matlab2tikz-matlab2tikz
+%where you can also make suggestions and rate matlab2tikz.
+%
+\definecolor{mycolor1}{rgb}{0.12941,0.12941,0.12941}%
+%
+\begin{tikzpicture}
+
+\begin{axis}[%
+width=4.433in,
+height=4.227in,
+at={(0.744in,0.571in)},
+scale only axis,
+xmode=log,
+xmin=1e-16,
+xmax=1e-06,
+xminorticks=true,
+xlabel style={font=\color{mycolor1}},
+xlabel={$\eta$},
+ymode=log,
+ymin=0,
+ymax=1.77109949609733,
+yminorticks=true,
+ylabel style={font=\color{mycolor1}},
+ylabel={Difference},
+axis background/.style={fill=white},
+axis x line*=bottom,
+axis y line*=left,
+legend style={at={(0.5,1.03)}, anchor=south, legend cell align=left, align=left}
+]
+\addplot [color=blue, line width=1.0pt]
+  table[row sep=crcr]{%
+1e-14	1.26670451905397e-10\\
+1e-12	1.27917735293081e-08\\
+1e-08	0.000127900105060697\\
+1e-06	0.170110719200639\\
+};
+\addlegendentry{Transmission}
+
+\addplot [color=red, line width=1.0pt]
+  table[row sep=crcr]{%
+1e-14	2.67295696687597e-09\\
+1e-12	2.70229921994769e-07\\
+1e-06	0.268395165991078\\
+};
+\addlegendentry{Torque}
+
+\addplot [color=green, line width=1.0pt]
+  table[row sep=crcr]{%
+1e-14	1.60348037070434e-08\\
+1e-12	1.62109419932222e-06\\
+1e-06	1.61009045099758\\
+};
+\addlegendentry{Angular Momentum}
+
+\end{axis}
+\end{tikzpicture}%
