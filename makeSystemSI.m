@@ -22,8 +22,9 @@ end
     totalSystem = totalHamiltonian + SigmaL + SigmaR;
     
     % compute the coupling strengths of the leads
-    GammaL = -1j*(SigmaL - SigmaL');
-    GammaR = -1j*(SigmaR - SigmaR');
+    % Gamma = i (Sigma^R - Sigma^A) >= 0, with the retarded Sigma from CalcGreens
+    GammaL = 1j*(SigmaL - SigmaL');
+    GammaR = 1j*(SigmaR - SigmaR');
     
     % check the results
     if options.check == true
@@ -187,15 +188,16 @@ arguments
 end
     eta = options.eta;
     % calculate parts of the Greens function
+    % sqrt(z-2|t|)*sqrt(z+2|t|) selects the retarded branch, Im(g) <= 0,
+    % for all real energies (and |g| <= 1/|t| outside the band)
     val = w - eig + 1j*eta;
-    factor = val/(2*t^2);
-    root = sqrt(1-( 4*t^2/val^2 ));
+    root = sqrt(val - 2*abs(t)) * sqrt(val + 2*abs(t));
     % calculate the final Greens function elements
-    G_plus = factor*(1 + root);
-    G_minus = factor*(1 - root);
+    G_ret = (val - root)/(2*t^2);   % retarded surface Green's function
+    G_other = (val + root)/(2*t^2); % second (unphysical) root
     % return the results
-    Result = real(G_minus) + -1j*imag(G_minus);
-    varargout{1} = G_plus;
+    Result = G_ret;
+    varargout{1} = G_other;
 end
 
 %% checking functions

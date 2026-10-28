@@ -14,6 +14,7 @@ arguments
     mode.EM = false
     mode.SI = true
     options.linearResponse = true
+    options.gate = 0       % mu_L = gate + V/2, mu_R = gate - V/2
 end
     if mode.EM == true
         disp('Using the extended molecule formalism.')
@@ -23,7 +24,7 @@ end
         hoppingLead = leadVals.hopping;
         [totalSystem, gammaL, gammaR, totalSysDeriv] = makeSystemEM(sample, sizeSample, orderSample, sizeLead, hoppingLead, hoppingsInter, hoppingsDeriv);
     elseif mode.SI == true
-        disp('Using semi-infinite leads.')
+        %disp('Using semi-infinite leads.')
         totalSystem = sample;
         totalSysDeriv = zeros(size(sample));
         gammaL = zeros(size(sample));
@@ -46,7 +47,7 @@ end
             Results = ResultsL + ResultsR;
         end
     elseif options.linearResponse == false
-        chemPots = setupPots(voltages);
+        chemPots = setupPots(voltages, options.gate);
         if choice.conservative == true || choice.nonconservative == true || choice.left == true || choice.right == true
             [Results, values, Energies] = integrate(chemPots, totalSystem, totalSysDeriv, gammaL, gammaR, hoppingsInter, hoppingsDeriv, choice, mode);
         else
@@ -65,11 +66,15 @@ end
     %disp('Finished calculation of the torque.')
 end
 
-function [chemPots] = setupPots(voltages)
+function [chemPots] = setupPots(voltages, gate)
+    arguments
+        voltages
+        gate = 0
+    end
     chemPots = struct('left', [], 'right', []);
     for j = 1:length(voltages)
-        chemPotL = voltages(j)/2;
-        chemPotR = -1*voltages(j)/2;
+        chemPotL = gate + voltages(j)/2;
+        chemPotR = gate - voltages(j)/2;
         chemPots(j) = struct('left', chemPotL, 'right', chemPotR);
     end
 end
@@ -195,6 +200,8 @@ function [Results] = Torque(Energies, sample, totalSysDeriv_EM, gammaL_EM, gamma
             eigenenergy = mode.energy;
             hoppingLead = mode.hopping;
             [totalSystem, gammaL, gammaR, totalSysDeriv] = makeSystemSI(Energies(i), sample, eigenenergy, hoppingLead, hoppingsInter, hoppingsDeriv);
+            % torque operator tau = -dH/dtheta (hoppingsDeriv holds +dt/dtheta)
+            totalSysDeriv = -totalSysDeriv;
         elseif mode.EM == true
             totalSystem = sample;
             totalSysDeriv = totalSysDeriv_EM
