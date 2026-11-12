@@ -10,18 +10,18 @@
 
 \begin{axis}[%
 width=4.433in,
-height=4.227in,
-at={(0.744in,0.571in)},
+height=4.219in,
+at={(0.744in,0.569in)},
 scale only axis,
 xmode=log,
 xmin=1e-16,
 xmax=1e-06,
 xminorticks=true,
 xlabel style={font=\color{mycolor1}},
-xlabel={$\eta$},
+xlabel={$\eta\text{ [$|$t$|$]}$},
 ymode=log,
 ymin=0,
-ymax=1.77109949609733,
+ymax=1.77087458205241,
 yminorticks=true,
 ylabel style={font=\color{mycolor1}},
 ylabel={Difference},
@@ -32,26 +32,30 @@ legend style={at={(0.5,1.03)}, anchor=south, legend cell align=left, align=left}
 ]
 \addplot [color=blue, line width=1.0pt]
   table[row sep=crcr]{%
-1e-14	1.26670451905397e-10\\
-1e-12	1.27917735293081e-08\\
-1e-08	0.000127900105060697\\
-1e-06	0.170110719200639\\
+1e-15	1.15141229883875e-11\\
+1e-14	1.2665568593917e-10\\
+1e-12	1.27905990243704e-08\\
+1e-08	0.000127885076716461\\
+1e-07	0.0043024154499045\\
+1e-06	0.170110834611658\\
 };
 \addlegendentry{Transmission}
 
 \addplot [color=red, line width=1.0pt]
   table[row sep=crcr]{%
-1e-14	2.67295696687597e-09\\
-1e-12	2.70229921994769e-07\\
-1e-06	0.268395165991078\\
+1e-15	2.40852671140602e-10\\
+1e-14	2.67274558041209e-09\\
+1e-12	2.70208341035527e-07\\
+1e-06	0.268375386905831\\
 };
 \addlegendentry{Torque}
 
 \addplot [color=green, line width=1.0pt]
   table[row sep=crcr]{%
-1e-14	1.60348037070434e-08\\
-1e-12	1.62109419932222e-06\\
-1e-06	1.61009045099758\\
+1e-15	1.4447323337663e-09\\
+1e-14	1.60326862896909e-08\\
+1e-12	1.62088008437422e-06\\
+1e-06	1.60988598368401\\
 };
 \addlegendentry{Angular Momentum}
 

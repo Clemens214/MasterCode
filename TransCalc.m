@@ -9,7 +9,7 @@ arguments
     mode.EM = false
     mode.SI = true
     options.linearResponse = true
-    options.eta = 1E-12
+    options.eta = 1E-16
 end
     if mode.EM == true
         disp('Using the extended molecule formalism.')
@@ -57,7 +57,7 @@ arguments
     gammaR
     hoppingsInter
     mode
-    options.eta = 1E-12
+    options.eta = 1E-16
     options.stepMult = 10
     options.stepMin = 0.05
 end
@@ -124,15 +124,15 @@ function [Results] = Transmission(Energies, sample, gammaL_EM, gammaR_EM, hoppin
         gammaR_EM
         hoppingsInter
         mode
-        options.eta = 1E-12
+        options.eta = 1E-16
     end
     % calculate the transport matrix and the trace
     Traces = zeros(1, length(Energies));
-    parfor i = 1:length(Energies)
+    for i = 1:length(Energies)
         if mode.SI == true
             eigenenergy = mode.energy;
             hoppingLead = mode.hopping;
-            [totalSystem, gammaL, gammaR] = makeSystemSI(Energies(i), sample, eigenenergy, hoppingLead, hoppingsInter, eta=options.eta);
+            [totalSystem, gammaL, gammaR] = makeSystemSI(Energies(i), sample, eigenenergy, hoppingLead, hoppingsInter);
         elseif mode.EM == true
             totalSystem = sample;
             gammaL = gammaL_EM;
@@ -151,7 +151,7 @@ arguments
     totalSystem
     gammaL
     gammaR
-    options.eta = 1E-12
+    options.eta = 1E-16
 end
     eta = 1j*options.eta;
     % GreensFunc * gammaL * GreensFunc' * gammaR
@@ -173,7 +173,7 @@ arguments
     totalSystem
     gammaL
     gammaR
-    options.eta = 1E-12
+    options.eta = 1E-16
 end
     eta = 1j*options.eta;
     % GreensFunc * gammaL * GreensFunc' * gammaR

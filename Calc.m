@@ -15,16 +15,15 @@ hoppingLead = hopping;
 leadVals = struct('size', sizeLead, 'energy', energyLead, 'hopping', hoppingLead);
 
 % variables for the hopping
-angleMax = 2;
-angleStep = 0.001;%1/8;
+angleMax = 0.5;
+angleStep = 0.1;
 anglesTick = makeList(angleMax, angleStep);
 angles = pi*anglesTick;
 
 %variables for the Energies
-EnergyMax = 2.1;
+EnergyMax = 2;
 EnergyStep = 0.001;
 Energies = makeList(EnergyMax, EnergyStep, full=true);
-%Energies = makeList(EnergyMax, EnergyStep, full=false);
 
 %variables for the voltages
 voltageMax = 2*EnergyMax;
@@ -34,9 +33,9 @@ voltages = makeList(voltageMax, voltageStep);
 %% Calculation
 if true
 [Transmission, Torquance, Angular] = calc(angles, Energies, sampleVals, leadVals);
-Plot('Transmission', anglesTick, Energies, Transmission, twoD=true, Max=true, Transmission=true)
-Plot('Torquance', anglesTick, Energies, Torquance, twoD=true, Max=true, Torque=true)
-Plot('Angular', anglesTick, Energies, Angular, twoD=true, Max=true, Angular=true)
+Plot('Transmission', anglesTick, Energies, Transmission, twoD=true, Spectrum=true, Transmission=true)
+Plot('Torquance', anglesTick, Energies, Torquance, twoD=true, Spectrum=true, Torque=true)
+Plot('Angular', anglesTick, Energies, Angular, twoD=true, Spectrum=true, Angular=true)
 end
 
 if false
@@ -90,7 +89,7 @@ end
         elseif sampleVals.order == 2
             hoppingsInter = [cos(angles(i)), sin(angles(i)); 1, 0];
                             %cos(angles(j)), sin(angles(j))];
-            hoppingsDeriv = [-1*sin(angles(i)), cos(angles(i)); 0, 0];
+            hoppingsDeriv = [-1*sin(angles(i)), cos(angles(i)); 0, 1];
                             %-1*sin(angles(j)), cos(angles(j))];
         end
         % compute the Hamiltonian of the Sample
@@ -135,7 +134,7 @@ if false
         hoppingsDeriv = [0; 0];
     elseif orderSample == 2
         hoppingsInter = [1, 0; 1, 0];
-        hoppingsDeriv = [0, 1; 0, 0];
+        hoppingsDeriv = [0, 1; 0, 1];
     end
     % compute the Hamiltonian of the Sample
     sample = makeSample(energySample, hoppingsSample, sizeSample,  orderSample);

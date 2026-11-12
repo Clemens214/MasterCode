@@ -13,7 +13,7 @@ arguments
     mode.EM = false
     mode.SI = true
     options.linearResponse = true
-    options.eta = 1E-12
+    options.eta = 1E-16
 end
     orderSample = sampleVals.order;
     if mode.EM == true
@@ -211,15 +211,15 @@ arguments
     hoppingsInter
     choice
     mode
-    options.eta = 1E-12
+    options.eta = 1E-16
 end
     % calculate the transport matrix and the trace
     Traces = zeros(1, length(Energies));
-    parfor i = 1:length(Energies)
+    for i = 1:length(Energies)
         if mode.SI == true
             eigenenergy = mode.energy;
             hoppingLead = mode.hopping;
-            [totalSystem, gammaL, gammaR] = makeSystemSI(Energies(i), sample, eigenenergy, hoppingLead, hoppingsInter, eta=options.eta);
+            [totalSystem, gammaL, gammaR] = makeSystemSI(Energies(i), sample, eigenenergy, hoppingLead, hoppingsInter);
             sizeExtra = (size(totalSystem) - size(sample))/2;
             operator = AngularOperator(length(totalSystem), sizeExtra(1));
         elseif mode.EM == true
@@ -241,7 +241,7 @@ arguments
     operator
     totalSystem
     midFactor
-    options.eta = 1E-12
+    options.eta = 1E-16
 end
     eta = 1j*options.eta;
     % operator * GreensFunc * midFactor * GreensFunc'
@@ -263,7 +263,7 @@ arguments
     operator
     totalSystem
     midFactor
-    options.eta = 1E-12
+    options.eta = 1E-16
 end
     eta = 1j*options.eta;
     % operator * GreensFunc * midFactor * GreensFunc'
@@ -353,7 +353,7 @@ arguments
     gammaL
     gammaR
     choice
-    options.eta = 1E-12
+    options.eta = 1E-16
 end
     if choice.conservative == true || choice.nonconservative == true || choice.left == true || choice.right == true
         if choice.conservative == true

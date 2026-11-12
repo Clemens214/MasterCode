@@ -14,7 +14,7 @@ arguments
     mode.EM = false
     mode.SI = true
     options.linearResponse = true
-    options.eta = 1E-12
+    options.eta = 1E-16
 end
     if mode.EM == true
         disp('Using the extended molecule formalism.')
@@ -111,7 +111,7 @@ arguments
     hoppingsDeriv
     choice
     mode
-    options.eta = 1E-12
+    options.eta = 1E-16
     options.stepMult = 10
     options.stepMin = 0.05
     options.minVal = -3
@@ -189,7 +189,7 @@ function [Results] = Torque(Energies, sample, totalSysDeriv_EM, gammaL_EM, gamma
         hoppingsDeriv
         choice
         mode
-        options.eta = 1E-12
+        options.eta = 1E-16
     end
     % calculate the torque matrix and the trace
     Traces = zeros(1, length(Energies));
@@ -197,37 +197,38 @@ function [Results] = Torque(Energies, sample, totalSysDeriv_EM, gammaL_EM, gamma
         if mode.SI == true
             eigenenergy = mode.energy;
             hoppingLead = mode.hopping;
-            [totalSystem, gammaL, gammaR, totalSysDeriv] = makeSystemSI(Energies(i), sample, eigenenergy, hoppingLead, hoppingsInter, hoppingsDeriv, eta=options.eta);
+            [totalSystem, gammaL, gammaR, totalSysDeriv] = makeSystemSI(Energies(i), sample, eigenenergy, hoppingLead, hoppingsInter, hoppingsDeriv);
         elseif mode.EM == true
             totalSystem = sample;
             totalSysDeriv = totalSysDeriv_EM;
             gammaL = gammaL_EM;
             gammaR = gammaR_EM;
         end
-        Matrix = choiceLin(Energies(i), totalSystem, totalSysDeriv, gammaL, gammaR, choice, eta=options.eta);
+        TorqueOp = -1*totalSysDeriv;
+        Matrix = choiceLin(Energies(i), totalSystem, TorqueOp, gammaL, gammaR, choice, eta=options.eta);
         Traces(i) = trace(real(Matrix))/(2*pi);
     end
     % return the results
     Results = Traces;
 end
 
-function [Result] = TorqueMatrix(Energy, totalSystem, totalSysDeriv, midFactor, options)
+function [Result] = TorqueMatrix(Energy, totalSystem, TorqueOp, midFactor, options)
 arguments
     Energy
     totalSystem
-    totalSysDeriv
+    TorqueOp
     midFactor
-    options.eta = 1E-12
+    options.eta = 1E-16
 end
     eta = 1j*options.eta;
     % totalSysDeriv * GreensFunc * midFactor * GreensFunc'
     GreensInv = (Energy+eta)*eye(length(totalSystem)) - totalSystem;
     GreensFunc = inv(GreensInv);
     % calculate the torque matrix
-    Result = totalSysDeriv * GreensFunc * midFactor * GreensFunc';
+    Result = TorqueOp * GreensFunc * midFactor * GreensFunc';
 end
 
-function [Result] = TorqueAlt(Energy, totalSystem, totalSysDeriv, midFactor, options)
+function [Result] = TorqueAlt(Energy, totalSystem, TorqueOp, midFactor, options)
     % A*G*B*Gt
     % F = decomposition(GreensInv,'lu');
     % Y = F \ B;
@@ -237,9 +238,9 @@ function [Result] = TorqueAlt(Energy, totalSystem, totalSysDeriv, midFactor, opt
 arguments
     Energy
     totalSystem
-    totalSysDeriv
+    TorqueOp
     midFactor
-    options.eta = 1E-12
+    options.eta = 1E-16
 end
     eta = 1j*options.eta;
     % totalSysDeriv * GreensFunc * midFactor * GreensFunc'
@@ -247,7 +248,7 @@ end
     F = decomposition(GreensInv,'lu');    % create reusable factorization object
     
     Y = F \ midFactor;                     % solves Aw * Y = B
-    T = totalSysDeriv * Y;
+    T = TorqueOp * Y;
     Z = F' \ T;                    % solves Aw' * Z = T
     % t = trace(Z);
     Result = Z;
@@ -335,7 +336,7 @@ arguments
     gammaL
     gammaR
     choice
-    options.eta = 1E-12
+    options.eta = 1E-16
 end
     if choice.conservative == true || choice.nonconservative == true || choice.left == true || choice.right == true
         if choice.conservative == true

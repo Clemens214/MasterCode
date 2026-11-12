@@ -106,13 +106,13 @@ end
     end
     % set the x-label of the plot
     if options.Spectrum == true && options.integrate == true
-        xlabel('V [t]');
+        xlabel('V [|t|]');
     elseif options.Spectrum == true && options.integrate == false || options.Size == true
-        xlabel('\omega [t]');
+        xlabel('\omega [|t|]');
     elseif options.Value == true || options.Max == true
         xlabel('\Delta\theta');
     elseif options.etas == true
-        xlabel('\eta');
+        xlabel('\eta [|t|]');
     end
     % set the y-label of the plot
     if options.Transmission == true

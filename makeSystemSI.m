@@ -7,7 +7,7 @@ arguments
     hoppingsInter
     hoppingsDeriv = zeros(size(hoppingsInter))
     options.size = 1
-    options.eta = 1E-12
+    options.eta = 0
     options.check = false
     options.checkMore = false
 end
@@ -23,8 +23,8 @@ end
     totalSystem = totalHamiltonian + SigmaL + SigmaR;
     
     % compute the coupling strengths of the leads
-    GammaL = -1j*(SigmaL - SigmaL');
-    GammaR = -1j*(SigmaR - SigmaR');
+    GammaL = 1j*(SigmaL - SigmaL');
+    GammaR = 1j*(SigmaR - SigmaR');
     
     % check the results
     if options.check == true
@@ -133,7 +133,7 @@ arguments
     hoppingLead
     hoppingsInter
     eigenenergy
-    options.eta = 1E-12
+    options.eta = 0
     options.left = false
     options.right = false
 end
@@ -161,7 +161,7 @@ arguments
     eigenenergy
     options.left = false
     options.right = false
-    options.eta = 1E-12
+    options.eta = 0
 end
     % calculate the self- energy
     if sizeExtra >= 1
@@ -186,7 +186,7 @@ arguments
     w
     t
     eig
-    options.eta = 1E-12
+    options.eta = 0
 end
     eta = options.eta;
     % calculate parts of the Greens function
@@ -196,9 +196,9 @@ end
     % calculate the final Greens function elements
     G_minus = factor*(1 - root);
     G_plus = factor*(1 + root);
-    % return the results
-    Result = G_minus;
-    varargout{1} = G_plus;
+    % return the results and ensure a negative imaginary part
+    Result = real(G_minus) - 1j*abs(imag(G_minus));
+    varargout{1} = real(G_plus) - 1j*abs(imag(G_plus));
 end
 
 %% checking functions

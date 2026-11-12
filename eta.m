@@ -18,29 +18,34 @@ leadVals = struct('size', sizeLead, 'energy', energyLead, 'hopping', hoppingLead
 angleMax = 2;
 angleStep = 0.001;
 anglesTick = makeList(angleMax, angleStep);
+angelsTick = 1/4;
 angles = pi*anglesTick;
 
 %variables for the Energies
 EnergyStep = 0.001;
-EnergyMax = 2-EnergyStep;
+EnergyMax = 2;
 Energies = makeList(EnergyMax, EnergyStep, full=true);
 %Energies = makeList(EnergyMax, EnergyStep, full=false);
 
-%variables for the voltages
-voltageMax = 2*EnergyMax;
-voltageStep = 0.01;
-voltages = makeList(voltageMax, voltageStep);
-
 etaMax = 1E-6;
 etaMin = 0;
-etas = [1E-16, 1E-14, 1E-12, 1E-10, 1E-8, 1E-6];
+etas = [1E-16, 1E-15, 1E-14, 1E-13, 1E-12, 1E-11, 1E-10, 1E-9, 1E-8, 1E-7, 1E-6];
+
+Ts = makeList(1, 0.1);
 
 %% Calculation
 Transmissions = cell(1, length(etas));
 Torques = cell(1, length(etas));
 Angulars = cell(1, length(etas));
-for i = 1:length(etas)
-    [Transmissions{i}, Torques{i}, Angulars{i}] = calc(angles, Energies, sampleVals, leadVals, etas(i));
+for i = 1:length(Ts)
+    %[Transmissions{i}, Torques{i}, Angulars{i}] = calc(angles, Energies, sampleVals, leadVals, etas(i));
+end
+
+Transmissions = cell(1, length(Ts));
+Torques = cell(1, length(Ts));
+Angulars = cell(1, length(Ts));
+for i = 1:length(Ts)
+    %[Transmissions{i}, Torques{i}, Angulars{i}] = calc(angles, Energies, sampleVals, leadVals);
 end
 
 %% Difference calculation
@@ -58,7 +63,12 @@ if true
 end
 
 %% plot
-Plot('Difference', etas, Energies, Data, twoD=true, eta=true, Difference=true)
+etasPlot = etas(1:end);
+TransPlot = TransDiffs(1:end); 
+TorquePlot = TorqueDiffs(1:end); 
+AngularPlot = AngularDiffs(1:end); 
+DataPlot = {TransPlot, TorquePlot, AngularPlot};
+Plot('Difference', etasPlot, Energies, DataPlot, twoD=true, eta=true, Difference=true)
 
 %% Calculating functions
 function [Transmission, Torquance, Angular] = calc(angles, Energies, sampleVals, leadVals, eta)
@@ -117,6 +127,36 @@ end
         Result = max(maxRel);
         varargout{1} = relDiffs;
     end
+end
+
+%% Greens function
+if false
+    if orderSample == 1
+        hoppingsInter = [hopping; hopping];
+        hoppingsDeriv = [0; 0];
+    elseif orderSample == 2
+        hoppingsInter = [1, 0; 1, 0];
+        hoppingsDeriv = [0, 1; 0, 0];
+    end
+    % compute the Hamiltonian of the Sample
+    sample = makeSample(energySample, hoppingsSample, sizeSample,  orderSample);
+    % calculate the surface Green's function
+    GreensL = zeros(1, length(Energies));
+    GreensR = zeros(1, length(Energies));
+    for j = 1:length(Energies)
+        [~, ~, ~, ~, ~, ~, GreensL(j), GreensR(j)] = makeSystemSI (Energies(j), sample, 0, hoppingLead, hoppingsInter, hoppingsDeriv, eta=0);
+    end
+    % plot the surface Green's function
+    plotGreens('GreensL', Energies, GreensL)
+    %plotGreens('GreensR', Energies, GreensR)
+end
+
+function [] = plotGreens(name, Energies, Greens)
+    fig = figure(Name=name);
+    hold on
+    plot(Energies, real(Greens), linewidth=1);
+    plot(Energies, imag(Greens), linewidth=1);
+    hold off
 end
 
 %% helping functions
